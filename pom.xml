@@ -30,6 +30,7 @@
   </scm>
   <properties>
     <maven.compiler.release>25</maven.compiler.release>
+    <project.build.directory>target</project.build.directory>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.deploy.skip>true</maven.deploy.skip>
     <gpg.skip>true</gpg.skip>
@@ -51,6 +52,7 @@
     </dependency>
   </dependencies>
   <build>
+    <directory>${project.build.directory}</directory>
     <sourceDirectory>bindings/java/main</sourceDirectory>
     <testSourceDirectory>bindings/java/test</testSourceDirectory>
     <pluginManagement>

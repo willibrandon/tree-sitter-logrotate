@@ -7,9 +7,11 @@
   "remoteUser": "vscode",
   "updateRemoteUserUID": true,
   "containerEnv": {
+    "CARGO_HOME": "/home/vscode/.cache/cargo",
     "CARGO_TARGET_DIR": "/workspaces/tree-sitter-logrotate/.devcontainer-output/target",
     "GOCACHE": "/home/vscode/.cache/go-build",
     "GOMODCACHE": "/home/vscode/.cache/go-mod",
+    "MAVEN_ARGS": "-Dmaven.repo.local=/home/vscode/.cache/maven -Dproject.build.directory=/workspaces/tree-sitter-logrotate/.devcontainer-output/maven",
     "PIP_CACHE_DIR": "/home/vscode/.cache/pip",
     "PYTHONPYCACHEPREFIX": "/workspaces/tree-sitter-logrotate/.devcontainer-output/python-cache",
     "TREE_SITTER_BUILD_DIR": "/workspaces/tree-sitter-logrotate/.devcontainer-output/build",
@@ -18,7 +20,6 @@
   "mounts": [
     "source=tree-sitter-logrotate-${devcontainerId}-node-modules,target=${containerWorkspaceFolder}/node_modules,type=volume",
     "source=tree-sitter-logrotate-${devcontainerId}-node-build,target=${containerWorkspaceFolder}/build,type=volume",
-    "source=tree-sitter-logrotate-${devcontainerId}-maven-target,target=${containerWorkspaceFolder}/target,type=volume",
     "source=tree-sitter-logrotate-${devcontainerId}-swift-build,target=${containerWorkspaceFolder}/.build,type=volume",
     "source=tree-sitter-logrotate-${devcontainerId}-python-venv,target=${containerWorkspaceFolder}/.venv,type=volume",
     "source=tree-sitter-logrotate-${devcontainerId}-zig-cache,target=${containerWorkspaceFolder}/.zig-cache,type=volume",

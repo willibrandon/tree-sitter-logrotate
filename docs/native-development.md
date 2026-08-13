@@ -4,7 +4,7 @@ The development container is the reference environment. A native installation is
 
 ## Required tools
 
-Install Node.js 24.19.0, npm 12.0.2, Tree-sitter 0.26.12, Java 25, CMake, Ninja, a C compiler, and Git. Native binding work also uses the language toolchain for that binding. WASM builds use the WASI SDK downloaded and verified by Tree-sitter. Emscripten is installed in the development container for downstream compatibility checks.
+Install Node.js 24.19.0, npm 12.0.2, Tree-sitter 0.26.12, Java 25, Maven 3.9.16, CMake, Ninja, a C compiler, and Git. Native binding work also uses the language toolchain for that binding. WASM builds use the WASI SDK downloaded and verified by Tree-sitter. Emscripten is installed in the development container for downstream compatibility checks.
 
 The reviewed logrotate source revision is recorded in `toolchains.json`. It is an analysis input, not a runtime dependency.
 
@@ -30,3 +30,5 @@ Set `TREE_SITTER_BUILD_DIR` to place native and WASM artifacts outside the repos
 ## Java binding
 
 The Java binding requires Java 25 because it uses the finalized Foreign Function & Memory API. Maven configures a Ninja build in `target/native`, compiles the grammar and Tree-sitter runtime as shared libraries, then runs the JUnit binding test with that isolated library path.
+
+Inside the development container, `MAVEN_ARGS` relocates the complete Maven build directory beneath `.devcontainer-output`. This permits `mvn clean test` to delete and recreate its build directory without writing native artifacts into the host worktree.

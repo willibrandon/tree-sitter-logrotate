@@ -26,16 +26,18 @@ ARG NODE_VERSION=24.19.0
 ARG NPM_VERSION=12.0.2
 ARG TREE_SITTER_VERSION=0.26.12
 ARG LLVM_VERSION=21.0.0
+ARG MAVEN_VERSION=3.9.16
+ARG MAVEN_SHA512=831a8591fe20c8243b1dbe7d71e3244f31d1665b0804b2e825e38cbbe5ce0cafb8338851f90780735568773e0a6cd07bbec107cda0b896b008b861075358b6f6
 ARG LOGROTATE_REVISION=3be1e9ccffe0c2245ed596183c74913d553f9f18
 ARG LOGROTATE_VERSION=3.22.0.56_3be1
 ARG GH_VERSION=2.97.0
 ARG ZIG_VERSION=0.16.0
 ARG TARGETARCH
 
-ENV CARGO_HOME=/usr/local/cargo \
+ENV CARGO_HOME=/home/vscode/.cache/cargo \
     RUSTUP_HOME=/usr/local/rustup \
     JAVA_HOME=/opt/java/openjdk \
-    PATH=/opt/java/openjdk/bin:/usr/local/go/bin:/usr/local/cargo/bin:/opt/zig:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    PATH=/opt/maven/bin:/opt/java/openjdk/bin:/usr/local/go/bin:/usr/local/cargo/bin:/opt/zig:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 COPY --from=node_toolchain /usr/local/ /usr/local/
 COPY --from=go_toolchain /usr/local/go/ /usr/local/go/
@@ -47,6 +49,7 @@ COPY --from=swift_toolchain /usr/bin/ld.lld /usr/bin/
 COPY --from=swift_toolchain /usr/bin/lld* /usr/bin/
 COPY --from=swift_toolchain /usr/bin/llvm-* /usr/bin/
 COPY --from=swift_toolchain /usr/bin/swift* /usr/bin/
+COPY --from=swift_toolchain /usr/lib/clang/ /usr/lib/clang/
 COPY --from=swift_toolchain /usr/lib/swift/ /usr/lib/swift/
 COPY --from=swift_toolchain /usr/libexec/swift/ /usr/libexec/swift/
 
@@ -72,7 +75,6 @@ RUN apt-get update \
         libtool \
         libxml2-dev \
         make \
-        maven \
         ninja-build \
         openssh-client \
         pkg-config \
@@ -85,6 +87,13 @@ RUN apt-get update \
         uuid-dev \
         xz-utils \
     && rm -rf /var/lib/apt/lists/* \
+    && curl --fail --location --proto '=https' --tlsv1.2 \
+         "https://dlcdn.apache.org/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz" \
+         --output /tmp/maven.tar.gz \
+    && echo "${MAVEN_SHA512}  /tmp/maven.tar.gz" | sha512sum --check --strict \
+    && mkdir /opt/maven \
+    && tar --extract --gzip --strip-components=1 --file /tmp/maven.tar.gz --directory /opt/maven \
+    && rm /tmp/maven.tar.gz \
     && npm install --global --allow-scripts=tree-sitter-cli "tree-sitter-cli@${TREE_SITTER_VERSION}" \
     && git init --initial-branch=bootstrap /tmp/logrotate \
     && git -C /tmp/logrotate remote add origin https://github.com/logrotate/logrotate.git \
@@ -124,24 +133,27 @@ RUN apt-get update \
     && chmod 0440 /etc/sudoers.d/vscode \
     && install -d -o vscode -g vscode /home/vscode/.cache /home/vscode/.npm
 
+COPY --from=swift_toolchain /usr/lib/libIndexStore.so* /usr/lib/
+
 RUN node --version \
     && npm --version \
     && tree-sitter --version \
     && java -version \
+    && mvn --version \
     && logrotate --version \
     && clang --version \
     && test "$(node --version)" = "v${NODE_VERSION}" \
     && test "$(npm --version)" = "${NPM_VERSION}" \
     && test "$(tree-sitter --version)" = "tree-sitter ${TREE_SITTER_VERSION}" \
     && test "$(java -version 2>&1 | head -n 1 | cut -d'"' -f2 | cut -d. -f1)" = "25" \
+    && test "$(mvn --version | head -n 1 | cut -d' ' -f3)" = "${MAVEN_VERSION}" \
     && test "$(logrotate --version | head -n 1)" = "logrotate ${LOGROTATE_VERSION}" \
     && clang --version | grep --fixed-strings "clang version ${LLVM_VERSION}"
 
 RUN printf '%s\n' \
-      'export CARGO_HOME=/usr/local/cargo' \
       'export RUSTUP_HOME=/usr/local/rustup' \
       'export JAVA_HOME=/opt/java/openjdk' \
-      'export PATH=/opt/java/openjdk/bin:/usr/local/go/bin:/usr/local/cargo/bin:/opt/zig:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' \
+      'export PATH=/opt/maven/bin:/opt/java/openjdk/bin:/usr/local/go/bin:/usr/local/cargo/bin:/opt/zig:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' \
       >/etc/profile.d/tree-sitter-logrotate-toolchains.sh \
     && chmod 0644 /etc/profile.d/tree-sitter-logrotate-toolchains.sh
 

@@ -20,6 +20,8 @@ command -v zig >/dev/null
 
 bash -lc 'javac -version 2>&1' | grep --quiet '^javac 25\.'
 bash -lc 'command -v cargo >/dev/null && command -v rustc >/dev/null'
+mvn --version | head -1 | grep --quiet '^Apache Maven 3\.9\.16 '
 
 npm ci
 npm run verify
+mvn --batch-mode --no-transfer-progress clean test

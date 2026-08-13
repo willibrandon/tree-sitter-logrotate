@@ -16,7 +16,7 @@ See [.devcontainer/README.md](.devcontainer/README.md) for its security and stor
 
 ## Native setup
 
-The exact versions are Node.js 24.19.0, npm 12.0.2, Tree-sitter 0.26.12, and Java 25. Native parser builds require a C compiler and CMake with Ninja. WASM builds use Tree-sitter's current WASI SDK path; Emscripten remains supported for downstream compatibility work.
+The exact versions are Node.js 24.19.0, npm 12.0.2, Tree-sitter 0.26.12, Java 25, and Maven 3.9.16. Native parser builds require a C compiler and CMake with Ninja. WASM builds use Tree-sitter's current WASI SDK path; Emscripten remains supported for downstream compatibility work.
 
 ```sh
 nvm use

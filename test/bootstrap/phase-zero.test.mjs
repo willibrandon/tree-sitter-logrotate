@@ -12,6 +12,7 @@ const expectedVersion = "0.1.0";
 const expectedNodeVersion = "24.19.0";
 const expectedNpmVersion = "12.0.2";
 const expectedTreeSitterVersion = "0.26.12";
+const expectedMavenVersion = "3.9.16";
 const expectedUpstreamRevision = "3be1e9ccffe0c2245ed596183c74913d553f9f18";
 
 async function readRequired(path) {
@@ -444,12 +445,39 @@ test("development container is reproducible, credential-free, and isolates host 
     "native build output or dependency caches must live in a named volume",
   );
   assert.match(serialized, /TREE_SITTER_BUILD_DIR/u);
+  assert.match(serialized, /MAVEN_ARGS.*project\.build\.directory.*\.devcontainer-output\/maven/u);
+  assert.equal(
+    mounts.some((mount) => /target=[^,]*\/target(?:,|$)/u.test(mount)),
+    false,
+    "Maven target must not be a volume root because mvn clean deletes the directory",
+  );
   assert.doesNotMatch(serialized, /(?:GITHUB_TOKEN|GH_TOKEN|NPM_TOKEN|\.ssh|\.gnupg|docker\.sock)/iu);
   assert.doesNotMatch(dockerfile, /(?:GITHUB_TOKEN|GH_TOKEN|NPM_TOKEN|COPY\s+\.ssh|COPY\s+\.git)/iu);
 
   for (const excluded of [".git", ".env", "node_modules", "build", "target", ".cache", "*.pem", "*.key"]) {
     assert.match(dockerignore, new RegExp(`^${excluded.replaceAll(".", "\\.").replaceAll("*", ".*")}(?:/)?$`, "mu"));
   }
+});
+
+test("development container runs Maven clean with removable isolated output", async () => {
+  const dockerfile = await readRequired(".devcontainer/Dockerfile");
+  const pom = await readRequired("pom.xml");
+  const verification = await readRequired(".devcontainer/verify.sh");
+  const toolchains = await readJson("toolchains.json");
+
+  assert.equal(toolchains.maven, expectedMavenVersion);
+  assert.match(dockerfile, new RegExp(`^ARG\\s+MAVEN_VERSION=${escapeRegularExpression(expectedMavenVersion)}$`, "mu"));
+  assert.match(dockerfile, /^ARG\s+MAVEN_SHA512=[0-9a-f]{128}$/mu);
+  assert.match(pom, /<project\.build\.directory>target<\/project\.build\.directory>/u);
+  assert.match(pom, /<directory>\$\{project\.build\.directory\}<\/directory>/u);
+  assert.match(verification, /mvn\s+--batch-mode\s+--no-transfer-progress\s+clean\s+test/u);
+});
+
+test("development container includes the Swift compiler runtime used by tests", async () => {
+  const dockerfile = await readRequired(".devcontainer/Dockerfile");
+
+  assert.match(dockerfile, /COPY --from=swift_toolchain \/usr\/lib\/clang\/ \/usr\/lib\/clang\//u);
+  assert.match(dockerfile, /COPY --from=swift_toolchain \/usr\/lib\/libIndexStore\.so\* \/usr\/lib\//u);
 });
 
 test("Node binding installation preserves an isolated build mount", async () => {

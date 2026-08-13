@@ -1,6 +1,6 @@
 # Development container
 
-The container is the reference development environment for the grammar. Its base and language toolchain images are pinned by digest. Node.js 24.19.0, npm 12.0.2, Tree-sitter 0.26.12, LLVM 21, Rust, Go, Java 25, Swift, Zig, a C compiler, Emscripten, logrotate, GitHub CLI, jq, and shellcheck are installed.
+The container is the reference development environment for the grammar. Its base and language toolchain images are pinned by digest. Node.js 24.19.0, npm 12.0.2, Tree-sitter 0.26.12, LLVM 21, Rust, Go, Java 25, Maven 3.9.16, Swift, Zig, a C compiler, Emscripten, logrotate, GitHub CLI, jq, and shellcheck are installed.
 
 Open the repository in a dev-container capable editor. The post-create command runs `npm ci` and checks the tool versions. Run the complete Phase 0 verification with:
 

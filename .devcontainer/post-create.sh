@@ -6,7 +6,6 @@ workspace_root="$(git rev-parse --show-toplevel)"
 readonly workspace_root
 sudo chown -R "$(id --user):$(id --group)" \
   "$workspace_root/build" \
-  "$workspace_root/target" \
   "$workspace_root/.build" \
   "$workspace_root/.venv" \
   "$workspace_root/.zig-cache" \
@@ -27,6 +26,7 @@ clang --version | head -1
 rustc --version
 go version
 java -version
+mvn --version
 swift --version
 zig version
 logrotate --version
