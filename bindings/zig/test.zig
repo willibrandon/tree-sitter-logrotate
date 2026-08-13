@@ -5,7 +5,7 @@ const root = @import("tree-sitter-logrotate");
 const Language = ts.Language;
 const Parser = ts.Parser;
 
-test "can load grammar" {
+test "can parse a logrotate configuration" {
     const parser = Parser.create();
     defer parser.destroy();
 
@@ -14,4 +14,9 @@ test "can load grammar" {
 
     try testing.expectEqual(void{}, parser.setLanguage(lang));
     try testing.expectEqual(lang, parser.getLanguage());
+
+    const source = "/var/log/application.log {\n  rotate 7\n  compress\n}\n";
+    const tree = parser.parseString(source, null) orelse return error.ParseFailed;
+    defer tree.destroy();
+    try testing.expect(!tree.rootNode().hasError());
 }

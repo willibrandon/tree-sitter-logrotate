@@ -1,0 +1,31 @@
+==================
+Quoted and escaped arguments
+==================
+
+dateformat "-%Y-%m-%d # retained"
+compressoptions '-9 --rsyncable'
+mail root\ user@example.test
+extension .log=#literal
+
+---
+
+(source_file
+  (directive
+    (directive_name)
+    (directive_arguments
+      (argument
+        (quoted_argument))))
+  (directive
+    (directive_name)
+    (directive_arguments
+      (argument
+        (quoted_argument))))
+  (directive
+    (directive_name)
+    (directive_arguments
+      (argument
+        (escape_sequence))))
+  (directive
+    (directive_name)
+    (directive_arguments
+      (argument))))

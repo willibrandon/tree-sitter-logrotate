@@ -6,6 +6,8 @@
       "camelcase": "Logrotate",
       "title": "Logrotate",
       "scope": "source.logrotate",
+      "highlights": "queries/highlights.scm",
+      "injections": "queries/injections.scm",
       "file-types": [
         "logrotate.conf",
         "logrotate"
@@ -21,7 +23,6 @@
     "authors": [
       {
         "name": "Brandon Williams",
-        "email": "willibrandon@gmail.com",
         "url": "https://github.com/willibrandon"
       }
     ],

@@ -1,6 +1,13 @@
 name: Parser fuzzing
 
 on:
+  pull_request:
+    paths:
+      - grammar.js
+      - src/scanner.c
+      - test/corpus/**
+      - package.json
+      - package-lock.json
   schedule:
     - cron: "41 8 * * 6"
   workflow_dispatch:
@@ -22,7 +29,19 @@ jobs:
         with:
           node-version: 24.19.0
           cache: npm
-      - name: Fuzz parser
+      - name: Fuzz parser and external scanner
         run: |
           npm run ci:install
-          npm exec -- tree-sitter fuzz --iterations 10000
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            npm run test:fuzz:pr
+          else
+            npm run test:fuzz
+          fi
+      - name: Upload fuzz transcript and failing edits
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: logrotate-fuzz-reproduction-${{ github.run_id }}
+          path: build/fuzz
+          if-no-files-found: error
+          retention-days: 30

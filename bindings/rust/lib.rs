@@ -4,7 +4,7 @@
 //! tree-sitter [`Parser`], and then use the parser to parse some code:
 //!
 //! ```
-//! let code = "hello";
+//! let code = "/var/log/application.log {\n  rotate 7\n}\n";
 //! let mut parser = tree_sitter::Parser::new();
 //! let language = tree_sitter_logrotate::LANGUAGE;
 //! parser
@@ -50,10 +50,14 @@ pub const TAGS_QUERY: &str = include_str!("../../queries/tags.scm");
 #[cfg(test)]
 mod tests {
     #[test]
-    fn test_can_load_grammar() {
+    fn test_can_parse_logrotate_configuration() {
         let mut parser = tree_sitter::Parser::new();
         parser
             .set_language(&super::LANGUAGE.into())
             .expect("Error loading Logrotate parser");
+        let tree = parser
+            .parse("/var/log/application.log {\n  rotate 7\n  compress\n}\n", None)
+            .expect("Parser returned no tree");
+        assert!(!tree.root_node().has_error(), "{}", tree.root_node());
     }
 }

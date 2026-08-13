@@ -1,9 +1,0 @@
-==================
-Bootstrap document
-==================
-
-hello
-
----
-
-(source_file)

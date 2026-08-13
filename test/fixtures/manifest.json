@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "logrotate",
+      "repository": "https://github.com/logrotate/logrotate.git",
+      "revision": "3be1e9ccffe0c2245ed596183c74913d553f9f18",
+      "checkoutEnvironment": "LOGROTATE_FIXTURES_ROOT",
+      "defaultCheckout": "../logrotate",
+      "replacements": {
+        "&DIR&": "/tmp/tree-sitter-logrotate",
+        "&USER&": "root",
+        "&GROUP&": "root"
+      },
+      "fixtures": [
+        { "path": "examples/logrotate.conf", "classification": "accepted" },
+        { "path": "examples/wtmp", "classification": "accepted" },
+        { "path": "examples/btmp", "classification": "accepted" },
+        { "path": "test/test-config.1.in", "classification": "syntax-only" },
+        { "path": "test/test-config.8.in", "classification": "syntax-only" },
+        { "path": "test/test-config.17.in", "classification": "expected-error" },
+        { "path": "test/test-config.31.in", "classification": "syntax-only" },
+        { "path": "test/test-config.41.in", "classification": "syntax-only" },
+        { "path": "test/test-config.45.in", "classification": "syntax-only" },
+        { "path": "test/test-config.55.in", "classification": "syntax-only" },
+        { "path": "test/test-config.69.in", "classification": "syntax-only" },
+        { "path": "test/test-config.100.in", "classification": "syntax-only" },
+        { "path": "test/test-config.102.in", "classification": "expected-error" }
+      ]
+    },
+    {
+      "id": "vscode-logrotate",
+      "repository": "https://github.com/willibrandon/vscode-logrotate.git",
+      "revision": "7d26dd26ecb17a8d515f3f7a594b0ceef271f800",
+      "checkoutEnvironment": "VSCODE_LOGROTATE_FIXTURES_ROOT",
+      "defaultCheckout": "../vscode-logrotate",
+      "replacements": {},
+      "fixtures": [
+        { "path": "test/fixtures/workspace/deployment-policy", "classification": "accepted" },
+        { "path": "test/fixtures/workspace/included.conf", "classification": "accepted" },
+        { "path": "test/fixtures/workspace/logrotate.conf", "classification": "accepted" },
+        { "path": "test/fixtures/workspace/theme-preview.logrotate", "classification": "accepted" }
+      ]
+    }
+  ]
+}

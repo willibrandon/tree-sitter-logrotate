@@ -3,7 +3,7 @@ ARG GO_IMAGE=golang:1.26.5-bookworm@sha256:53eeac89074db483fdf0ab3be1df32bf6e475
 ARG RUST_IMAGE=rust:1.97.1-bookworm@sha256:0e2bcaef56d041a486784e54104a81aebe0da44bd03019bd70bc0401e42e4a97
 ARG JAVA_IMAGE=eclipse-temurin:25-jdk@sha256:c42fecf62f32725c65cfea284c012526d6fb31cc78123c740ebdc1cfd2dced12
 ARG SWIFT_IMAGE=swift:6.3.3-bookworm@sha256:6cff2d21ba06f1e9a4ed8be471401aea173127fb1ce5c0941da15119d4caa39f
-ARG BASE_IMAGE=debian:trixie-slim@sha256:3a39a0592364683e6bab97937b72cad5a8fa6dcbbee90edb3bb48c7f8e94f258
+ARG BASE_IMAGE=debian@sha256:3a39a0592364683e6bab97937b72cad5a8fa6dcbbee90edb3bb48c7f8e94f258
 FROM ${NODE_IMAGE} AS node_toolchain
 ARG NPM_VERSION=12.0.2
 RUN npm install --global "npm@${NPM_VERSION}" \
@@ -61,6 +61,7 @@ RUN apt-get update \
         build-essential \
         ca-certificates \
         cmake \
+        chromium \
         curl \
         emscripten \
         git \
@@ -84,6 +85,7 @@ RUN apt-get update \
         shellcheck \
         sudo \
         tzdata \
+        unzip \
         uuid-dev \
         xz-utils \
     && rm -rf /var/lib/apt/lists/* \

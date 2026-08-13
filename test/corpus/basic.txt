@@ -1,0 +1,59 @@
+==================
+Empty file
+==================
+
+---
+
+(source_file)
+
+==================
+Comment-only file
+==================
+
+# logrotate configuration
+    # indented comment
+
+---
+
+(source_file
+  (comment)
+  (comment))
+
+==================
+Global directives
+==================
+
+weekly
+rotate 4
+size = 100M
+su "log user" adm
+vendor_option value-with-punctuation,%Y%m%d
+partial
+
+---
+
+(source_file
+  (directive
+    (directive_name))
+  (directive
+    (directive_name)
+    (directive_arguments
+      (argument
+        (integer))))
+  (directive
+    (directive_name)
+    (directive_arguments
+      (argument
+        (size))))
+  (directive
+    (directive_name)
+    (directive_arguments
+      (argument
+        (quoted_argument))
+      (argument)))
+  (directive
+    (directive_name)
+    (directive_arguments
+      (argument)))
+  (directive
+    (directive_name)))

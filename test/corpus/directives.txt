@@ -1,0 +1,50 @@
+==================
+Known unknown and vendor directives
+==================
+weekly
+rotate 4
+vendor_option = "enabled"
+future-directive value
+
+---
+
+(source_file
+  (directive
+    (directive_name))
+  (directive
+    (directive_name)
+    (directive_arguments
+      (argument
+        (integer))))
+  (directive
+    (directive_name)
+    (directive_arguments
+      (argument
+        (quoted_argument))))
+  (directive
+    (directive_name)
+    (directive_arguments
+      (argument))))
+
+==================
+Optional equals with and without horizontal space
+==================
+rotate=7
+size = 100M
+compress=
+
+---
+
+(source_file
+  (directive
+    (directive_name)
+    (directive_arguments
+      (argument
+        (integer))))
+  (directive
+    (directive_name)
+    (directive_arguments
+      (argument
+        (size))))
+  (directive
+    (directive_name)))

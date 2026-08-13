@@ -1,0 +1,29 @@
+# application logs
+# <- comment
+include /etc/logrotate.d
+# <- keyword
+#       ^^^^^^^^^^^^^^^^ string.special.path
+
+"/var/log/application output.log" /var/log/application/*.log {
+# <- string.special.path
+#                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^ string.special.path
+#                                                            ^ punctuation.bracket
+    daily
+#   ^^^^^ keyword
+    rotate 14
+#   ^^^^^^ keyword
+#          ^^ number
+    size = 100M
+#   ^^^^ keyword
+#        ^ operator
+#          ^^^^ number
+    vendor_option "literal value"
+#   ^^^^^^^^^^^^^ property
+#                 ^^^^^^^^^^^^^^^ string
+
+    postrotate
+        systemctl reload application
+    endscript
+#   ^^^^^^^^^ keyword
+}
+# <- punctuation.bracket

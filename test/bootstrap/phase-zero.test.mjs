@@ -392,6 +392,20 @@ test("CMake invokes the pinned local Tree-sitter CLI through Node", async () => 
   assert.doesNotMatch(cmake, /find_program\(TREE_SITTER_CLI\s+tree-sitter\b/u);
 });
 
+test("CMake installs the native parser on Unix and Windows", async () => {
+  const cmake = await readRequired("CMakeLists.txt");
+  const bindingTest = await readRequired("scripts/test-c-binding.mjs");
+
+  assert.match(cmake, /WINDOWS_EXPORT_ALL_SYMBOLS\s+ON/u);
+  assert.match(cmake, /ARCHIVE DESTINATION "\$\{CMAKE_INSTALL_LIBDIR\}"/u);
+  assert.match(cmake, /LIBRARY DESTINATION "\$\{CMAKE_INSTALL_LIBDIR\}"/u);
+  assert.match(cmake, /RUNTIME DESTINATION "\$\{CMAKE_INSTALL_BINDIR\}"/u);
+  assert.match(bindingTest, /tree-sitter-logrotate\.dll/u);
+  assert.match(bindingTest, /libtree-sitter-logrotate\.dylib/u);
+  assert.match(bindingTest, /libtree-sitter-logrotate\.so/u);
+  assert.match(bindingTest, /run\("cmake", \["--install", buildDirectory\]\)/u);
+});
+
 test("Node build scripts invoke the pinned local Tree-sitter CLI without a command shim", async () => {
   const runner = await readRequired("scripts/tree-sitter-cli.mjs");
   const scripts = await Promise.all(
@@ -405,6 +419,14 @@ test("Node build scripts invoke the pinned local Tree-sitter CLI without a comma
     assert.match(source, /runTreeSitter/u);
     assert.doesNotMatch(source, /spawnSync\(["']tree-sitter["']/u);
   }
+});
+
+test("Swift binding tests clean their isolated scratch products", async () => {
+  const packageJson = await readJson("package.json");
+  const script = packageScript(packageJson, "test:bindings:swift");
+
+  assert.match(script, /^swift package clean --scratch-path build\/bindings\/swift/u);
+  assert.match(script, /swift test --scratch-path build\/bindings\/swift$/u);
 });
 
 test("WASM builds retry only transient WASI SDK download failures", async () => {
@@ -498,6 +520,19 @@ test("development container is reproducible, credential-free, and isolates host 
   );
   assert.match(serialized, /TREE_SITTER_BUILD_DIR/u);
   assert.match(serialized, /MAVEN_ARGS.*project\.build\.directory.*\.devcontainer-output\/maven/u);
+  for (const name of [
+    "CARGO_TARGET_DIR",
+    "MAVEN_ARGS",
+    "PYTHONPYCACHEPREFIX",
+    "TREE_SITTER_BUILD_DIR",
+  ]) {
+    assert.match(
+      configuration.containerEnv?.[name] ?? "",
+      /\$\{containerWorkspaceFolder\}\/\.devcontainer-output\//u,
+      `${name} must follow the mounted workspace instead of assuming its directory name`,
+    );
+  }
+  assert.doesNotMatch(serialized, /\/workspaces\/tree-sitter-logrotate/u);
   assert.equal(
     mounts.some((mount) => /target=[^,]*\/target(?:,|$)/u.test(mount)),
     false,
@@ -531,6 +566,15 @@ test("development container includes the Swift compiler runtime used by tests", 
 
   assert.match(dockerfile, /COPY --from=swift_toolchain \/usr\/lib\/clang\/ \/usr\/lib\/clang\//u);
   assert.match(dockerfile, /COPY --from=swift_toolchain \/usr\/lib\/libIndexStore\.so\* \/usr\/lib\//u);
+});
+
+test("development container includes every release verification tool", async () => {
+  const dockerfile = await readRequired(".devcontainer/Dockerfile");
+  const verification = await readRequired(".devcontainer/verify.sh");
+
+  assert.match(dockerfile, /^\s*unzip\s+\\$/mu);
+  assert.match(verification, /^command -v unzip >\/dev\/null$/mu);
+  assert.match(verification, /npm run verify:release/u);
 });
 
 test("Node binding installation preserves an isolated build mount", async () => {
@@ -576,6 +620,112 @@ test("Node binding installation preserves an isolated build mount", async () => 
   }
 });
 
+test("Node prebuilds use a removable workspace below the isolated build mount", async () => {
+  const packageJson = await readJson("package.json");
+  assert.equal(packageScript(packageJson, "package:node-prebuild"), "node scripts/build-node-prebuild.mjs");
+
+  const script = await readRequired("scripts/build-node-prebuild.mjs");
+  assert.match(script, /TREE_SITTER_BUILD_DIR/u);
+  assert.match(script, /resolve\(isolatedOutputRoot, "node-prebuild"\)/u);
+  assert.match(script, /"--cwd",\s*stagingDirectory/u);
+  assert.match(script, /"--out",\s*stagingDirectory/u);
+  assert.match(script, /cp\(resolve\(stagingDirectory, "prebuilds", entry\.name\), destination/u);
+  assert.doesNotMatch(script, /rm\(resolve\(repositoryRoot, "build"\)/u);
+
+  const configuration = await readJson(".devcontainer/devcontainer.json");
+  const postCreate = await readRequired(".devcontainer/post-create.sh");
+  const mounts = configuration.mounts.map((mount) =>
+    typeof mount === "string" ? mount : JSON.stringify(mount),
+  );
+  assert.ok(
+    mounts.some(
+      (mount) =>
+        /type=volume/u.test(mount) && /target=[^,]*\/prebuilds(?:,|$)/u.test(mount),
+    ),
+    "prebuilds must live in a named volume rather than the host worktree",
+  );
+  assert.match(
+    postCreate,
+    /"\$workspace_root\/prebuilds" \\/u,
+    "the container user must own the isolated prebuild volume",
+  );
+
+  const directory = await mkdtemp(join(tmpdir(), "tree-sitter-logrotate-prebuild-"));
+  const buildDirectory = join(directory, "build");
+  const isolatedOutput = join(directory, "isolated-output");
+  const staleArtifact = join(buildDirectory, "stale.node");
+  const fakePrebuildify = join(directory, "node_modules/prebuildify/bin.js");
+  const argumentsLog = join(directory, "prebuildify-arguments.json");
+
+  try {
+    await mkdir(join(directory, "bindings/node"), { recursive: true });
+    await mkdir(join(directory, "src/tree_sitter"), { recursive: true });
+    await mkdir(dirname(fakePrebuildify), { recursive: true });
+    await mkdir(buildDirectory);
+    await writeFile(
+      join(directory, "package.json"),
+      JSON.stringify({ name: "tree-sitter-logrotate", engines: { node: expectedNodeVersion } }),
+      "utf8",
+    );
+    for (const path of [
+      "binding.gyp",
+      "bindings/node/binding.cc",
+      "src/parser.c",
+      "src/scanner.c",
+      "src/tree_sitter/parser.h",
+    ]) {
+      await writeFile(join(directory, path), "fixture", "utf8");
+    }
+    await writeFile(staleArtifact, "must survive", "utf8");
+    await writeFile(
+      fakePrebuildify,
+      [
+        'import { mkdir, rename, writeFile } from "node:fs/promises";',
+        'import { join } from "node:path";',
+        'const valueAfter = (name) => process.argv[process.argv.indexOf(name) + 1];',
+        'const cwd = valueAfter("--cwd");',
+        'const out = valueAfter("--out");',
+        'await writeFile(process.env.PREBUILD_ARGUMENTS_LOG, JSON.stringify(process.argv.slice(2)));',
+        'const addon = join(cwd, "build/Release/tree-sitter-logrotate.node");',
+        'const output = join(out, "prebuilds/linux-x64/tree-sitter-logrotate.node");',
+        'await mkdir(join(cwd, "build/Release"), { recursive: true });',
+        'await mkdir(join(out, "prebuilds/linux-x64"), { recursive: true });',
+        'await writeFile(addon, "prebuilt");',
+        'await rename(addon, output);',
+      ].join("\n"),
+      "utf8",
+    );
+    const before = await stat(buildDirectory);
+
+    const result = spawnSync(process.execPath, [join(repositoryRoot, "scripts/build-node-prebuild.mjs")], {
+      cwd: directory,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        PREBUILD_ARGUMENTS_LOG: argumentsLog,
+        TREE_SITTER_BUILD_DIR: isolatedOutput,
+      },
+      shell: false,
+      timeout: 30_000,
+    });
+
+    assert.equal(result.status, 0, `Node prebuild failed:\n${result.stdout}\n${result.stderr}`);
+    const after = await stat(buildDirectory);
+    assert.equal(after.ino, before.ino, "The build mount root must not be deleted and recreated");
+    assert.equal(await readFile(staleArtifact, "utf8"), "must survive");
+    assert.equal(
+      await readFile(join(directory, "prebuilds/linux-x64/tree-sitter-logrotate.node"), "utf8"),
+      "prebuilt",
+    );
+    await assert.rejects(stat(join(isolatedOutput, "node-prebuild")), { code: "ENOENT" });
+    const invokedArguments = JSON.parse(await readFile(argumentsLog, "utf8"));
+    assert.equal(invokedArguments[invokedArguments.indexOf("--cwd") + 1], join(isolatedOutput, "node-prebuild"));
+    assert.equal(invokedArguments[invokedArguments.indexOf("--out") + 1], join(isolatedOutput, "node-prebuild"));
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
 test("native development documentation covers the complete bootstrap workflow", async () => {
   const readme = await readRequired("README.md");
   const contributing = await readRequired("CONTRIBUTING.md");
@@ -583,7 +733,7 @@ test("native development documentation covers the complete bootstrap workflow", 
   const nativeDevelopment = await readRequired("docs/native-development.md");
   const documentation = `${readme}\n${contributing}\n${containerReadme}\n${nativeDevelopment}`;
 
-  for (const prerequisite of ["Node.js 24.19.0", "npm 12.0.2", "Tree-sitter 0.26.12", "C compiler", "Emscripten"]) {
+  for (const prerequisite of ["Node.js 24.19.0", "npm 12.0.2", "Tree-sitter(?: CLI)? 0.26.12", "C compiler", "Emscripten"]) {
     assert.match(documentation, new RegExp(prerequisite.replaceAll(".", "\\."), "iu"));
   }
   for (const command of [
@@ -638,7 +788,7 @@ test("security automation covers dependencies, code, secrets, sanitizers, and fu
   const fuzzWorkflow = workflows.find(({ path, source }) => /fuzz/iu.test(path) || /tree-sitter\s+fuzz/iu.test(source));
   assert.ok(fuzzWorkflow, "A fuzz workflow is required");
   assert.match(fuzzWorkflow.source, /^\s*schedule:/mu);
-  assert.match(fuzzWorkflow.source, /tree-sitter\s+fuzz|fuzz-action|workflows\/fuzz/iu);
+  assert.match(fuzzWorkflow.source, /tree-sitter\s+fuzz|npm\s+run\s+test:fuzz|fuzz-action|workflows\/fuzz/iu);
 
   assert.match(dependabot, /package-ecosystem:\s*["']?npm["']?/u);
   assert.match(dependabot, /package-ecosystem:\s*["']?github-actions["']?/u);
@@ -648,7 +798,7 @@ test("security automation covers dependencies, code, secrets, sanitizers, and fu
 test("CI declares the required cross-platform and compatibility surfaces", async () => {
   const workflows = await workflowSources();
   const ciWorkflows = workflows
-    .filter(({ path, source }) => /ci|test|build/iu.test(path) || /build:native/u.test(source))
+    .filter(({ path, source }) => /ci|test|build/iu.test(path) || /build:native/u.test(source));
   const ci = ciWorkflows.map(({ source }) => source).join("\n");
   const compatibility = await readRequired("docs/compatibility.md");
 
@@ -659,6 +809,8 @@ test("CI declares the required cross-platform and compatibility surfaces", async
   assert.match(ci, /npm\s+run\s+check:generated/u);
   assert.match(ci, /npm\s+run\s+build:native/u);
   assert.match(ci, /npm\s+run\s+build:wasm/u);
+  assert.match(ci, /npm exec --yes --allow-scripts=tree-sitter-cli/u);
+  assert.match(ci, /tree-sitter-cli@\$\{TREE_SITTER_VERSION\}/u);
 
   const crossPlatformJob = ciWorkflows
     .flatMap(({ source }) => workflowJobBlocks(source))

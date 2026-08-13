@@ -1,0 +1,35 @@
+==================
+Whole-line comments
+==================
+# first
+    # indented
+
+---
+
+(source_file
+  (comment)
+  (comment))
+
+==================
+Hashes outside comment position remain content
+==================
+extension .log=#literal
+/var/log/#archive.log {
+  dateformat "-%Y%m%d # retained"
+}
+
+---
+
+(source_file
+  (directive
+    (directive_name)
+    (directive_arguments
+      (argument)))
+  (rotation_block
+    (path_list
+      (path_pattern))
+    (directive
+      (directive_name)
+      (directive_arguments
+        (argument
+          (quoted_argument))))))

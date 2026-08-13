@@ -1,0 +1,81 @@
+==================
+Single and multiple path patterns
+==================
+
+/var/log/messages {}
+/var/log/app/*.log /srv/log/api.log {
+  daily
+}
+
+---
+
+(source_file
+  (rotation_block
+    (path_list
+      (path_pattern)))
+  (rotation_block
+    (path_list
+      (path_pattern)
+      (path_pattern))
+    (directive
+      (directive_name))))
+
+==================
+Quoted escaped and literal hash paths
+==================
+
+"/var/log/application output.log" '/srv/log/single quoted.log' /var/log/escaped\ path.log /var/log/#literal.log {
+  rotate 7
+}
+
+---
+
+(source_file
+  (rotation_block
+    (path_list
+      (quoted_path)
+      (quoted_path)
+      (path_pattern
+        (escape_sequence))
+      (path_pattern))
+    (directive
+      (directive_name)
+      (directive_arguments
+        (argument
+          (integer))))))
+
+==================
+Multiline path list with comments
+==================
+
+/var/log/one.log
+# another application
+/var/log/two.log
+{
+  compress
+}
+
+/var/log/three.log
+
+# brace follows the final path
+/var/log/four.log {
+  weekly
+}
+
+---
+
+(source_file
+  (rotation_block
+    (path_list
+      (path_pattern)
+      (comment)
+      (path_pattern))
+    (directive
+      (directive_name)))
+  (rotation_block
+    (path_list
+      (path_pattern)
+      (comment)
+      (path_pattern))
+    (directive
+      (directive_name))))
