@@ -56,6 +56,14 @@ for (const sbomName of [`${prefix}-npm.cdx.json`, `${prefix}-release.cdx.json`])
   if (sbom.bomFormat !== "CycloneDX" || sbom.specVersion !== "1.6") {
     throw new Error(`${sbomName} is not a CycloneDX 1.6 SBOM.`);
   }
+  if (
+    sbomName === `${prefix}-release.cdx.json` &&
+    !/^urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u.test(
+      sbom.serialNumber,
+    )
+  ) {
+    throw new Error(`${sbomName} does not contain a valid CycloneDX serial number.`);
+  }
 }
 
 const npmPackage = resolve(outputDirectory, `${prefix}.tgz`);

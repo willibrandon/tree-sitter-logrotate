@@ -264,14 +264,14 @@ jobs:
           npm run package:release -- --python-wheels build/python-wheels --native-libraries build/native-libraries
           npm run test:release
       - name: Attest release artifacts
-        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f # v3.2.0
+        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
         with:
           subject-path: dist/*
       - name: Locate release SBOM
         id: release-sbom
         run: node scripts/locate-release-sbom.mjs dist >> "$GITHUB_OUTPUT"
       - name: Attest release SBOM
-        uses: actions/attest-sbom@4651f806c01d8637787e274ac3bdf724ef169f34 # v3.0.0
+        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
         with:
           subject-path: dist/tree-sitter-logrotate-*-source.tar.gz
           sbom-path: ${{ steps.release-sbom.outputs.path }}

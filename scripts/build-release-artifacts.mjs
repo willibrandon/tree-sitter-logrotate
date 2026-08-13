@@ -10,6 +10,7 @@ import {
   run,
   sha256,
 } from "./release-common.mjs";
+import { createReleaseSbom } from "./release-sbom.mjs";
 
 const metadata = await packageMetadata();
 const version = metadata.version;
@@ -226,23 +227,7 @@ try {
   const releaseSbomName = `${prefix}-release.cdx.json`;
   await writeFile(
     resolve(outputDirectory, releaseSbomName),
-    `${JSON.stringify({
-      bomFormat: "CycloneDX",
-      specVersion: "1.6",
-      version: 1,
-      metadata: {
-        component: {
-          type: "library",
-          "bom-ref": `pkg:github/willibrandon/tree-sitter-logrotate@${version}`,
-          name: "tree-sitter-logrotate",
-          version,
-          licenses: [{ license: { id: "MIT" } }],
-          purl: `pkg:github/willibrandon/tree-sitter-logrotate@${version}`,
-        },
-        properties: [{ name: "tree-sitter:language-abi", value: "15" }],
-      },
-      components,
-    }, null, 2)}\n`,
+    `${JSON.stringify(createReleaseSbom({ components, version }), null, 2)}\n`,
   );
 
   const artifactPaths = await listFiles(outputDirectory);

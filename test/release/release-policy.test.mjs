@@ -58,8 +58,8 @@ test("release workflow publishes through protected, least-privilege jobs", async
   for (const platform of ["ubuntu-24.04", "ubuntu-24.04-arm", "macos-14", "windows-2025"]) {
     assert.match(workflow, new RegExp(platform.replaceAll(".", "\\."), "u"));
   }
-  assert.match(workflow, /actions\/attest-build-provenance@[0-9a-f]{40}/u);
-  assert.match(workflow, /actions\/attest-sbom@[0-9a-f]{40}/u);
+  assert.equal([...workflow.matchAll(/actions\/attest@[0-9a-f]{40}/gu)].length, 2);
+  assert.doesNotMatch(workflow, /actions\/attest-(?:build-provenance|sbom)@/u);
   assert.match(workflow, /sha256sum --check SHA256SUMS/u);
   for (const environment of ["github-release", "npm", "pypi", "crates-io", "maven-central"]) {
     assert.match(workflow, new RegExp(`(?:environment:|name:) ${environment}`, "u"));
@@ -123,6 +123,25 @@ test("release SBOM locator rejects ambiguous artifacts and emits one concrete pa
   result = run();
   assert.equal(result.status, 1);
   assert.match(result.stderr, /found 2/u);
+});
+
+test("release CycloneDX SBOM has a reproducible UUID serial number accepted by attestors", async () => {
+  const { createReleaseSbom } = await import("../../scripts/release-sbom.mjs");
+  const input = {
+    components: [{ type: "file", name: "parser.c", version: "0.1.0" }],
+    version: "0.1.0",
+  };
+
+  const first = createReleaseSbom(input);
+  const second = createReleaseSbom(input);
+  const next = createReleaseSbom({ ...input, version: "0.1.1" });
+
+  assert.equal(first.bomFormat, "CycloneDX");
+  assert.equal(first.specVersion, "1.6");
+  assert.match(first.serialNumber, /^urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u);
+  assert.deepEqual(first, second);
+  assert.notEqual(first.serialNumber, next.serialNumber);
+  assert.deepEqual(first.components, input.components);
 });
 
 test("package metadata links GitHub without publishing a personal email address", async () => {
