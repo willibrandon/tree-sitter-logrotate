@@ -37,7 +37,7 @@ jobs:
           node-version: 24.19.0
           cache: npm
       - name: Install dependencies
-        run: npm ci
+        run: npm run ci:install
       - name: Check toolchain and generated sources
         run: |
           npm run check:versions
@@ -72,7 +72,7 @@ jobs:
           cache: maven
       - name: Build and test
         run: |
-          npm ci
+          npm run ci:install
           mvn --batch-mode --no-transfer-progress clean test
 
   sanitizers:
@@ -92,7 +92,7 @@ jobs:
       - name: Build and run sanitizer smoke test
         shell: bash
         run: |
-          npm ci
+          npm run ci:install
           mkdir -p build/sanitizers
           clang -std=c11 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer \
             -D_DEFAULT_SOURCE -D_POSIX_C_SOURCE=200112L \

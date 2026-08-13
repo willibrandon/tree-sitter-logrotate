@@ -416,6 +416,22 @@ test("WASM builds retry only transient WASI SDK download failures", async () => 
   assert.match(source, /setTimeout/u);
 });
 
+test("CI dependency installation retries only recognized network failures", async () => {
+  const packageJson = await readJson("package.json");
+  const script = packageScript(packageJson, "ci:install");
+  const installer = await readRequired("scripts/ci-install.mjs");
+  const workflows = (await workflowSources()).map(({ source }) => source).join("\n");
+
+  assert.equal(script, "node scripts/ci-install.mjs");
+  assert.match(installer, /spawnSync\(process\.execPath/u);
+  assert.match(installer, /npmCli,\s*["']ci["']/u);
+  assert.match(installer, /ECONNRESET/u);
+  assert.match(installer, /!networkFailure/u);
+  assert.match(installer, /maximumAttempts\s*=\s*3/u);
+  assert.doesNotMatch(workflows, /^\s*run:\s*npm\s+ci\s*$/mu);
+  assert.match(workflows, /npm\s+run\s+ci:install/u);
+});
+
 test("empty grammar builds native and WASM artifacts into an isolated output directory", async () => {
   const outputDirectory = await mkdtemp(join(tmpdir(), "tree-sitter-logrotate-build-"));
   try {
@@ -639,7 +655,7 @@ test("CI declares the required cross-platform and compatibility surfaces", async
   assert.match(ci, /ubuntu-(?:22\.04|24\.04|[0-9]{4})/u);
   assert.match(ci, /macos-(?:14|15|[0-9]{2})/u);
   assert.match(ci, /windows-(?:2022|2025|[0-9]{4})/u);
-  assert.match(ci, /npm\s+ci/u);
+  assert.match(ci, /npm\s+run\s+ci:install/u);
   assert.match(ci, /npm\s+run\s+check:generated/u);
   assert.match(ci, /npm\s+run\s+build:native/u);
   assert.match(ci, /npm\s+run\s+build:wasm/u);
