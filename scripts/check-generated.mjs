@@ -1,7 +1,7 @@
-import { spawnSync } from "node:child_process";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { runTreeSitter } from "./tree-sitter-cli.mjs";
 
 const generatedFiles = [
   "grammar.json",
@@ -15,10 +15,9 @@ const temporaryDirectory = await mkdtemp(join(tmpdir(), "tree-sitter-logrotate-g
 const outputDirectory = join(temporaryDirectory, "src");
 
 try {
-  const result = spawnSync(
-    "tree-sitter",
+  const result = runTreeSitter(
     ["generate", "--abi", "15", "--output", outputDirectory, "grammar.js"],
-    { encoding: "utf8", shell: false },
+    { encoding: "utf8" },
   );
   if (result.error !== undefined) {
     throw result.error;

@@ -392,6 +392,21 @@ test("CMake invokes the pinned local Tree-sitter CLI through Node", async () => 
   assert.doesNotMatch(cmake, /find_program\(TREE_SITTER_CLI\s+tree-sitter\b/u);
 });
 
+test("Node build scripts invoke the pinned local Tree-sitter CLI without a command shim", async () => {
+  const runner = await readRequired("scripts/tree-sitter-cli.mjs");
+  const scripts = await Promise.all(
+    ["scripts/check-generated.mjs", "scripts/build-native.mjs", "scripts/build-wasm.mjs"].map(readRequired),
+  );
+
+  assert.match(runner, /node_modules\/tree-sitter-cli\/cli\.js/u);
+  assert.match(runner, /spawnSync\(process\.execPath/u);
+  assert.match(runner, /shell:\s*false/u);
+  for (const source of scripts) {
+    assert.match(source, /runTreeSitter/u);
+    assert.doesNotMatch(source, /spawnSync\(["']tree-sitter["']/u);
+  }
+});
+
 test("empty grammar builds native and WASM artifacts into an isolated output directory", async () => {
   const outputDirectory = await mkdtemp(join(tmpdir(), "tree-sitter-logrotate-build-"));
   try {

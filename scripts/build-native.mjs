@@ -1,15 +1,14 @@
-import { spawnSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
+import { runTreeSitter } from "./tree-sitter-cli.mjs";
 
 const outputDirectory = resolve(process.env.TREE_SITTER_BUILD_DIR ?? "build");
 mkdirSync(outputDirectory, { recursive: true });
 
 const extension = process.platform === "win32" ? "dll" : process.platform === "darwin" ? "dylib" : "so";
 const outputPath = resolve(outputDirectory, `tree-sitter-logrotate.${extension}`);
-const result = spawnSync("tree-sitter", ["build", "--output", outputPath], {
+const result = runTreeSitter(["build", "--output", outputPath], {
   encoding: "utf8",
-  shell: false,
   stdio: "inherit",
 });
 
