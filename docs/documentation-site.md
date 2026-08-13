@@ -27,8 +27,17 @@ Open `http://localhost:4321/tree-sitter-logrotate/`. The `/tree-sitter-logrotate
 because it matches the GitHub Pages deployment. A request to `http://localhost:4321/` returns 404
 by design.
 
-The server listens beyond the Linux loopback interface so it can be reached from a Windows browser
-when the repository is in WSL. If Windows does not forward `localhost`, get the WSL address with:
+Astro binds to `localhost` by default. WSL normally forwards that listener to Windows, so the same
+URL works in a Windows browser.
+
+If Windows localhost forwarding is unavailable, stop the server and start it on the WSL network
+interface:
+
+```sh
+npm --prefix docs-site run dev -- --host 0.0.0.0
+```
+
+Get the WSL address with:
 
 ```sh
 hostname -I | awk '{print $1}'
