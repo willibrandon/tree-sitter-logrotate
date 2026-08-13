@@ -7,11 +7,20 @@ const logrotateLanguage = {
   ...logrotateGrammar,
   name: "logrotate",
 };
+const serverHost = process.env.TREE_SITTER_LOGROTATE_DOCS_HOST ?? false;
+const serverPort = Number.parseInt(
+  process.env.TREE_SITTER_LOGROTATE_DOCS_PORT ?? "4323",
+  10,
+);
 
 export default defineConfig({
   site: "https://willibrandon.github.io",
   base: "/tree-sitter-logrotate",
   trailingSlash: "always",
+  server: {
+    host: serverHost,
+    port: serverPort,
+  },
   integrations: [
     starlight({
       title: "tree-sitter-logrotate",

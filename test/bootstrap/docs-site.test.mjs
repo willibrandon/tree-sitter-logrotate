@@ -33,6 +33,9 @@ test("Astro uses the repository Pages path and Starlight content layer", async (
   assert.match(configuration, /site:\s*"https:\/\/willibrandon\.github\.io"/u);
   assert.match(configuration, /base:\s*"\/tree-sitter-logrotate"/u);
   assert.match(configuration, /trailingSlash:\s*"always"/u);
+  assert.match(configuration, /TREE_SITTER_LOGROTATE_DOCS_HOST/u);
+  assert.match(configuration, /TREE_SITTER_LOGROTATE_DOCS_PORT/u);
+  assert.match(configuration, /server:\s*\{[\s\S]*?host:\s*serverHost[\s\S]*?port:\s*serverPort/u);
   assert.match(configuration, /starlight\(\{/u);
   assert.match(configuration, /langs:\s*\[logrotateLanguage\]/u);
   assert.match(configuration, /tableOfContents:\s*\{[\s\S]*?minHeadingLevel:\s*2[\s\S]*?maxHeadingLevel:\s*3/u);
@@ -108,10 +111,16 @@ test("local documentation workflow works from WSL and the development container"
   assert.equal(rootManifest.scripts["docs:install"], "npm --prefix docs-site ci");
   assert.equal(rootManifest.scripts["docs:dev"], "npm --prefix docs-site run dev");
   assert.equal(rootManifest.scripts["docs:preview"], "npm --prefix docs-site run preview");
-  assert.equal(docsManifest.scripts.dev, "astro dev --port 4323");
-  assert.equal(docsManifest.scripts.preview, "astro preview --port 4323");
-  assert.deepEqual(configuration.forwardPorts, [4323]);
-  assert.equal(configuration.portsAttributes["4323"].onAutoForward, "notify");
+  assert.equal(docsManifest.scripts.dev, "astro dev");
+  assert.equal(docsManifest.scripts.preview, "astro preview");
+  assert.equal(configuration.containerEnv.ASTRO_TELEMETRY_DISABLED, "1");
+  assert.equal(
+    configuration.containerEnv.TREE_SITTER_LOGROTATE_DOCS_HOST,
+    "0.0.0.0",
+  );
+  assert.equal(configuration.containerEnv.TREE_SITTER_LOGROTATE_DOCS_PORT, "4325");
+  assert.deepEqual(configuration.forwardPorts, [4325]);
+  assert.equal(configuration.portsAttributes["4325"].onAutoForward, "notify");
   assert.ok(
     mounts.some(
       (mount) =>
@@ -126,6 +135,10 @@ test("local documentation workflow works from WSL and the development container"
   assert.match(
     developmentGuide,
     /http:\/\/localhost:4323\/tree-sitter-logrotate\//u,
+  );
+  assert.match(
+    developmentGuide,
+    /http:\/\/localhost:4325\/tree-sitter-logrotate\//u,
   );
   assert.match(developmentGuide, /hostname -I/u);
   assert.match(

@@ -46,8 +46,12 @@ hostname -I | awk '{print $1}'
 Then open `http://<address>:4323/tree-sitter-logrotate/`. Stop the server with `Ctrl+C` or press
 `q` in its terminal.
 
-Inside the development container, Visual Studio Code forwards port 4323 and reports when it is
-ready. Use the same `/tree-sitter-logrotate/` path on the forwarded address.
+Inside the development container, Astro listens on the container network at port 4325. Visual
+Studio Code forwards that port and reports when it is ready. Open
+`http://localhost:4325/tree-sitter-logrotate/`, or use the forwarded address shown in the Ports
+view. This separate container port avoids conflicting with a server running directly in WSL. Run
+**Dev Containers: Rebuild and Reopen in Container** after pulling a change to
+`.devcontainer/devcontainer.json` so its environment and port settings take effect.
 
 ## Check and preview
 
@@ -64,5 +68,6 @@ Building the site does not start a server. To inspect the generated production o
 npm run docs:preview
 ```
 
-Open `http://localhost:4323/tree-sitter-logrotate/` again. The preview server uses the built files
-and does not provide the development server's live updates.
+For native and WSL development, open `http://localhost:4323/tree-sitter-logrotate/` again. In the
+development container, use `http://localhost:4325/tree-sitter-logrotate/`. The preview server uses
+the built files and does not provide the development server's live updates.

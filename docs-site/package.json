@@ -5,8 +5,8 @@
   "scripts": {
     "build": "astro build",
     "check": "astro check",
-    "dev": "astro dev --port 4323",
-    "preview": "astro preview --port 4323"
+    "dev": "astro dev",
+    "preview": "astro preview"
   },
   "dependencies": {
     "@astrojs/sitemap": "3.7.3",

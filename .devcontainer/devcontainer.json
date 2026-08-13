@@ -7,6 +7,7 @@
   "remoteUser": "vscode",
   "updateRemoteUserUID": true,
   "containerEnv": {
+    "ASTRO_TELEMETRY_DISABLED": "1",
     "CARGO_HOME": "/home/vscode/.cache/cargo",
     "CARGO_TARGET_DIR": "${containerWorkspaceFolder}/.devcontainer-output/target",
     "GOCACHE": "/home/vscode/.cache/go-build",
@@ -15,6 +16,8 @@
     "PIP_CACHE_DIR": "/home/vscode/.cache/pip",
     "PYTHONPYCACHEPREFIX": "${containerWorkspaceFolder}/.devcontainer-output/python-cache",
     "TREE_SITTER_BUILD_DIR": "${containerWorkspaceFolder}/.devcontainer-output/build",
+    "TREE_SITTER_LOGROTATE_DOCS_HOST": "0.0.0.0",
+    "TREE_SITTER_LOGROTATE_DOCS_PORT": "4325",
     "npm_config_cache": "/home/vscode/.cache/npm"
   },
   "remoteEnv": {
@@ -34,9 +37,9 @@
     "source=tree-sitter-logrotate-${devcontainerId}-output,target=${containerWorkspaceFolder}/.devcontainer-output,type=volume",
     "source=tree-sitter-logrotate-${devcontainerId}-cache,target=/home/vscode/.cache,type=volume"
   ],
-  "forwardPorts": [4323],
+  "forwardPorts": [4325],
   "portsAttributes": {
-    "4323": {
+    "4325": {
       "label": "tree-sitter-logrotate documentation",
       "onAutoForward": "notify"
     }
