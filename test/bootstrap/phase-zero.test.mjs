@@ -520,6 +520,19 @@ test("development container is reproducible, credential-free, and isolates host 
   );
   assert.match(serialized, /TREE_SITTER_BUILD_DIR/u);
   assert.match(serialized, /MAVEN_ARGS.*project\.build\.directory.*\.devcontainer-output\/maven/u);
+  for (const name of [
+    "CARGO_TARGET_DIR",
+    "MAVEN_ARGS",
+    "PYTHONPYCACHEPREFIX",
+    "TREE_SITTER_BUILD_DIR",
+  ]) {
+    assert.match(
+      configuration.containerEnv?.[name] ?? "",
+      /\$\{containerWorkspaceFolder\}\/\.devcontainer-output\//u,
+      `${name} must follow the mounted workspace instead of assuming its directory name`,
+    );
+  }
+  assert.doesNotMatch(serialized, /\/workspaces\/tree-sitter-logrotate/u);
   assert.equal(
     mounts.some((mount) => /target=[^,]*\/target(?:,|$)/u.test(mount)),
     false,

@@ -8,13 +8,13 @@
   "updateRemoteUserUID": true,
   "containerEnv": {
     "CARGO_HOME": "/home/vscode/.cache/cargo",
-    "CARGO_TARGET_DIR": "/workspaces/tree-sitter-logrotate/.devcontainer-output/target",
+    "CARGO_TARGET_DIR": "${containerWorkspaceFolder}/.devcontainer-output/target",
     "GOCACHE": "/home/vscode/.cache/go-build",
     "GOMODCACHE": "/home/vscode/.cache/go-mod",
-    "MAVEN_ARGS": "-Dmaven.repo.local=/home/vscode/.cache/maven -Dproject.build.directory=/workspaces/tree-sitter-logrotate/.devcontainer-output/maven",
+    "MAVEN_ARGS": "-Dmaven.repo.local=/home/vscode/.cache/maven -Dproject.build.directory=${containerWorkspaceFolder}/.devcontainer-output/maven",
     "PIP_CACHE_DIR": "/home/vscode/.cache/pip",
-    "PYTHONPYCACHEPREFIX": "/workspaces/tree-sitter-logrotate/.devcontainer-output/python-cache",
-    "TREE_SITTER_BUILD_DIR": "/workspaces/tree-sitter-logrotate/.devcontainer-output/build",
+    "PYTHONPYCACHEPREFIX": "${containerWorkspaceFolder}/.devcontainer-output/python-cache",
+    "TREE_SITTER_BUILD_DIR": "${containerWorkspaceFolder}/.devcontainer-output/build",
     "npm_config_cache": "/home/vscode/.cache/npm"
   },
   "remoteEnv": {
