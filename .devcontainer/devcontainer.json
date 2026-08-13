@@ -1,0 +1,36 @@
+{
+  "name": "tree-sitter-logrotate",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "remoteUser": "vscode",
+  "updateRemoteUserUID": true,
+  "containerEnv": {
+    "CARGO_TARGET_DIR": "/workspaces/tree-sitter-logrotate/.devcontainer-output/target",
+    "GOCACHE": "/home/vscode/.cache/go-build",
+    "GOMODCACHE": "/home/vscode/.cache/go-mod",
+    "PIP_CACHE_DIR": "/home/vscode/.cache/pip",
+    "PYTHONPYCACHEPREFIX": "/workspaces/tree-sitter-logrotate/.devcontainer-output/python-cache",
+    "TREE_SITTER_BUILD_DIR": "/workspaces/tree-sitter-logrotate/.devcontainer-output/build",
+    "npm_config_cache": "/home/vscode/.cache/npm"
+  },
+  "mounts": [
+    "source=tree-sitter-logrotate-${devcontainerId}-node-modules,target=${containerWorkspaceFolder}/node_modules,type=volume",
+    "source=tree-sitter-logrotate-${devcontainerId}-node-build,target=${containerWorkspaceFolder}/build,type=volume",
+    "source=tree-sitter-logrotate-${devcontainerId}-maven-target,target=${containerWorkspaceFolder}/target,type=volume",
+    "source=tree-sitter-logrotate-${devcontainerId}-swift-build,target=${containerWorkspaceFolder}/.build,type=volume",
+    "source=tree-sitter-logrotate-${devcontainerId}-python-venv,target=${containerWorkspaceFolder}/.venv,type=volume",
+    "source=tree-sitter-logrotate-${devcontainerId}-zig-cache,target=${containerWorkspaceFolder}/.zig-cache,type=volume",
+    "source=tree-sitter-logrotate-${devcontainerId}-zig-output,target=${containerWorkspaceFolder}/zig-out,type=volume",
+    "source=tree-sitter-logrotate-${devcontainerId}-zig-packages,target=${containerWorkspaceFolder}/zig-pkg,type=volume",
+    "source=tree-sitter-logrotate-${devcontainerId}-output,target=${containerWorkspaceFolder}/.devcontainer-output,type=volume",
+    "source=tree-sitter-logrotate-${devcontainerId}-cache,target=/home/vscode/.cache,type=volume"
+  ],
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "8gb",
+    "storage": "16gb"
+  }
+}

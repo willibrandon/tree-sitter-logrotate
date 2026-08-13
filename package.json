@@ -1,0 +1,75 @@
+{
+  "name": "tree-sitter-logrotate",
+  "version": "0.1.0",
+  "description": "Logrotate configuration grammar for Tree-sitter",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/willibrandon/tree-sitter-logrotate.git"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Brandon Williams",
+    "email": "willibrandon@gmail.com",
+    "url": "https://github.com/willibrandon"
+  },
+  "main": "bindings/node",
+  "types": "bindings/node",
+  "keywords": [
+    "incremental",
+    "parsing",
+    "tree-sitter",
+    "logrotate"
+  ],
+  "files": [
+    "grammar.js",
+    "tree-sitter.json",
+    "binding.gyp",
+    "scripts/install-node-binding.mjs",
+    "prebuilds/**",
+    "bindings/node/*",
+    "queries/*",
+    "src/**",
+    "*.wasm"
+  ],
+  "dependencies": {
+    "node-addon-api": "8.9.2",
+    "node-gyp-build": "4.8.4"
+  },
+  "devDependencies": {
+    "prebuildify": "6.0.1",
+    "tree-sitter": "0.25.1",
+    "tree-sitter-cli": "0.26.12"
+  },
+  "peerDependencies": {
+    "tree-sitter": "^0.25.1"
+  },
+  "peerDependenciesMeta": {
+    "tree-sitter": {
+      "optional": true
+    }
+  },
+  "scripts": {
+    "build:native": "node scripts/build-native.mjs",
+    "build:wasm": "node scripts/build-wasm.mjs",
+    "check:generated": "node scripts/check-generated.mjs",
+    "check:versions": "node scripts/check-versions.mjs",
+    "generate": "tree-sitter generate --abi 15",
+    "install": "node scripts/install-node-binding.mjs",
+    "prestart": "npm run build:wasm",
+    "start": "tree-sitter playground",
+    "test": "npm run test:bootstrap && npm run test:parser && npm run test:bindings:node",
+    "test:bindings:node": "node --test bindings/node/*_test.js",
+    "test:bootstrap": "node --test test/bootstrap/*.test.mjs",
+    "test:parser": "tree-sitter test",
+    "verify": "npm run check:versions && npm run check:generated && npm test && npm run build:native && npm run build:wasm"
+  },
+  "engines": {
+    "node": "24.19.0"
+  },
+  "packageManager": "npm@12.0.2",
+  "allowScripts": {
+    "tree-sitter@0.25.1": true,
+    "tree-sitter-cli@0.26.12": true
+  }
+}

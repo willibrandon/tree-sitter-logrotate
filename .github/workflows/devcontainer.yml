@@ -1,0 +1,53 @@
+name: Development container
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: devcontainer-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Build, verify, and scan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build and verify the development container
+        uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3.1900000450
+        with:
+          imageName: tree-sitter-logrotate-devcontainer
+          imageTag: ci
+          push: never
+          inheritEnv: false
+          runCmd: bash .devcontainer/verify.sh
+      - name: Install Picket
+        run: bash .github/scripts/install-picket.sh "$RUNNER_TEMP/picket"
+      - name: Scan development container image
+        run: |
+          docker save tree-sitter-logrotate-devcontainer:ci --output "$RUNNER_TEMP/devcontainer.tar"
+          "$RUNNER_TEMP/picket/picket" scan \
+            --docker-archive "$RUNNER_TEMP/devcontainer.tar" \
+            --report-format jsonl \
+            --report-path "$RUNNER_TEMP/devcontainer.picket.jsonl" \
+            --redact 100 \
+            --max-target-megabytes 64 \
+            --max-archive-depth 2 \
+            --max-archive-entries 100000 \
+            --max-archive-megabytes 4096 \
+            --max-archive-ratio 1000 \
+            --timeout 900 \
+            --exit-code 1 \
+            --no-banner

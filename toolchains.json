@@ -1,0 +1,14 @@
+{
+  "node": "24.19.0",
+  "npm": "12.0.2",
+  "treeSitter": "0.26.12",
+  "treeSitterAbi": 15,
+  "llvm": "21.0.0",
+  "rust": "1.97.1",
+  "go": "1.26.5",
+  "java": "25",
+  "swift": "6.3.3",
+  "zig": "0.16.0",
+  "logrotateVersion": "3.22.0.56_3be1",
+  "logrotateRevision": "3be1e9ccffe0c2245ed596183c74913d553f9f18"
+}
