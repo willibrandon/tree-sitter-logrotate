@@ -620,6 +620,7 @@ test("Node prebuilds use a removable workspace below the isolated build mount", 
   assert.doesNotMatch(script, /rm\(resolve\(repositoryRoot, "build"\)/u);
 
   const configuration = await readJson(".devcontainer/devcontainer.json");
+  const postCreate = await readRequired(".devcontainer/post-create.sh");
   const mounts = configuration.mounts.map((mount) =>
     typeof mount === "string" ? mount : JSON.stringify(mount),
   );
@@ -629,6 +630,11 @@ test("Node prebuilds use a removable workspace below the isolated build mount", 
         /type=volume/u.test(mount) && /target=[^,]*\/prebuilds(?:,|$)/u.test(mount),
     ),
     "prebuilds must live in a named volume rather than the host worktree",
+  );
+  assert.match(
+    postCreate,
+    /"\$workspace_root\/prebuilds" \\/u,
+    "the container user must own the isolated prebuild volume",
   );
 
   const directory = await mkdtemp(join(tmpdir(), "tree-sitter-logrotate-prebuild-"));

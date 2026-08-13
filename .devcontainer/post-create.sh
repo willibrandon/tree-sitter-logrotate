@@ -12,6 +12,7 @@ sudo chown -R "$(id --user):$(id --group)" \
   "$workspace_root/zig-out" \
   "$workspace_root/zig-pkg" \
   "$workspace_root/node_modules" \
+  "$workspace_root/prebuilds" \
   "$workspace_root/.devcontainer-output" \
   /home/vscode/.cache
 
