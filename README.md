@@ -9,6 +9,9 @@ The committed parser uses Tree-sitter language ABI 15. The reviewed syntax basel
 revision `3be1e9ccffe0c2245ed596183c74913d553f9f18`, which includes the logrotate 3.22 syntax reviewed
 for the first release.
 
+The [user and integration documentation](https://willibrandon.github.io/tree-sitter-logrotate/)
+covers package setup, syntax trees, portable queries, editor integration, and compatibility.
+
 ## Consumers
 
 The repository publishes the same generated parser through C source, npm, PyPI, crates.io, Maven
@@ -43,6 +46,9 @@ pass `npm run check:generated`. `TREE_SITTER_BUILD_DIR` relocates native and WAS
 is the ignored `build` directory.
 
 More native setup details are in [docs/native-development.md](docs/native-development.md).
+
+The documentation site has a separate locked dependency tree. Its local development and preview
+commands are described in [docs/documentation-site.md](docs/documentation-site.md).
 
 ## Binding examples
 

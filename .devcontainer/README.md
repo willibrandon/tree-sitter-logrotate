@@ -19,6 +19,35 @@ For a shorter parser-only cycle, use:
 npm run verify
 ```
 
+CMake Tools configures the project with Ninja when the container opens. It does not scan for or
+prompt for a compiler kit. Its build tree is stored in the container-owned
+`.devcontainer-output/cmake` directory.
+
+Zsh is the default integrated terminal shell. Its history-based autosuggestions reuse completed
+commands as you type, and its history is kept in the container's persistent cache volume. Press
+the right arrow to accept a suggestion. Bash remains available with conventional completion
+enabled.
+
+## Documentation site
+
+The post-create command installs the site's locked dependencies in a separate named volume. Start
+the site with:
+
+```sh
+npm run docs:dev
+```
+
+Port 4325 is forwarded automatically. Open
+`http://localhost:4325/tree-sitter-logrotate/` when Visual Studio Code reports that the port is
+available. The repository path is required because it matches the GitHub Pages deployment.
+
+After pulling a change to `devcontainer.json`, run **Dev Containers: Rebuild and Reopen in
+Container** before testing the updated environment or forwarded ports.
+
+Run `npm run docs:check` and `npm run docs:build` before committing documentation changes. The
+complete native and WSL workflow is in
+[docs/documentation-site.md](../docs/documentation-site.md).
+
 `node_modules`, Node-gyp, Maven, Swift, Python, Zig, Cargo, compiler output, release output, and
 download caches use named volumes or ignored container-owned paths. They remain outside the host's
 platform-specific build output so Windows, macOS, and Linux do not reuse incompatible native files.

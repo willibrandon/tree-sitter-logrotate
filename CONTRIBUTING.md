@@ -11,6 +11,9 @@ npm ci
 npm run verify
 ```
 
+The Astro documentation site uses a separate lockfile. Follow
+[documentation site development](docs/documentation-site.md) when changing its content or layout.
+
 ## Grammar changes
 
 Edit `grammar.js` and `src/scanner.c`. `src/parser.c`, `src/grammar.json`, and

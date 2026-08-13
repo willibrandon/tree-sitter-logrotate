@@ -5,10 +5,15 @@ import { resolve } from "node:path";
 
 const repositoryRoot = resolve(".");
 const prebuildsDirectory = resolve(repositoryRoot, "prebuilds");
+const prebuiltBinding = resolve(
+  prebuildsDirectory,
+  `${process.platform}-${process.arch}`,
+  "tree-sitter-logrotate.node",
+);
 
 try {
-  await access(prebuildsDirectory);
-  createRequire(import.meta.url)("node-gyp-build")(repositoryRoot);
+  await access(prebuiltBinding);
+  createRequire(import.meta.url)(prebuiltBinding);
   process.exit(0);
 } catch {
   // A source checkout has no prebuilds. Compile the committed generated parser.

@@ -14,6 +14,7 @@ test("release artifacts are built from committed parser sources", async () => {
   const verifier = await read("scripts/verify-release-artifacts.mjs");
   const consumer = await read("scripts/test-release-artifacts.mjs");
   const installer = await read("scripts/install-node-binding.mjs");
+  const nodeBinding = await read("bindings/node/index.js");
 
   for (const script of ["package:node-prebuild", "package:release", "verify:release", "test:release", "check:release-tag"]) {
     assert.equal(typeof packageJson.scripts[script], "string", `missing ${script}`);
@@ -22,7 +23,10 @@ test("release artifacts are built from committed parser sources", async () => {
   assert.match(`${builder}\n${verifier}`, /src\/parser\.c/u);
   assert.match(`${builder}\n${verifier}`, /src\/scanner\.c/u);
   assert.match(installer, /prebuilds/u);
-  assert.match(installer, /node-gyp-build/u);
+  assert.match(installer, /\$\{process\.platform\}-\$\{process\.arch\}/u);
+  assert.match(installer, /tree-sitter-logrotate\.node/u);
+  assert.doesNotMatch(installer, /node-gyp-build/u);
+  assert.match(nodeBinding, /node-gyp-build/u);
   assert.match(builder, /META-INF\/native/u);
   assert.match(verifier, /Java package does not contain a native parser library/u);
   assert.match(consumer, /maven-dependency-plugin:3\.11\.0:build-classpath/u);

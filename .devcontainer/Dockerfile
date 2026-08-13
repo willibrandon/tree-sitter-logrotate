@@ -37,6 +37,7 @@ ARG TARGETARCH
 ENV CARGO_HOME=/home/vscode/.cache/cargo \
     RUSTUP_HOME=/usr/local/rustup \
     JAVA_HOME=/opt/java/openjdk \
+    LANG=en_US.UTF-8 \
     PATH=/opt/maven/bin:/opt/java/openjdk/bin:/usr/local/go/bin:/usr/local/cargo/bin:/opt/zig:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 COPY --from=node_toolchain /usr/local/ /usr/local/
@@ -57,6 +58,7 @@ RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends \
         autoconf \
         automake \
+        bash-completion \
         binutils \
         build-essential \
         ca-certificates \
@@ -75,6 +77,7 @@ RUN apt-get update \
         libsqlite3-dev \
         libtool \
         libxml2-dev \
+        locales \
         make \
         ninja-build \
         openssh-client \
@@ -88,6 +91,10 @@ RUN apt-get update \
         unzip \
         uuid-dev \
         xz-utils \
+        zsh \
+        zsh-autosuggestions \
+    && sed -i 's/^# *\(en_US.UTF-8 UTF-8\)$/\1/' /etc/locale.gen \
+    && locale-gen \
     && rm -rf /var/lib/apt/lists/* \
     && curl --fail --location --proto '=https' --tlsv1.2 \
          "https://dlcdn.apache.org/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz" \
@@ -130,10 +137,12 @@ RUN apt-get update \
     && tar --extract --xz --strip-components=1 --file /tmp/zig.tar.xz --directory /opt/zig \
     && rm -rf /tmp/gh.tar.gz "/tmp/gh_${GH_VERSION}_linux_${gh_arch}" /tmp/zig.tar.xz \
     && groupadd --gid 1000 vscode \
-    && useradd --uid 1000 --gid 1000 --create-home --shell /bin/bash vscode \
+    && useradd --uid 1000 --gid 1000 --create-home --shell /bin/zsh vscode \
     && echo 'vscode ALL=(ALL) NOPASSWD:ALL' >/etc/sudoers.d/vscode \
     && chmod 0440 /etc/sudoers.d/vscode \
     && install -d -o vscode -g vscode /home/vscode/.cache /home/vscode/.npm
+
+COPY --chmod=0644 .devcontainer/zshrc /etc/zsh/zshrc
 
 COPY --from=swift_toolchain /usr/lib/libIndexStore.so* /usr/lib/
 
@@ -150,7 +159,11 @@ RUN node --version \
     && test "$(java -version 2>&1 | head -n 1 | cut -d'"' -f2 | cut -d. -f1)" = "25" \
     && test "$(mvn --version | head -n 1 | cut -d' ' -f3)" = "${MAVEN_VERSION}" \
     && test "$(logrotate --version | head -n 1)" = "logrotate ${LOGROTATE_VERSION}" \
-    && clang --version | grep --fixed-strings "clang version ${LLVM_VERSION}"
+    && clang --version | grep --fixed-strings "clang version ${LLVM_VERSION}" \
+    && test "$(LC_ALL=en_US.UTF-8 locale charmap)" = "UTF-8" \
+    && test "$(getent passwd vscode | cut -d: -f7)" = "/bin/zsh" \
+    && zsh -ic '(( ${+functions[_zsh_autosuggest_strategy_history]} ))' \
+    && zsh -ic '_tree_sitter_logrotate_prompt; [[ ${PROMPT} == *%m* && ${PROMPT} == *\$\{vcs_info_msg_0_\}* ]]'
 
 RUN printf '%s\n' \
       'export RUSTUP_HOME=/usr/local/rustup' \

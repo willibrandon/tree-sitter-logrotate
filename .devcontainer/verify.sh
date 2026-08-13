@@ -26,6 +26,9 @@ bash -lc 'command -v cargo >/dev/null && command -v rustc >/dev/null'
 mvn --version | head -1 | grep --quiet '^Apache Maven 3\.9\.16 '
 
 npm ci
+npm --prefix docs-site ci --include=optional
+npm run docs:check
+npm run docs:build
 npm run verify
 npm run test:fixtures
 npm run test:sanitizers
