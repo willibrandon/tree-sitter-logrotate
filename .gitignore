@@ -44,6 +44,9 @@ zig-out/
 *.obj
 *.o
 
+# Development container artifacts
+.devcontainer-output/
+
 # Archives
 *.tar.gz
 *.tgz

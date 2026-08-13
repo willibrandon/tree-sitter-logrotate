@@ -423,6 +423,7 @@ test("development container is reproducible, credential-free, and isolates host 
   const dockerfile = await readRequired(".devcontainer/Dockerfile");
   const configuration = await readJson(".devcontainer/devcontainer.json");
   const dockerignore = await readRequired(".dockerignore");
+  const gitignore = await readRequired(".gitignore");
   const serialized = JSON.stringify(configuration);
 
   assert.match(dockerfile, /^ARG\s+BASE_IMAGE=[^\s]+@sha256:[0-9a-f]{64}$/mu);
@@ -453,6 +454,7 @@ test("development container is reproducible, credential-free, and isolates host 
   );
   assert.doesNotMatch(serialized, /(?:GITHUB_TOKEN|GH_TOKEN|NPM_TOKEN|\.ssh|\.gnupg|docker\.sock)/iu);
   assert.doesNotMatch(dockerfile, /(?:GITHUB_TOKEN|GH_TOKEN|NPM_TOKEN|COPY\s+\.ssh|COPY\s+\.git)/iu);
+  assert.match(gitignore, /^\.devcontainer-output\/$/mu);
 
   for (const excluded of [".git", ".env", "node_modules", "build", "target", ".cache", "*.pem", "*.key"]) {
     assert.match(dockerignore, new RegExp(`^${excluded.replaceAll(".", "\\.").replaceAll("*", ".*")}(?:/)?$`, "mu"));
