@@ -638,6 +638,17 @@ test("Node prebuilds use a removable workspace below the isolated build mount", 
   assert.match(script, /cp\(resolve\(stagingDirectory, "prebuilds", entry\.name\), destination/u);
   assert.doesNotMatch(script, /rm\(resolve\(repositoryRoot, "build"\)/u);
 
+  const ci = await readRequired(".github/workflows/ci.yml");
+  const crossPlatformJob = workflowJobBlocks(ci).find((job) =>
+    /\$\{\{\s*matrix\.os\s*\}\}/u.test(job),
+  );
+  assert.ok(crossPlatformJob, "CI must run one build job over an operating-system matrix");
+  assert.match(
+    crossPlatformJob,
+    /npm\s+run\s+package:node-prebuild/u,
+    "every supported native CI host must build the Node precompiled binding",
+  );
+
   const configuration = await readJson(".devcontainer/devcontainer.json");
   const postCreate = await readRequired(".devcontainer/post-create.sh");
   const mounts = configuration.mounts.map((mount) =>
