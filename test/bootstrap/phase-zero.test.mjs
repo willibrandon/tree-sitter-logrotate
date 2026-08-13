@@ -319,6 +319,7 @@ test("all package and binding manifests share one version", async () => {
   const cmake = await readRequired("CMakeLists.txt");
   const makefile = await readRequired("Makefile");
   const zig = await readRequired("build.zig.zon");
+  const bindingsDocumentation = await readRequired("docs-site/src/content/docs/bindings.md");
 
   assert.equal(packageJson.version, expectedVersion);
   assert.equal(packageLock.version, expectedVersion);
@@ -336,6 +337,16 @@ test("all package and binding manifests share one version", async () => {
   assert.equal(cmake.match(/VERSION\s+"([^"]+)"/u)?.[1], expectedVersion);
   assert.equal(makefile.match(/^VERSION\s*:=\s*([^\s]+)$/mu)?.[1], expectedVersion);
   assert.equal(zig.match(/\.version\s*=\s*"([^"]+)"/u)?.[1], expectedVersion);
+  assert.equal(
+    bindingsDocumentation.match(/<artifactId>jtreesitter-logrotate<\/artifactId>\s*<version>([^<]+)<\/version>/u)?.[1],
+    expectedVersion,
+  );
+  assert.equal(
+    bindingsDocumentation.match(
+      /\.package\(\s*url: "https:\/\/github\.com\/willibrandon\/tree-sitter-logrotate",\s*from: "([^"]+)"/u,
+    )?.[1],
+    expectedVersion,
+  );
 });
 
 test("release versioning updates every version-bearing manifest", async (context) => {
@@ -352,10 +363,12 @@ test("release versioning updates every version-bearing manifest", async (context
     "CMakeLists.txt",
     "Makefile",
     "build.zig.zon",
+    "docs-site/src/content/docs/bindings.md",
     "scripts/set-version.mjs",
   ];
   context.after(() => rm(directory, { force: true, recursive: true }));
   await mkdir(join(directory, "scripts"));
+  await mkdir(join(directory, "docs-site/src/content/docs"), { recursive: true });
   await Promise.all(paths.map((path) => copyFile(join(repositoryRoot, path), join(directory, path))));
 
   const result = spawnSync(process.execPath, ["scripts/set-version.mjs", nextVersion], {
@@ -375,6 +388,7 @@ test("release versioning updates every version-bearing manifest", async (context
   const cmake = await readTemporary("CMakeLists.txt");
   const makefile = await readTemporary("Makefile");
   const zig = await readTemporary("build.zig.zon");
+  const bindingsDocumentation = await readTemporary("docs-site/src/content/docs/bindings.md");
 
   assert.equal(packageJson.version, nextVersion);
   assert.equal(packageLock.version, nextVersion);
@@ -390,6 +404,16 @@ test("release versioning updates every version-bearing manifest", async (context
   assert.equal(cmake.match(/VERSION\s+"([^"]+)"/u)?.[1], nextVersion);
   assert.equal(makefile.match(/^VERSION\s*:=\s*([^\s]+)$/mu)?.[1], nextVersion);
   assert.equal(zig.match(/\.version\s*=\s*"([^"]+)"/u)?.[1], nextVersion);
+  assert.equal(
+    bindingsDocumentation.match(/<artifactId>jtreesitter-logrotate<\/artifactId>\s*<version>([^<]+)<\/version>/u)?.[1],
+    nextVersion,
+  );
+  assert.equal(
+    bindingsDocumentation.match(
+      /\.package\(\s*url: "https:\/\/github\.com\/willibrandon\/tree-sitter-logrotate",\s*from: "([^"]+)"/u,
+    )?.[1],
+    nextVersion,
+  );
 });
 
 test("generation commands are explicit, ABI 15, isolated, and drift detecting", async () => {

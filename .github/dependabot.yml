@@ -1,6 +1,17 @@
 version: 2
 updates:
   - package-ecosystem: npm
+    directory: /docs-site
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:30"
+      timezone: America/Los_Angeles
+    groups:
+      documentation:
+        patterns: ["*"]
+    open-pull-requests-limit: 5
+  - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly

@@ -27,6 +27,16 @@ await replace("Cargo.toml", /(\[package\][\s\S]*?\nversion\s*=\s*)"[^"]+"/u, `$1
 await replace("Cargo.lock", /(\[\[package\]\]\nname\s*=\s*"tree-sitter-logrotate"\nversion\s*=\s*)"[^"]+"/u, `$1"${version}"`);
 await replace("pyproject.toml", /(\[project\][\s\S]*?\nversion\s*=\s*)"[^"]+"/u, `$1"${version}"`);
 await replace("pom.xml", /(<artifactId>jtreesitter-logrotate<\/artifactId>[\s\S]*?<version>)[^<]+(<\/version>)/u, `$1${version}$2`);
+await replace(
+  "docs-site/src/content/docs/bindings.md",
+  /(<artifactId>jtreesitter-logrotate<\/artifactId>\s*\n\s*<version>)[^<]+(<\/version>)/u,
+  "$1" + version + "$2",
+);
+await replace(
+  "docs-site/src/content/docs/bindings.md",
+  /(\.package\(\s*\n\s*url: "https:\/\/github\.com\/willibrandon\/tree-sitter-logrotate",\s*\n\s*from: ")[^"]+(")/u,
+  "$1" + version + "$2",
+);
 await replace("CMakeLists.txt", /(project\(tree-sitter-logrotate[\s\S]*?VERSION\s+")[^"]+("\s*)/u, `$1${version}$2`);
 await replace("Makefile", /(^VERSION\s*:=\s*)[^\s]+$/mu, `$1${version}`);
 await replace("build.zig.zon", /(\.version\s*=\s*)"[^"]+"/u, `$1"${version}"`);

@@ -1,0 +1,28 @@
+:root {
+  --sl-color-accent-low: #dcefe2;
+  --sl-color-accent: #237a45;
+  --sl-color-accent-high: #103c22;
+  --sl-content-width: 52rem;
+}
+
+:root[data-theme="dark"] {
+  --sl-color-accent-low: #173522;
+  --sl-color-accent: #83c092;
+  --sl-color-accent-high: #dcefe2;
+}
+
+.sl-markdown-content h2 {
+  margin-top: 2.25rem;
+}
+
+.sl-markdown-content h3 {
+  margin-top: 1.75rem;
+}
+
+.sl-markdown-content :not(pre) > code {
+  overflow-wrap: anywhere;
+}
+
+.sl-markdown-content table {
+  font-size: 0.9375rem;
+}

@@ -5,6 +5,7 @@ target/
 build/
 prebuilds/
 node_modules/
+.astro/
 
 # Swift artifacts
 .build/
@@ -52,6 +53,7 @@ zig-out/
 
 # Codex
 .testagent/
+.playwright-cli/
 
 # Local VS Code modernization sessions
 .github/modernize/
