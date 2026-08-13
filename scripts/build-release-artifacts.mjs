@@ -1,5 +1,4 @@
 import { copyFile, lstat, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { basename, dirname, relative, resolve } from "node:path";
 import {
   listFiles,

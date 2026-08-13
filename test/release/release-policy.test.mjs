@@ -27,8 +27,9 @@ test("release artifacts are built from committed parser sources", async () => {
   assert.match(consumer, /TREE_SITTER_BUILD_JAVA_TEST_RUNTIME=true/u);
   assert.match(consumer, /tree\.getRootNode\(\)\.hasError\(\)/u);
   assert.match(consumer, /TreeSitterLogrotate\.language\(\)/u);
-  for (const artifact of ["\.tgz", "\.crate", "\.whl", "\.jar", "\.wasm", "source\.tar\.gz", "cdx\.json", "SHA256SUMS"]) {
-    assert.match(`${builder}\n${verifier}`, new RegExp(artifact, "u"));
+  const releaseSource = `${builder}\n${verifier}`;
+  for (const artifact of [".tgz", ".crate", ".whl", ".jar", ".wasm", "source.tar.gz", "cdx.json", "SHA256SUMS"]) {
+    assert.ok(releaseSource.includes(artifact), `release source does not cover ${artifact}`);
   }
 });
 
@@ -81,7 +82,7 @@ test("release workflow publishes through protected, least-privilege jobs", async
 test("package metadata links GitHub without publishing a personal email address", async () => {
   const paths = ["package.json", "tree-sitter.json", "Cargo.toml", "pyproject.toml", "pom.xml"];
   const metadata = (await Promise.all(paths.map(read))).join("\n");
-  assert.match(metadata, /https:\/\/github\.com\/willibrandon/u);
+  assert.ok(metadata.includes("https://github.com/willibrandon"));
   assert.doesNotMatch(metadata, /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/iu);
   assert.match(metadata, /io\.github\.willibrandon/u);
 });

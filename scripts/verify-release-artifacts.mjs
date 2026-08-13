@@ -1,5 +1,5 @@
 import { readFile, readdir, stat } from "node:fs/promises";
-import { basename, resolve } from "node:path";
+import { resolve } from "node:path";
 import { optionValue, packageMetadata, repositoryRoot, run, sha256 } from "./release-common.mjs";
 
 const metadata = await packageMetadata();
