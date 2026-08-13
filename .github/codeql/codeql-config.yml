@@ -1,4 +1,0 @@
-name: Tree-sitter Logrotate CodeQL configuration
-
-paths-ignore:
-  - src/parser.c
