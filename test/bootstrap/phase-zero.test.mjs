@@ -672,12 +672,18 @@ test("Node prebuilds use a removable workspace below the isolated build mount", 
   const isolatedOutput = join(directory, "isolated-output");
   const staleArtifact = join(buildDirectory, "stale.node");
   const fakePrebuildify = join(directory, "node_modules/prebuildify/bin.js");
+  const fakeNodeGyp = join(
+    directory,
+    "node_modules/.bin",
+    process.platform === "win32" ? "node-gyp.cmd" : "node-gyp",
+  );
   const argumentsLog = join(directory, "prebuildify-arguments.json");
 
   try {
     await mkdir(join(directory, "bindings/node"), { recursive: true });
     await mkdir(join(directory, "src/tree_sitter"), { recursive: true });
     await mkdir(dirname(fakePrebuildify), { recursive: true });
+    await mkdir(dirname(fakeNodeGyp), { recursive: true });
     await mkdir(buildDirectory);
     await writeFile(
       join(directory, "package.json"),
@@ -694,6 +700,7 @@ test("Node prebuilds use a removable workspace below the isolated build mount", 
       await writeFile(join(directory, path), "fixture", "utf8");
     }
     await writeFile(staleArtifact, "must survive", "utf8");
+    await writeFile(fakeNodeGyp, "fixture", "utf8");
     await writeFile(
       fakePrebuildify,
       [
@@ -738,14 +745,8 @@ test("Node prebuilds use a removable workspace below the isolated build mount", 
     const invokedArguments = JSON.parse(await readFile(argumentsLog, "utf8"));
     assert.equal(invokedArguments[invokedArguments.indexOf("--cwd") + 1], join(isolatedOutput, "node-prebuild"));
     assert.equal(invokedArguments[invokedArguments.indexOf("--out") + 1], join(isolatedOutput, "node-prebuild"));
-    assert.equal(
-      invokedArguments[invokedArguments.indexOf("--node-gyp") + 1],
-      join(
-        await realpath(directory),
-        "node_modules/.bin",
-        process.platform === "win32" ? "node-gyp.cmd" : "node-gyp",
-      ),
-    );
+    const invokedNodeGyp = invokedArguments[invokedArguments.indexOf("--node-gyp") + 1];
+    assert.equal(await realpath(invokedNodeGyp), await realpath(fakeNodeGyp));
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
