@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { spawnSync } from "node:child_process";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import test from "node:test";
 
 const root = resolve(import.meta.dirname, "../..");
@@ -83,6 +85,44 @@ test("release workflow publishes through protected, least-privilege jobs", async
   for (const checkout of workflow.matchAll(/uses: actions\/checkout@[\s\S]*?(?=\n\s+- name:|\n\s{2}[a-z-]+:|$)/gu)) {
     assert.match(checkout[0], /persist-credentials: false/u);
   }
+});
+
+test("release workflow resolves exactly one concrete SBOM before attestation", async () => {
+  const workflow = await read(".github/workflows/release.yml");
+  const attestationStart = workflow.indexOf("      - name: Attest release SBOM");
+  const attestationEnd = workflow.indexOf("\n      - name:", attestationStart + 1);
+
+  assert.notEqual(attestationStart, -1, "missing release SBOM attestation");
+  assert.match(workflow, /id: release-sbom/u);
+  assert.match(workflow, /node scripts\/locate-release-sbom\.mjs dist >> "\$GITHUB_OUTPUT"/u);
+
+  const attestation = workflow.slice(attestationStart, attestationEnd);
+  assert.match(attestation, /sbom-path: \$\{\{ steps\.release-sbom\.outputs\.path \}\}/u);
+  assert.doesNotMatch(attestation, /sbom-path: .*\*/u);
+});
+
+test("release SBOM locator rejects ambiguous artifacts and emits one concrete path", async (context) => {
+  const temporaryRoot = await mkdtemp(join(tmpdir(), "tree-sitter-logrotate-sbom-"));
+  const distribution = join(temporaryRoot, "dist");
+  const locator = resolve(root, "scripts/locate-release-sbom.mjs");
+  const run = () => spawnSync(process.execPath, [locator, "dist"], { cwd: temporaryRoot, encoding: "utf8" });
+  context.after(() => rm(temporaryRoot, { force: true, recursive: true }));
+  await mkdir(distribution);
+
+  let result = run();
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /found 0/u);
+
+  const expected = join("dist", "tree-sitter-logrotate-0.1.0-release.cdx.json");
+  await writeFile(join(temporaryRoot, expected), "{}\n");
+  result = run();
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, `path=${expected}\n`);
+
+  await writeFile(join(distribution, "tree-sitter-logrotate-0.1.1-release.cdx.json"), "{}\n");
+  result = run();
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /found 2/u);
 });
 
 test("package metadata links GitHub without publishing a personal email address", async () => {
