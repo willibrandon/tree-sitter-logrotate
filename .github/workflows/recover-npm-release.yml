@@ -80,6 +80,7 @@ jobs:
           github-token: ${{ github.token }}
       - name: Verify the npm artifact
         env:
+          GH_TOKEN: ${{ github.token }}
           SOURCE_SHA: ${{ steps.release-source.outputs.sha }}
         run: |
           set -euo pipefail

@@ -123,6 +123,7 @@ test("npm recovery only publishes the attested artifact from the matching tagged
   assert.match(workflow, /Assemble and attest release/u);
   assert.match(workflow, /sha256sum --check SHA256SUMS/u);
   assert.match(workflow, /tarballs=\(\.\/dist\/tree-sitter-logrotate-\*\.tgz\)/u);
+  assert.match(workflow, /name: Verify the npm artifact\n\s+env:\n\s+GH_TOKEN: \$\{\{ github\.token \}\}/u);
   assert.match(workflow, /gh attestation verify "\$tarball"/u);
   assert.match(workflow, /--signer-workflow "github\.com\/\$\{GITHUB_REPOSITORY\}\/\.github\/workflows\/release\.yml"/u);
   assert.match(workflow, /--source-ref "refs\/tags\/\$\{RECOVERY_TAG\}"/u);
