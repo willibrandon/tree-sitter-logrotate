@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "samples": 5,
+  "incrementalIterations": 20,
+  "minimumColdThroughputMegabytesPerSecond": 2,
+  "minimumBaselineThroughputRatio": 0.2,
+  "maximumDoublingRatio": 3.5,
+  "maximumIncrementalP95Milliseconds": 100,
+  "maximumPeakResidentMegabytes": 2048,
+  "maximumArtifactBytes": {
+    "parserSourceBytes": 524288,
+    "nativeParserBytes": 262144,
+    "wasmBytes": 131072
+  }
+}

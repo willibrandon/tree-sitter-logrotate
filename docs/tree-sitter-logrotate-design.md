@@ -1,6 +1,6 @@
 # Tree-sitter Logrotate Grammar Design
 
-Status: Proposed  
+Status: Accepted
 Date: 2026-08-12  
 Target first release: 0.1.0
 

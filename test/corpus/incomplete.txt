@@ -1,0 +1,24 @@
+==================
+Terminator typed before its opener
+==================
+endscript
+weekly
+
+---
+
+(source_file
+  (directive
+    (directive_name))
+  (directive
+    (directive_name)))
+
+==================
+Partial directive at end of file
+==================
+postrot
+
+---
+
+(source_file
+  (directive
+    (directive_name)))

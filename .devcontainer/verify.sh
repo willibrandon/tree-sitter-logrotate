@@ -17,6 +17,8 @@ command -v jq >/dev/null
 command -v shellcheck >/dev/null
 command -v swift >/dev/null
 command -v zig >/dev/null
+test -x .venv/bin/python
+.venv/bin/python -m build --version >/dev/null
 
 bash -lc 'javac -version 2>&1' | grep --quiet '^javac 25\.'
 bash -lc 'command -v cargo >/dev/null && command -v rustc >/dev/null'
@@ -24,4 +26,12 @@ mvn --version | head -1 | grep --quiet '^Apache Maven 3\.9\.16 '
 
 npm ci
 npm run verify
+npm run test:fixtures
+npm run test:sanitizers
+npm run test:bindings
+PLAYWRIGHT_CHROMIUM_EXECUTABLE=/usr/bin/chromium npm run test:wasm
+npm run test:performance
+PYTHON=.venv/bin/python npm run package:release
+npm run verify:release
+PYTHON=.venv/bin/python npm run test:release
 mvn --batch-mode --no-transfer-progress clean test

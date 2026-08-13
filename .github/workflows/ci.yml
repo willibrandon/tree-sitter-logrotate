@@ -48,7 +48,182 @@ jobs:
       - name: Build native and WASM parsers
         run: |
           npm run build:native
+          npm run test:bindings:c
           npm run build:wasm
+          npm run test:wasm:node
+
+  fixtures:
+    name: Pinned upstream fixtures
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.0.0
+        with:
+          node-version: 24.19.0
+          cache: npm
+      - name: Classify pinned logrotate and VS Code fixtures
+        env:
+          TREE_SITTER_FIXTURES_FETCH: always
+        run: |
+          npm run ci:install
+          npm run test:fixtures
+
+  wasm-browser:
+    name: Chromium WASM host
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.0.0
+        with:
+          node-version: 24.19.0
+          cache: npm
+      - name: Install dependencies and Chromium
+        run: |
+          npm run ci:install
+          npx playwright install --with-deps chromium
+      - name: Test the browser WASM package
+        run: npm run test:wasm
+
+  tree-sitter-cli:
+    name: Tree-sitter CLI ${{ matrix.tree-sitter }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        tree-sitter: ["0.26.3", "0.26.12"]
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.0.0
+        with:
+          node-version: 24.19.0
+          cache: npm
+      - name: Test the committed parser with Tree-sitter ${{ matrix.tree-sitter }}
+        env:
+          TREE_SITTER_VERSION: ${{ matrix.tree-sitter }}
+        run: |
+          npm run ci:install
+          npm exec --yes --allow-scripts=tree-sitter-cli --package="tree-sitter-cli@${TREE_SITTER_VERSION}" -- tree-sitter --version
+          npm exec --yes --allow-scripts=tree-sitter-cli --package="tree-sitter-cli@${TREE_SITTER_VERSION}" -- tree-sitter test --rebuild
+
+  go:
+    name: Go ${{ matrix.go }} binding
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        go: ["1.23.x", "1.26.5"]
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Go
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        with:
+          go-version: ${{ matrix.go }}
+          cache: true
+      - name: Test the Go binding
+        run: go test ./bindings/go
+
+  python:
+    name: Python ${{ matrix.python }} binding
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.14"]
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.0.0
+        with:
+          node-version: 24.19.0
+          cache: npm
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - name: Test the Python binding
+        env:
+          PYTHON: python
+        run: |
+          npm run ci:install
+          npm run test:bindings:python
+
+  rust:
+    name: Rust ${{ matrix.rust }} binding
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        rust: ["1.85.0", "1.97.1"]
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772
+        with:
+          toolchain: ${{ matrix.rust }}
+      - name: Test the Rust binding
+        run: npm run test:bindings:rust
+
+  swift:
+    name: Swift binding on macOS arm64
+    runs-on: macos-14
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Test the Swift binding
+        run: |
+          swift package clean --scratch-path build/bindings/swift
+          swift test --scratch-path build/bindings/swift
+
+  zig:
+    name: Zig 0.16.0 on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-14, windows-2025]
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Zig
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2.2.1
+        with:
+          version: 0.16.0
+      - name: Test the Zig binding
+        run: zig build test --cache-dir build/bindings/zig/cache --global-cache-dir build/bindings/zig/global-cache
 
   java:
     name: Java 25 binding
@@ -90,17 +265,35 @@ jobs:
           node-version: 24.19.0
           cache: npm
       - name: Build and run sanitizer smoke test
-        shell: bash
+        env:
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
         run: |
           npm run ci:install
-          mkdir -p build/sanitizers
-          clang -std=c11 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer \
-            -D_DEFAULT_SOURCE -D_POSIX_C_SOURCE=200112L \
-            -I node_modules/tree-sitter/vendor/tree-sitter/lib/include \
-            -I node_modules/tree-sitter/vendor/tree-sitter/lib/src \
-            scripts/sanitizer-smoke.c \
-            src/parser.c \
-            node_modules/tree-sitter/vendor/tree-sitter/lib/src/lib.c \
-            -o build/sanitizers/parser-smoke
-          ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1 \
-            build/sanitizers/parser-smoke
+          npm run test:sanitizers
+
+  performance:
+    name: Performance and artifact budgets
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.0.0
+        with:
+          node-version: 24.19.0
+          cache: npm
+      - name: Measure parser performance
+        run: |
+          npm run ci:install
+          npm run test:performance
+      - name: Upload measurements
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: parser-performance-linux-x64
+          path: build/performance/results.json
+          if-no-files-found: error

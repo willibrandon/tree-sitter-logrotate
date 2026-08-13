@@ -1,0 +1,161 @@
+==================
+Unmatched closing brace stays local
+==================
+
+}
+weekly
+/var/log/healthy.log {
+  rotate 4
+}
+
+---
+
+(source_file
+  (ERROR)
+  (directive
+    (directive_name))
+  (rotation_block
+    (path_list
+      (path_pattern))
+    (directive
+      (directive_name)
+      (directive_arguments
+        (argument
+          (integer))))))
+
+==================
+Unterminated quoted argument
+==================
+
+mail "root@example.test
+weekly
+
+---
+
+(source_file
+  (directive
+    (directive_name)
+    (directive_arguments
+      (argument
+        (quoted_argument
+          (MISSING """)))))
+  (directive
+    (directive_name)))
+
+==================
+Path without an opening brace
+==================
+
+/var/log/incomplete.log
+weekly
+/var/log/healthy.log {
+  daily
+}
+
+---
+
+(source_file
+  (path_list
+    (path_pattern))
+  (directive
+    (directive_name))
+  (MISSING _error_sentinel)
+  (rotation_block
+    (path_list
+      (path_pattern))
+    (directive
+      (directive_name))))
+
+==================
+Block without a closing brace
+==================
+
+/var/log/incomplete.log {
+  daily
+
+---
+
+(source_file
+  (ERROR
+    (path_pattern)
+    (directive
+      (directive_name))))
+
+==================
+Script without a terminator
+==================
+
+/var/log/incomplete.log {
+  postrotate
+    echo still-editing
+
+---
+
+(source_file
+  (ERROR
+    (path_pattern)
+    (script_directive)
+    (script_body)))
+
+==================
+Unterminated script recovers before a complete later stanza
+==================
+
+/var/log/incomplete.log {
+  postrotate
+    echo still-editing
+}
+/var/log/healthy.log {
+  rotate 4
+}
+
+---
+
+(source_file
+  (rotation_block
+    (path_list
+      (path_pattern))
+    (unterminated_script_block
+      (script_directive)
+      (script_body)))
+  (MISSING _newline)
+  (rotation_block
+    (path_list
+      (path_pattern))
+    (directive
+      (directive_name)
+      (directive_arguments
+        (argument
+          (integer))))))
+
+==================
+Multiple errors remain local to later valid syntax
+==================
+
+}
+mail "root@example.test
+weekly
+/var/log/healthy.log {
+  rotate 4
+}
+
+---
+
+(source_file
+  (ERROR)
+  (directive
+    (directive_name)
+    (directive_arguments
+      (argument
+        (quoted_argument
+          (MISSING """)))))
+  (directive
+    (directive_name))
+  (rotation_block
+    (path_list
+      (path_pattern))
+    (directive
+      (directive_name)
+      (directive_arguments
+        (argument
+          (integer))))))

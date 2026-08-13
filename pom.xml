@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
                              http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>io.github.tree-sitter</groupId>
+  <groupId>io.github.willibrandon</groupId>
   <artifactId>jtreesitter-logrotate</artifactId>
   <name>JTreeSitter Logrotate</name>
   <version>0.1.0</version>
@@ -19,7 +19,6 @@
   <developers>
     <developer>
       <name>Brandon Williams</name>
-      <email>willibrandon@gmail.com</email>
       <url>https://github.com/willibrandon</url>
     </developer>
   </developers>
@@ -31,8 +30,11 @@
   <properties>
     <maven.compiler.release>25</maven.compiler.release>
     <project.build.directory>target</project.build.directory>
+    <project.build.outputTimestamp>2026-08-13T00:00:00Z</project.build.outputTimestamp>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.deploy.skip>true</maven.deploy.skip>
+    <native.test.runtime>true</native.test.runtime>
+    <native.resources.directory>bindings/java/resources</native.resources.directory>
     <gpg.skip>true</gpg.skip>
     <publish.auto>false</publish.auto>
     <publish.skip>true</publish.skip>
@@ -55,8 +57,34 @@
     <directory>${project.build.directory}</directory>
     <sourceDirectory>bindings/java/main</sourceDirectory>
     <testSourceDirectory>bindings/java/test</testSourceDirectory>
+    <resources>
+      <resource>
+        <directory>${native.resources.directory}</directory>
+        <filtering>false</filtering>
+      </resource>
+    </resources>
     <pluginManagement>
       <plugins>
+        <plugin>
+          <artifactId>maven-clean-plugin</artifactId>
+          <version>3.5.0</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.15.0</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-dependency-plugin</artifactId>
+          <version>3.11.0</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>3.5.1</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-resources-plugin</artifactId>
+          <version>3.3.1</version>
+        </plugin>
         <plugin>
           <groupId>org.eclipse.m2e</groupId>
           <artifactId>lifecycle-mapping</artifactId>
@@ -105,7 +133,8 @@
                 <argument>-G</argument>
                 <argument>Ninja</argument>
                 <argument>-DCMAKE_BUILD_TYPE=Release</argument>
-                <argument>-DTREE_SITTER_BUILD_JAVA_TEST_RUNTIME=ON</argument>
+                <argument>-DTREE_SITTER_BUILD_JAVA_TEST_RUNTIME=${native.test.runtime}</argument>
+                <argument>-DBUILD_TESTING=${native.test.runtime}</argument>
               </arguments>
             </configuration>
           </execution>
@@ -184,9 +213,9 @@
         </executions>
       </plugin>
       <plugin>
-        <groupId>io.github.mavenplugins</groupId>
+        <groupId>org.sonatype.central</groupId>
         <artifactId>central-publishing-maven-plugin</artifactId>
-        <version>1.1.1</version>
+        <version>0.11.0</version>
         <executions>
           <execution>
             <phase>deploy</phase>
@@ -194,7 +223,8 @@
               <goal>publish</goal>
             </goals>
             <configuration>
-              <waitUntil>validated</waitUntil>
+              <publishingServerId>central</publishingServerId>
+              <waitUntil>published</waitUntil>
               <autoPublish>${publish.auto}</autoPublish>
               <skipPublishing>${publish.skip}</skipPublishing>
               <outputFilename>${project.artifactId}-${project.version}.zip</outputFilename>

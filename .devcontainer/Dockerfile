@@ -61,6 +61,7 @@ RUN apt-get update \
         build-essential \
         ca-certificates \
         cmake \
+        chromium \
         curl \
         emscripten \
         git \

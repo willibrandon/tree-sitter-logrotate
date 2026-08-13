@@ -1,0 +1,82 @@
+# Release process
+
+Releases use one `vX.Y.Z` tag for every package and artifact. The tag version must match
+`package.json`, `tree-sitter.json`, `Cargo.toml`, `pyproject.toml`, `pom.xml`, `Package.swift`,
+`build.zig.zon`, and the generated binding metadata.
+
+## Repository configuration
+
+Create protected GitHub environments named `github-release`, `npm`, `pypi`, `crates-io`, and
+`maven-central`. Restrict tag creation and require review for publishing environments where the
+repository policy calls for it.
+
+npm, PyPI, and crates.io use GitHub Actions trusted publishing with OIDC. Configure each registry
+to trust this repository, the `release.yml` workflow, and its matching GitHub environment. No
+long-lived npm, PyPI, or crates.io token belongs in repository secrets.
+
+Maven Central does not use the same publishing path. Add environment-protected
+`MAVEN_CENTRAL_USERNAME`, `MAVEN_CENTRAL_PASSWORD`, `MAVEN_GPG_PRIVATE_KEY`, and
+`MAVEN_GPG_PASSPHRASE` secrets to `maven-central`. The signing key identity and the
+`io.github.willibrandon` namespace must be accepted by Maven Central before tagging.
+
+## Prepare the version
+
+Start from an up-to-date clean `main` branch. Review every public node, field, query capture,
+minimum runtime, ABI, and package dependency change since the preceding tag. Update the changelog,
+then align version metadata with:
+
+```sh
+npm run release:version -- 0.1.0
+npm run check:versions
+```
+
+Use the intended version in place of `0.1.0`. Commit the version and changelog before running the
+release gates.
+
+## Release gates
+
+Run the complete source and consumer verification:
+
+```sh
+npm ci
+npm run verify
+npm run test:fixtures
+npm run test:sanitizers
+npm run test:bindings
+npm run test:wasm
+npm run test:performance
+python3 -m venv .venv
+.venv/bin/python -m pip install --requirement requirements-build.txt
+PYTHON=.venv/bin/python npm run package:release
+npm run verify:release
+PYTHON=.venv/bin/python npm run test:release
+git diff --check
+```
+
+The release-artifact consumer test installs npm and Python packages into fresh temporary projects,
+loads the Java archive with JTreeSitter, and loads the standalone WASM file. Each consumer parses a
+real configuration without regenerating the parser.
+
+## Tag and publish
+
+Push the verified commit and wait for required `main` checks. Create and push an annotated or signed
+tag matching the version:
+
+```sh
+git tag -s v0.1.0 -m "tree-sitter-logrotate 0.1.0"
+git push origin v0.1.0
+```
+
+The release workflow validates the tag, builds platform Node prebuilds and Python wheels, packages
+all registry artifacts, checks their consumers, emits `SHA256SUMS` and CycloneDX SBOMs, creates
+GitHub provenance attestations, publishes each registry package, and finally creates the GitHub
+release. The GitHub release is created only after every registry job succeeds.
+
+Inspect the workflow run, registry versions, GitHub attestations, and `SHA256SUMS` before announcing
+the release. Do not upload a locally rebuilt replacement under the same version.
+
+## Failed release
+
+Fix the source and publish a new version. Do not move a published tag, replace a registry package,
+or overwrite a release asset. A failed workflow before any registry accepts the version may be
+rerun from the unchanged tag after correcting only external environment configuration.

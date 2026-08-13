@@ -392,6 +392,20 @@ test("CMake invokes the pinned local Tree-sitter CLI through Node", async () => 
   assert.doesNotMatch(cmake, /find_program\(TREE_SITTER_CLI\s+tree-sitter\b/u);
 });
 
+test("CMake installs the native parser on Unix and Windows", async () => {
+  const cmake = await readRequired("CMakeLists.txt");
+  const bindingTest = await readRequired("scripts/test-c-binding.mjs");
+
+  assert.match(cmake, /WINDOWS_EXPORT_ALL_SYMBOLS\s+ON/u);
+  assert.match(cmake, /ARCHIVE DESTINATION "\$\{CMAKE_INSTALL_LIBDIR\}"/u);
+  assert.match(cmake, /LIBRARY DESTINATION "\$\{CMAKE_INSTALL_LIBDIR\}"/u);
+  assert.match(cmake, /RUNTIME DESTINATION "\$\{CMAKE_INSTALL_BINDIR\}"/u);
+  assert.match(bindingTest, /tree-sitter-logrotate\.dll/u);
+  assert.match(bindingTest, /libtree-sitter-logrotate\.dylib/u);
+  assert.match(bindingTest, /libtree-sitter-logrotate\.so/u);
+  assert.match(bindingTest, /run\("cmake", \["--install", buildDirectory\]\)/u);
+});
+
 test("Node build scripts invoke the pinned local Tree-sitter CLI without a command shim", async () => {
   const runner = await readRequired("scripts/tree-sitter-cli.mjs");
   const scripts = await Promise.all(
@@ -405,6 +419,14 @@ test("Node build scripts invoke the pinned local Tree-sitter CLI without a comma
     assert.match(source, /runTreeSitter/u);
     assert.doesNotMatch(source, /spawnSync\(["']tree-sitter["']/u);
   }
+});
+
+test("Swift binding tests clean their isolated scratch products", async () => {
+  const packageJson = await readJson("package.json");
+  const script = packageScript(packageJson, "test:bindings:swift");
+
+  assert.match(script, /^swift package clean --scratch-path build\/bindings\/swift/u);
+  assert.match(script, /swift test --scratch-path build\/bindings\/swift$/u);
 });
 
 test("WASM builds retry only transient WASI SDK download failures", async () => {
@@ -583,7 +605,7 @@ test("native development documentation covers the complete bootstrap workflow", 
   const nativeDevelopment = await readRequired("docs/native-development.md");
   const documentation = `${readme}\n${contributing}\n${containerReadme}\n${nativeDevelopment}`;
 
-  for (const prerequisite of ["Node.js 24.19.0", "npm 12.0.2", "Tree-sitter 0.26.12", "C compiler", "Emscripten"]) {
+  for (const prerequisite of ["Node.js 24.19.0", "npm 12.0.2", "Tree-sitter(?: CLI)? 0.26.12", "C compiler", "Emscripten"]) {
     assert.match(documentation, new RegExp(prerequisite.replaceAll(".", "\\."), "iu"));
   }
   for (const command of [
@@ -638,7 +660,7 @@ test("security automation covers dependencies, code, secrets, sanitizers, and fu
   const fuzzWorkflow = workflows.find(({ path, source }) => /fuzz/iu.test(path) || /tree-sitter\s+fuzz/iu.test(source));
   assert.ok(fuzzWorkflow, "A fuzz workflow is required");
   assert.match(fuzzWorkflow.source, /^\s*schedule:/mu);
-  assert.match(fuzzWorkflow.source, /tree-sitter\s+fuzz|fuzz-action|workflows\/fuzz/iu);
+  assert.match(fuzzWorkflow.source, /tree-sitter\s+fuzz|npm\s+run\s+test:fuzz|fuzz-action|workflows\/fuzz/iu);
 
   assert.match(dependabot, /package-ecosystem:\s*["']?npm["']?/u);
   assert.match(dependabot, /package-ecosystem:\s*["']?github-actions["']?/u);
@@ -648,7 +670,7 @@ test("security automation covers dependencies, code, secrets, sanitizers, and fu
 test("CI declares the required cross-platform and compatibility surfaces", async () => {
   const workflows = await workflowSources();
   const ciWorkflows = workflows
-    .filter(({ path, source }) => /ci|test|build/iu.test(path) || /build:native/u.test(source))
+    .filter(({ path, source }) => /ci|test|build/iu.test(path) || /build:native/u.test(source));
   const ci = ciWorkflows.map(({ source }) => source).join("\n");
   const compatibility = await readRequired("docs/compatibility.md");
 
@@ -659,6 +681,8 @@ test("CI declares the required cross-platform and compatibility surfaces", async
   assert.match(ci, /npm\s+run\s+check:generated/u);
   assert.match(ci, /npm\s+run\s+build:native/u);
   assert.match(ci, /npm\s+run\s+build:wasm/u);
+  assert.match(ci, /npm exec --yes --allow-scripts=tree-sitter-cli/u);
+  assert.match(ci, /tree-sitter-cli@\$\{TREE_SITTER_VERSION\}/u);
 
   const crossPlatformJob = ciWorkflows
     .flatMap(({ source }) => workflowJobBlocks(source))

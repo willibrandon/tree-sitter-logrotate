@@ -10,11 +10,19 @@
   "license": "MIT",
   "author": {
     "name": "Brandon Williams",
-    "email": "willibrandon@gmail.com",
     "url": "https://github.com/willibrandon"
   },
-  "main": "bindings/node",
-  "types": "bindings/node",
+  "main": "bindings/node/index.js",
+  "types": "bindings/node/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./bindings/node/index.d.ts",
+      "import": "./bindings/node/index.js",
+      "default": "./bindings/node/index.js"
+    },
+    "./tree-sitter-logrotate.wasm": "./tree-sitter-logrotate.wasm",
+    "./queries/*": "./queries/*"
+  },
   "keywords": [
     "incremental",
     "parsing",
@@ -37,9 +45,12 @@
     "node-gyp-build": "4.8.4"
   },
   "devDependencies": {
+    "@cyclonedx/cyclonedx-npm": "6.0.1",
+    "@playwright/test": "1.62.1",
     "prebuildify": "6.0.1",
     "tree-sitter": "0.25.1",
-    "tree-sitter-cli": "0.26.12"
+    "tree-sitter-cli": "0.26.12",
+    "web-tree-sitter": "0.26.12"
   },
   "peerDependencies": {
     "tree-sitter": "^0.25.1"
@@ -50,6 +61,7 @@
     }
   },
   "scripts": {
+    "build:node": "node scripts/install-node-binding.mjs",
     "build:native": "node scripts/build-native.mjs",
     "build:wasm": "node scripts/build-wasm.mjs",
     "check:generated": "node scripts/check-generated.mjs",
@@ -59,11 +71,37 @@
     "install": "node scripts/install-node-binding.mjs",
     "prestart": "npm run build:wasm",
     "start": "tree-sitter playground",
-    "test": "npm run test:bootstrap && npm run test:parser && npm run test:bindings:node",
+    "test": "npm run test:bootstrap && npm run test:release:policy && npm run test:parser && npm run test:highlight && npm run test:bindings:node && npm run test:node",
+    "test:bindings": "npm run test:bindings:c && npm run test:bindings:node && npm run test:bindings:go && npm run test:bindings:python && npm run test:bindings:rust && npm run test:bindings:java && npm run test:bindings:swift && npm run test:bindings:zig",
+    "test:bindings:c": "node scripts/test-c-binding.mjs",
+    "test:bindings:go": "go test ./bindings/go",
+    "test:bindings:java": "mvn --batch-mode --no-transfer-progress -Dproject.build.directory=build/bindings/java test",
     "test:bindings:node": "node --test bindings/node/*_test.js",
+    "test:bindings:python": "node scripts/test-python-binding.mjs",
+    "test:bindings:rust": "cargo test --locked --lib --target-dir build/bindings/rust && cargo test --locked --doc --target-dir build/bindings/rust",
+    "test:bindings:swift": "swift package clean --scratch-path build/bindings/swift && swift test --scratch-path build/bindings/swift",
+    "test:bindings:zig": "zig build test --cache-dir build/bindings/zig/cache --global-cache-dir build/bindings/zig/global-cache",
     "test:bootstrap": "node --test test/bootstrap/*.test.mjs",
-    "test:parser": "tree-sitter test",
-    "verify": "npm run check:versions && npm run check:generated && npm test && npm run build:native && npm run build:wasm"
+    "test:highlight": "tree-sitter highlight --check --captures-path queries/captures.txt --config-path test/config/tree-sitter.json --scope source.logrotate --quiet test/highlight/highlights.logrotate",
+    "test:fixtures": "npm run build:node && node scripts/test-upstream-fixtures.mjs",
+    "test:fuzz": "node scripts/run-fuzz.mjs --edits 5 --iterations 10000",
+    "test:fuzz:pr": "node scripts/run-fuzz.mjs --edits 5 --iterations 1000",
+    "test:node": "npm run build:node && node --test test/node/*.test.mjs",
+    "test:parser": "tree-sitter test --rebuild",
+    "test:performance": "npm run build:node && npm run build:native && npm run build:wasm && node scripts/benchmark.mjs",
+    "test:performance:update-baseline": "npm run build:node && npm run build:native && npm run build:wasm && node scripts/benchmark.mjs --write-baseline",
+    "test:release": "node scripts/test-release-artifacts.mjs",
+    "test:release:policy": "node --test test/release/*.test.mjs",
+    "test:sanitizers": "node scripts/run-sanitizers.mjs",
+    "test:wasm": "npm run build:wasm && npm run test:wasm:node && npm run test:wasm:browser",
+    "test:wasm:browser": "node scripts/test-wasm-browser.mjs",
+    "test:wasm:node": "node --test test/wasm/*.test.mjs",
+    "verify": "npm run check:versions && npm run check:generated && npm test && npm run build:native && npm run build:wasm",
+    "package:node-prebuild": "prebuildify --napi --strip --target 24.19.0",
+    "check:release-tag": "node scripts/check-release-tag.mjs",
+    "package:release": "node scripts/build-release-artifacts.mjs",
+    "release:version": "node scripts/set-version.mjs",
+    "verify:release": "node scripts/verify-release-artifacts.mjs"
   },
   "engines": {
     "node": "24.19.0"

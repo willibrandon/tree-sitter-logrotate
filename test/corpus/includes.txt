@@ -1,0 +1,24 @@
+==================
+Include file and directory paths
+==================
+
+include /etc/logrotate.d
+include=/etc/logrotate.conf
+include "/etc/logrotate custom/*.conf"
+include '~/logrotate.d'
+
+---
+
+(source_file
+  (include_directive
+    (directive_name)
+    (path_pattern))
+  (include_directive
+    (directive_name)
+    (path_pattern))
+  (include_directive
+    (directive_name)
+    (quoted_path))
+  (include_directive
+    (directive_name)
+    (quoted_path)))

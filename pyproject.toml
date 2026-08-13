@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=62.4.0", "wheel"]
+requires = ["setuptools==84.0.0", "wheel==0.48.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -13,17 +13,22 @@ classifiers = [
   "Topic :: Text Processing :: Linguistic",
   "Typing :: Typed",
 ]
-authors = [{ name = "Brandon Williams", email = "willibrandon@gmail.com" }]
+authors = [{ name = "Brandon Williams" }]
 requires-python = ">=3.10"
-license.text = "MIT"
+license = "MIT"
+license-files = ["LICENSE"]
 readme = "README.md"
 
 [project.urls]
 Homepage = "https://github.com/willibrandon/tree-sitter-logrotate"
+Source = "https://github.com/willibrandon/tree-sitter-logrotate"
+Issues = "https://github.com/willibrandon/tree-sitter-logrotate/issues"
 
 [project.optional-dependencies]
-core = ["tree-sitter~=0.24"]
+core = ["tree-sitter~=0.26"]
 
 [tool.cibuildwheel]
 build = "cp310-*"
 build-frontend = "build"
+test-requires = ["tree-sitter==0.26.0"]
+test-command = "python -c \"from tree_sitter import Language, Parser; from tree_sitter_logrotate import language; tree = Parser(Language(language())).parse(b'/var/log/app.log {\\n daily\\n}'); assert tree.root_node.type == 'source_file' and not tree.root_node.has_error\""

@@ -1,6 +1,18 @@
 import { spawnSync } from "node:child_process";
-import { mkdir, readdir, rm } from "node:fs/promises";
+import { access, mkdir, readdir, rm } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { resolve } from "node:path";
+
+const repositoryRoot = resolve(".");
+const prebuildsDirectory = resolve(repositoryRoot, "prebuilds");
+
+try {
+  await access(prebuildsDirectory);
+  createRequire(import.meta.url)("node-gyp-build")(repositoryRoot);
+  process.exit(0);
+} catch {
+  // A source checkout has no prebuilds. Compile the committed generated parser.
+}
 
 const buildDirectory = resolve("build");
 await mkdir(buildDirectory, { recursive: true });

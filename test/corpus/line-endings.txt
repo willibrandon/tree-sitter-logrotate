@@ -1,0 +1,28 @@
+==================
+CRLF configuration
+==================
+
+# Windows line endings
+/var/log/application.log {
+	rotate = 4
+	postrotate
+		echo rotated
+	endscript
+}
+
+---
+
+(source_file
+  (comment)
+  (rotation_block
+    (path_list
+      (path_pattern))
+    (directive
+      (directive_name)
+      (directive_arguments
+        (argument
+          (integer))))
+    (script_block
+      (script_directive)
+      (script_body)
+      (endscript))))

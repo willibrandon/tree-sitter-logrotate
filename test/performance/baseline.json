@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "environment": {
+    "platform": "linux",
+    "architecture": "x64",
+    "node": "v24.19.0"
+  },
+  "cold": {
+    "ordinaryBlocks": {
+      "bytes": 638890,
+      "milliseconds": 51.275936,
+      "throughputMegabytesPerSecond": 12.45984081109704
+    },
+    "hundredThousandLines": {
+      "lines": 100000,
+      "bytes": 990000,
+      "milliseconds": 111.91785000000004,
+      "throughputMegabytesPerSecond": 8.84577393150422
+    },
+    "largePathList": {
+      "bytes": 568903,
+      "milliseconds": 14.87838499999998,
+      "throughputMegabytesPerSecond": 38.23687853217945
+    },
+    "rawScript": {
+      "bytes": 1900054,
+      "milliseconds": 8.421795999999858,
+      "throughputMegabytesPerSecond": 225.61149664513744
+    }
+  },
+  "scaling": {
+    "samples": [
+      {
+        "lines": 25000,
+        "bytes": 247500,
+        "milliseconds": 27.012648000000013,
+        "throughputMegabytesPerSecond": 9.16237460318588
+      },
+      {
+        "lines": 50000,
+        "bytes": 495000,
+        "milliseconds": 54.51377499999995,
+        "throughputMegabytesPerSecond": 9.080273747323506
+      },
+      {
+        "lines": 100000,
+        "bytes": 990000,
+        "milliseconds": 111.91785000000004,
+        "throughputMegabytesPerSecond": 8.84577393150422
+      }
+    ],
+    "maximumDoublingRatio": 2.0530196266906877
+  },
+  "incremental": {
+    "edits": 60,
+    "medianMilliseconds": 2.8928930000001856,
+    "p95Milliseconds": 3.800290000000132
+  },
+  "memory": {
+    "peakResidentMegabytes": 975.8125
+  },
+  "artifacts": {
+    "parserSourceBytes": 107514,
+    "nativeParserBytes": 33040,
+    "wasmBytes": 21092
+  }
+}

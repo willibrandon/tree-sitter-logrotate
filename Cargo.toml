@@ -2,13 +2,15 @@
 name = "tree-sitter-logrotate"
 description = "Logrotate configuration grammar for Tree-sitter"
 version = "0.1.0"
-authors = ["Brandon Williams <willibrandon@gmail.com>"]
+authors = ["Brandon Williams"]
 license = "MIT"
 readme = "README.md"
 keywords = ["incremental", "parsing", "tree-sitter", "logrotate"]
 categories = ["parser-implementations", "parsing", "text-editors"]
 repository = "https://github.com/willibrandon/tree-sitter-logrotate"
+homepage = "https://github.com/willibrandon/tree-sitter-logrotate"
 edition = "2024"
+rust-version = "1.85"
 autoexamples = false
 
 build = "bindings/rust/build.rs"

@@ -17,6 +17,10 @@
     "TREE_SITTER_BUILD_DIR": "/workspaces/tree-sitter-logrotate/.devcontainer-output/build",
     "npm_config_cache": "/home/vscode/.cache/npm"
   },
+  "remoteEnv": {
+    "PATH": "${containerWorkspaceFolder}/.venv/bin:${containerEnv:PATH}",
+    "PYTHON": "${containerWorkspaceFolder}/.venv/bin/python"
+  },
   "mounts": [
     "source=tree-sitter-logrotate-${devcontainerId}-node-modules,target=${containerWorkspaceFolder}/node_modules,type=volume",
     "source=tree-sitter-logrotate-${devcontainerId}-node-build,target=${containerWorkspaceFolder}/build,type=volume",
@@ -39,7 +43,9 @@
       "extensions": [
         "ziglang.vscode-zig",
         "vscjava.vscode-java-pack",
-        "ms-vscode.cmake-tools"
+        "ms-vscode.cmake-tools",
+        "willibrandon.logrotate",
+        "docker.docker"
       ]
     }
   }

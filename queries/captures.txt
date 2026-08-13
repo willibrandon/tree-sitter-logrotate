@@ -1,0 +1,12 @@
+; Every capture emitted by the portable queries. The CLI treats this file as
+; the complete allowlist when --check is used.
+comment
+keyword
+number
+operator
+property
+punctuation.bracket
+string
+string.escape
+injection.content
+string.special.path

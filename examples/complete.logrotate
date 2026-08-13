@@ -1,0 +1,16 @@
+# Example configuration used by the binding and query smoke tests.
+include includes
+include=includes/application.conf
+include "includes/custom"
+
+"/var/log/application output.log" /var/log/application/*.log {
+    daily
+    rotate 14
+    size 100M
+    create 0640 application adm
+    compress
+
+    postrotate
+        systemctl reload application >/dev/null 2>&1 || true
+    endscript
+}

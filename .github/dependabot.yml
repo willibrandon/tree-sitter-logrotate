@@ -32,3 +32,53 @@ updates:
       day: monday
       time: "11:00"
       timezone: America/Los_Angeles
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "11:30"
+      timezone: America/Los_Angeles
+    groups:
+      rust:
+        patterns: ["*"]
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "12:00"
+      timezone: America/Los_Angeles
+    groups:
+      go:
+        patterns: ["*"]
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "12:30"
+      timezone: America/Los_Angeles
+    groups:
+      python:
+        patterns: ["*"]
+  - package-ecosystem: maven
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "13:00"
+      timezone: America/Los_Angeles
+    groups:
+      java:
+        patterns: ["*"]
+  - package-ecosystem: swift
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "13:30"
+      timezone: America/Los_Angeles
+    groups:
+      swift:
+        patterns: ["*"]

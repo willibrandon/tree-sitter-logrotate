@@ -17,6 +17,10 @@ sudo chown -R "$(id --user):$(id --group)" \
 
 cd "$workspace_root"
 npm ci
+python3 -m venv .venv
+.venv/bin/python -m pip install \
+  --disable-pip-version-check \
+  --requirement requirements-build.txt
 npm run check:versions
 
 node --version
@@ -30,3 +34,4 @@ mvn --version
 swift --version
 zig version
 logrotate --version
+.venv/bin/python -m build --version

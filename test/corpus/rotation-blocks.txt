@@ -1,0 +1,62 @@
+==================
+Ordinary rotation block
+==================
+
+/var/log/application.log {
+  daily
+  rotate 14
+  create 0640 app adm
+  compress
+}
+
+---
+
+(source_file
+  (rotation_block
+    (path_list
+      (path_pattern))
+    (directive
+      (directive_name))
+    (directive
+      (directive_name)
+      (directive_arguments
+        (argument
+          (integer))))
+    (directive
+      (directive_name)
+      (directive_arguments
+        (argument
+          (integer))
+        (argument)
+        (argument)))
+    (directive
+      (directive_name))))
+
+==================
+Several independent blocks
+==================
+
+/var/log/one.log {
+  weekly
+}
+
+/var/log/two.log {
+  monthly 1
+}
+
+---
+
+(source_file
+  (rotation_block
+    (path_list
+      (path_pattern))
+    (directive
+      (directive_name)))
+  (rotation_block
+    (path_list
+      (path_pattern))
+    (directive
+      (directive_name)
+      (directive_arguments
+        (argument
+          (integer))))))
