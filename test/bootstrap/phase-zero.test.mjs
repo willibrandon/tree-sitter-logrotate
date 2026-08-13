@@ -168,8 +168,9 @@ function escapeRegularExpression(text) {
 }
 
 function runNpmScript(name, outputDirectory) {
-  const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
-  return spawnSync(npmCommand, ["run", "--silent", name], {
+  const npmCli = process.env.npm_execpath;
+  assert.equal(typeof npmCli, "string", "npm_execpath must identify npm's JavaScript entry point");
+  return spawnSync(process.execPath, [npmCli, "run", "--silent", name], {
     cwd: repositoryRoot,
     encoding: "utf8",
     env: {
@@ -182,10 +183,11 @@ function runNpmScript(name, outputDirectory) {
 }
 
 function assertSuccessfulRun(result, description) {
+  const processError = result.error === undefined ? "" : `\nprocess error:\n${String(result.error.stack ?? result.error)}`;
   assert.equal(
     result.status,
     0,
-    `${description} failed\nstdout:\n${result.stdout ?? ""}\nstderr:\n${result.stderr ?? ""}`,
+    `${description} failed${processError}\nstdout:\n${result.stdout ?? ""}\nstderr:\n${result.stderr ?? ""}`,
   );
   assert.equal(result.signal, null, `${description} was terminated by ${String(result.signal)}`);
 }
@@ -379,6 +381,15 @@ test("native and WASM build commands are declared and exercised by CI", async ()
   assert.match(ciSource, /npm\s+run\s+build:native/u);
   assert.match(ciSource, /npm\s+run\s+build:wasm/u);
   assert.match(ciSource, /npm\s+run\s+check:generated/u);
+});
+
+test("CMake invokes the pinned local Tree-sitter CLI through Node", async () => {
+  const cmake = await readRequired("CMakeLists.txt");
+
+  assert.match(cmake, /find_program\(NODE_EXECUTABLE\s+node\b/u);
+  assert.match(cmake, /node_modules\/tree-sitter-cli\/cli\.js/u);
+  assert.match(cmake, /COMMAND\s+\$\{TREE_SITTER_CLI_COMMAND\}\s+generate/u);
+  assert.doesNotMatch(cmake, /find_program\(TREE_SITTER_CLI\s+tree-sitter\b/u);
 });
 
 test("empty grammar builds native and WASM artifacts into an isolated output directory", async () => {

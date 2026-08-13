@@ -19,12 +19,23 @@ endif()
 
 include(GNUInstallDirs)
 
-find_program(TREE_SITTER_CLI tree-sitter DOC "Tree-sitter CLI")
+find_program(NODE_EXECUTABLE node DOC "Node.js executable")
+if(NOT NODE_EXECUTABLE)
+  message(FATAL_ERROR "Node.js is required; install the pinned version from toolchains.json")
+endif()
+
+set(TREE_SITTER_CLI_SCRIPT
+    "${CMAKE_CURRENT_SOURCE_DIR}/node_modules/tree-sitter-cli/cli.js"
+    CACHE FILEPATH "Pinned Tree-sitter CLI JavaScript entry point")
+if(NOT EXISTS "${TREE_SITTER_CLI_SCRIPT}")
+  message(FATAL_ERROR "Tree-sitter CLI is missing; run npm ci before configuring CMake")
+endif()
+set(TREE_SITTER_CLI_COMMAND "${NODE_EXECUTABLE}" "${TREE_SITTER_CLI_SCRIPT}")
 
 add_custom_command(OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/src/grammar.json"
                           "${CMAKE_CURRENT_SOURCE_DIR}/src/node-types.json"
                    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/grammar.js"
-                   COMMAND "${TREE_SITTER_CLI}" generate grammar.js --no-parser
+                   COMMAND ${TREE_SITTER_CLI_COMMAND} generate grammar.js --no-parser
                    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
                    COMMENT "Generating grammar.json")
 
@@ -33,7 +44,7 @@ add_custom_command(OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/src/parser.c"
                               "${CMAKE_CURRENT_SOURCE_DIR}/src/tree_sitter/alloc.h"
                               "${CMAKE_CURRENT_SOURCE_DIR}/src/tree_sitter/array.h"
                    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/grammar.json"
-                   COMMAND "${TREE_SITTER_CLI}" generate src/grammar.json
+                   COMMAND ${TREE_SITTER_CLI_COMMAND} generate src/grammar.json
                             --abi=${TREE_SITTER_ABI_VERSION}
                    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
                    COMMENT "Generating parser.c")
@@ -92,6 +103,6 @@ file(GLOB QUERIES queries/*.scm)
 install(FILES ${QUERIES}
         DESTINATION "${CMAKE_INSTALL_DATADIR}/tree-sitter/queries/logrotate")
 
-add_custom_target(ts-test "${TREE_SITTER_CLI}" test
+add_custom_target(ts-test ${TREE_SITTER_CLI_COMMAND} test
                   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
                   COMMENT "tree-sitter test")
