@@ -7,7 +7,7 @@
   <groupId>io.github.willibrandon</groupId>
   <artifactId>jtreesitter-logrotate</artifactId>
   <name>JTreeSitter Logrotate</name>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
   <description>Logrotate configuration grammar for Tree-sitter</description>
   <url>https://github.com/willibrandon/tree-sitter-logrotate</url>
   <licenses>
@@ -96,7 +96,7 @@
                   <pluginExecutionFilter>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>exec-maven-plugin</artifactId>
-                    <versionRange>[3.5.0,3.5.1)</versionRange>
+                    <versionRange>[3.0.0,4.0.0)</versionRange>
                     <goals>
                       <goal>exec</goal>
                     </goals>

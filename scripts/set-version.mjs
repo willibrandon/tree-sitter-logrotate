@@ -24,8 +24,11 @@ await updateJson("package-lock.json", (value) => {
 });
 await updateJson("tree-sitter.json", (value) => { value.metadata.version = version; });
 await replace("Cargo.toml", /(\[package\][\s\S]*?\nversion\s*=\s*)"[^"]+"/u, `$1"${version}"`);
+await replace("Cargo.lock", /(\[\[package\]\]\nname\s*=\s*"tree-sitter-logrotate"\nversion\s*=\s*)"[^"]+"/u, `$1"${version}"`);
 await replace("pyproject.toml", /(\[project\][\s\S]*?\nversion\s*=\s*)"[^"]+"/u, `$1"${version}"`);
 await replace("pom.xml", /(<artifactId>jtreesitter-logrotate<\/artifactId>[\s\S]*?<version>)[^<]+(<\/version>)/u, `$1${version}$2`);
 await replace("CMakeLists.txt", /(project\(tree-sitter-logrotate[\s\S]*?VERSION\s+")[^"]+("\s*)/u, `$1${version}$2`);
+await replace("Makefile", /(^VERSION\s*:=\s*)[^\s]+$/mu, `$1${version}`);
+await replace("build.zig.zon", /(\.version\s*=\s*)"[^"]+"/u, `$1"${version}"`);
 
 process.stdout.write(`Updated release metadata to ${version}. Add the matching changelog section before tagging.\n`);

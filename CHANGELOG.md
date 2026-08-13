@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.1
+
+Rust source packages now anchor `grammar.js` to the repository root, preventing dependency
+grammars from entering release archives. Parser behavior, public nodes, queries, ABI 15, and
+minimum runtime versions are unchanged.
+
+Release automation now verifies npm recovery packages against the original tag-bound attestation
+and checksum set. Java build dependencies and pinned GitHub Actions are current, CodeQL analyzes
+the hand-written scanner without reporting generated parser code, and Windows CI allows enough
+time for a cold WASI SDK download while retaining a bounded timeout. VS Code's Maven importer now
+recognizes the native test setup across compatible `exec-maven-plugin` updates.
+
 ## 0.1.0
 
 The first release parses logrotate configuration files using Tree-sitter ABI 15. It recognizes

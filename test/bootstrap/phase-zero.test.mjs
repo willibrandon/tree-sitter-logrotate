@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, readdir, realpath, rm, stat, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, readFile, readdir, realpath, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const expectedVersion = "0.1.0";
+const expectedVersion = JSON.parse(await readFile(join(repositoryRoot, "package.json"), "utf8")).version;
 const expectedNodeVersion = "24.19.0";
 const expectedNpmVersion = "12.0.2";
 const expectedTreeSitterVersion = "0.26.12";
@@ -262,6 +262,16 @@ test("official scaffold exposes the expected grammar and binding surfaces", asyn
   assert.equal(packageJson.license, "MIT");
 });
 
+test("Maven IDE metadata covers the native test lifecycle executions", async () => {
+  const pom = await readRequired("pom.xml");
+  assert.match(
+    pom,
+    /<artifactId>lifecycle-mapping<\/artifactId>[\s\S]*?<artifactId>exec-maven-plugin<\/artifactId>[\s\S]*?<versionRange>\[3\.0\.0,4\.0\.0\)<\/versionRange>[\s\S]*?<goal>exec<\/goal>[\s\S]*?<ignore\s*\/>/u,
+  );
+  assert.match(pom, /<id>configure-native-test-libraries<\/id>/u);
+  assert.match(pom, /<id>build-native-test-libraries<\/id>/u);
+});
+
 test("toolchain and upstream inputs are immutable and mutually consistent", async () => {
   const packageJson = await readJson("package.json");
   const packageLock = await readJson("package-lock.json");
@@ -298,23 +308,88 @@ test("toolchain and upstream inputs are immutable and mutually consistent", asyn
   assert.doesNotMatch(automationSource, /(?:NODE_VERSION|TREE_SITTER_VERSION|LOGROTATE_REVISION)[=:"' ]+(?:latest|main|master|stable|next)\b/iu);
 });
 
-test("all package and binding manifests share version 0.1.0", async () => {
+test("all package and binding manifests share one version", async () => {
   const packageJson = await readJson("package.json");
   const packageLock = await readJson("package-lock.json");
   const treeSitterConfiguration = await readJson("tree-sitter.json");
   const cargo = await readRequired("Cargo.toml");
+  const cargoLock = await readRequired("Cargo.lock");
   const python = await readRequired("pyproject.toml");
   const maven = await readRequired("pom.xml");
+  const cmake = await readRequired("CMakeLists.txt");
+  const makefile = await readRequired("Makefile");
+  const zig = await readRequired("build.zig.zon");
 
   assert.equal(packageJson.version, expectedVersion);
   assert.equal(packageLock.version, expectedVersion);
   assert.equal(packageLock.packages?.[""]?.version, expectedVersion);
   assert.equal(treeSitterConfiguration.metadata?.version, expectedVersion);
   assert.equal(exactTomlVersion(cargo, "package", "Cargo.toml"), expectedVersion);
+  assert.equal(
+    cargoLock.match(/\[\[package\]\]\nname\s*=\s*"tree-sitter-logrotate"\nversion\s*=\s*"([^"]+)"/u)?.[1],
+    expectedVersion,
+  );
   assert.equal(exactTomlVersion(python, "project", "pyproject.toml"), expectedVersion);
 
   const projectVersion = maven.match(/<project[\s\S]*?<version>([^<]+)<\/version>/u)?.[1];
-  assert.equal(projectVersion, expectedVersion, "pom.xml project version must align with 0.1.0");
+  assert.equal(projectVersion, expectedVersion, "pom.xml project version must align");
+  assert.equal(cmake.match(/VERSION\s+"([^"]+)"/u)?.[1], expectedVersion);
+  assert.equal(makefile.match(/^VERSION\s*:=\s*([^\s]+)$/mu)?.[1], expectedVersion);
+  assert.equal(zig.match(/\.version\s*=\s*"([^"]+)"/u)?.[1], expectedVersion);
+});
+
+test("release versioning updates every version-bearing manifest", async (context) => {
+  const directory = await mkdtemp(join(tmpdir(), "tree-sitter-logrotate-version-"));
+  const nextVersion = "9.8.7";
+  const paths = [
+    "package.json",
+    "package-lock.json",
+    "tree-sitter.json",
+    "Cargo.toml",
+    "Cargo.lock",
+    "pyproject.toml",
+    "pom.xml",
+    "CMakeLists.txt",
+    "Makefile",
+    "build.zig.zon",
+    "scripts/set-version.mjs",
+  ];
+  context.after(() => rm(directory, { force: true, recursive: true }));
+  await mkdir(join(directory, "scripts"));
+  await Promise.all(paths.map((path) => copyFile(join(repositoryRoot, path), join(directory, path))));
+
+  const result = spawnSync(process.execPath, ["scripts/set-version.mjs", nextVersion], {
+    cwd: directory,
+    encoding: "utf8",
+  });
+  assertSuccessfulRun(result, "release versioning");
+
+  const readTemporary = (path) => readFile(join(directory, path), "utf8");
+  const packageJson = JSON.parse(await readTemporary("package.json"));
+  const packageLock = JSON.parse(await readTemporary("package-lock.json"));
+  const treeSitterConfiguration = JSON.parse(await readTemporary("tree-sitter.json"));
+  const cargo = await readTemporary("Cargo.toml");
+  const cargoLock = await readTemporary("Cargo.lock");
+  const python = await readTemporary("pyproject.toml");
+  const maven = await readTemporary("pom.xml");
+  const cmake = await readTemporary("CMakeLists.txt");
+  const makefile = await readTemporary("Makefile");
+  const zig = await readTemporary("build.zig.zon");
+
+  assert.equal(packageJson.version, nextVersion);
+  assert.equal(packageLock.version, nextVersion);
+  assert.equal(packageLock.packages?.[""]?.version, nextVersion);
+  assert.equal(treeSitterConfiguration.metadata?.version, nextVersion);
+  assert.equal(exactTomlVersion(cargo, "package", "Cargo.toml"), nextVersion);
+  assert.equal(
+    cargoLock.match(/\[\[package\]\]\nname\s*=\s*"tree-sitter-logrotate"\nversion\s*=\s*"([^"]+)"/u)?.[1],
+    nextVersion,
+  );
+  assert.equal(exactTomlVersion(python, "project", "pyproject.toml"), nextVersion);
+  assert.equal(maven.match(/<project[\s\S]*?<version>([^<]+)<\/version>/u)?.[1], nextVersion);
+  assert.equal(cmake.match(/VERSION\s+"([^"]+)"/u)?.[1], nextVersion);
+  assert.equal(makefile.match(/^VERSION\s*:=\s*([^\s]+)$/mu)?.[1], nextVersion);
+  assert.equal(zig.match(/\.version\s*=\s*"([^"]+)"/u)?.[1], nextVersion);
 });
 
 test("generation commands are explicit, ABI 15, isolated, and drift detecting", async () => {
