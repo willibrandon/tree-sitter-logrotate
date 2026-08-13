@@ -75,7 +75,13 @@ test("release workflow publishes through protected, least-privilege jobs", async
   }
   assert.match(workflow, /NPM_BOOTSTRAP_TOKEN: \$\{\{ secrets\.NPM_BOOTSTRAP_TOKEN \}\}/u);
   assert.match(workflow, /CRATES_IO_BOOTSTRAP_TOKEN: \$\{\{ secrets\.CRATES_IO_BOOTSTRAP_TOKEN \}\}/u);
+  assert.match(workflow, /name: Use the pinned npm version[\s\S]*npm install --global npm@12\.0\.2[\s\S]*npm --version/u);
   assert.match(workflow, /if: env\.NPM_BOOTSTRAP_TOKEN == ''[\s\S]*npm publish[\s\S]*--provenance/u);
+  assert.equal(
+    [...workflow.matchAll(/npm publish \.\/dist\/tree-sitter-logrotate-\*\.tgz --access public --provenance/gu)].length,
+    2,
+  );
+  assert.doesNotMatch(workflow, /npm publish dist\//u);
   assert.match(workflow, /if: env\.CRATES_IO_BOOTSTRAP_TOKEN == ''[\s\S]*crates-auth\.outputs\.token/u);
   assert.match(workflow, /if: env\.NPM_BOOTSTRAP_TOKEN != ''[\s\S]*NODE_AUTH_TOKEN/u);
   assert.match(workflow, /if: env\.CRATES_IO_BOOTSTRAP_TOKEN != ''[\s\S]*CRATES_IO_TOKEN/u);
@@ -99,6 +105,33 @@ test("release workflow resolves exactly one concrete SBOM before attestation", a
   const attestation = workflow.slice(attestationStart, attestationEnd);
   assert.match(attestation, /sbom-path: \$\{\{ steps\.release-sbom\.outputs\.path \}\}/u);
   assert.doesNotMatch(attestation, /sbom-path: .*\*/u);
+});
+
+test("npm recovery only publishes the attested artifact from the matching tagged release run", async () => {
+  const workflow = await read(".github/workflows/recover-npm-release.yml");
+
+  assert.match(workflow, /^permissions:\n  contents: read$/mu);
+  assert.match(workflow, /workflow_dispatch:[\s\S]*release_run_id:[\s\S]*required: true[\s\S]*tag:[\s\S]*required: true/u);
+  assert.match(workflow, /environment:\n\s+name: npm/u);
+  for (const permission of ["actions: read", "contents: read", "id-token: write"]) {
+    assert.match(workflow, new RegExp(permission, "u"));
+  }
+  assert.match(workflow, /ref: \$\{\{ inputs\.tag \}\}/u);
+  assert.match(workflow, /persist-credentials: false/u);
+  assert.match(workflow, /run-id: \$\{\{ inputs\.release_run_id \}\}/u);
+  assert.match(workflow, /github-token: \$\{\{ github\.token \}\}/u);
+  assert.match(workflow, /Assemble and attest release/u);
+  assert.match(workflow, /sha256sum --check SHA256SUMS/u);
+  assert.match(workflow, /tarballs=\(\.\/dist\/tree-sitter-logrotate-\*\.tgz\)/u);
+  assert.match(workflow, /gh attestation verify "\$tarball"/u);
+  assert.match(workflow, /--signer-workflow "github\.com\/\$\{GITHUB_REPOSITORY\}\/\.github\/workflows\/release\.yml"/u);
+  assert.match(workflow, /--source-ref "refs\/tags\/\$\{RECOVERY_TAG\}"/u);
+  assert.match(workflow, /--source-digest "\$\{SOURCE_SHA\}"/u);
+  assert.match(workflow, /npm publish "\$tarball" --access public --provenance/u);
+  assert.doesNotMatch(workflow, /contents: write/u);
+  for (const reference of workflow.matchAll(/^\s+uses:\s+([^\s#]+)/gmu)) {
+    assert.match(reference[1], /@[0-9a-f]{40}$/u, `${reference[1]} is not immutable`);
+  }
 });
 
 test("release SBOM locator rejects ambiguous artifacts and emits one concrete path", async (context) => {

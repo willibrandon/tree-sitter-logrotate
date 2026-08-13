@@ -104,6 +104,26 @@ the release. Do not upload a locally rebuilt replacement under the same version.
 
 ## Failed release
 
-Fix the source and publish a new version. Do not move a published tag, replace a registry package,
-or overwrite a release asset. A failed workflow before any registry accepts the version may be
-rerun from the unchanged tag after correcting only external environment configuration.
+Do not move a published tag, replace a registry package, or overwrite a release asset. A failed
+workflow before any registry accepts the version may be rerun from the unchanged tag after
+correcting only external environment configuration.
+
+If registry publication is partial, preserve the tag and the successful packages. Fix the release
+workflow on `main`, then use the npm recovery workflow only when npm is the missing registry. Give
+it the failed release run ID and existing tag:
+
+```sh
+gh workflow run recover-npm-release.yml \
+  -f release_run_id=123456789 \
+  -f tag=v0.1.0
+```
+
+The recovery job checks out the immutable tag, verifies that the named failed run used the same
+commit, requires its assembly job to have succeeded, downloads that run's artifact, checks
+`SHA256SUMS`, and verifies the tag-bound GitHub attestation before publishing. It never rebuilds or
+replaces the package. An already published version is accepted only when its registry integrity
+matches the verified tarball.
+
+An npm tarball on disk must be passed with an explicit relative path such as
+`./dist/tree-sitter-logrotate-0.1.0.tgz`. Without `./`, npm can interpret the value as a GitHub
+repository shorthand instead of a local package.
