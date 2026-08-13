@@ -19,6 +19,10 @@ For a shorter parser-only cycle, use:
 npm run verify
 ```
 
+Bash completion and Visual Studio Code terminal IntelliSense are enabled in the container. Command,
+argument, file, and folder suggestions appear while typing; press `Ctrl+Space` to request them
+manually and `Tab` to accept a selected suggestion.
+
 ## Documentation site
 
 The post-create command installs the site's locked dependencies in a separate named volume. Start

@@ -57,6 +57,7 @@ RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends \
         autoconf \
         automake \
+        bash-completion \
         binutils \
         build-essential \
         ca-certificates \

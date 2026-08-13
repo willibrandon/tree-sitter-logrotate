@@ -606,6 +606,7 @@ test("development container is reproducible, credential-free, and isolates host 
   }
   assert.match(dockerfile, /^ARG\s+(?:CLANG|LLVM)(?:_VERSION)?=[^\s]+$/mu);
   assert.doesNotMatch(dockerfile, /\b(?:latest|main|master|stable|next)\b/iu);
+  assert.match(dockerfile, /^\s*bash-completion\s+\\$/mu);
 
   assert.equal(configuration.build?.dockerfile, "Dockerfile");
   assert.ok(Array.isArray(configuration.mounts), "devcontainer.json must declare isolated mounts");
@@ -641,6 +642,18 @@ test("development container is reproducible, credential-free, and isolates host 
   assert.doesNotMatch(serialized, /(?:GITHUB_TOKEN|GH_TOKEN|NPM_TOKEN|\.ssh|\.gnupg|docker\.sock)/iu);
   assert.doesNotMatch(dockerfile, /(?:GITHUB_TOKEN|GH_TOKEN|NPM_TOKEN|COPY\s+\.ssh|COPY\s+\.git)/iu);
   assert.match(gitignore, /^\.devcontainer-output\/$/mu);
+  const terminalSettings = configuration.customizations?.vscode?.settings;
+  assert.equal(terminalSettings?.["terminal.integrated.shellIntegration.enabled"], true);
+  assert.equal(terminalSettings?.["terminal.integrated.suggest.enabled"], true);
+  assert.deepEqual(terminalSettings?.["terminal.integrated.suggest.quickSuggestions"], {
+    commands: "on",
+    arguments: "on",
+    unknown: "off",
+  });
+  assert.equal(
+    terminalSettings?.["terminal.integrated.suggest.suggestOnTriggerCharacters"],
+    true,
+  );
 
   for (const excluded of [".git", ".env", "node_modules", "build", "target", ".cache", "*.pem", "*.key"]) {
     assert.match(dockerignore, new RegExp(`^${excluded.replaceAll(".", "\\.").replaceAll("*", ".*")}(?:/)?$`, "mu"));

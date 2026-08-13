@@ -52,6 +52,16 @@
   },
   "customizations": {
     "vscode": {
+      "settings": {
+        "terminal.integrated.shellIntegration.enabled": true,
+        "terminal.integrated.suggest.enabled": true,
+        "terminal.integrated.suggest.quickSuggestions": {
+          "commands": "on",
+          "arguments": "on",
+          "unknown": "off"
+        },
+        "terminal.integrated.suggest.suggestOnTriggerCharacters": true
+      },
       "extensions": [
         "ziglang.vscode-zig",
         "vscjava.vscode-java-pack",
