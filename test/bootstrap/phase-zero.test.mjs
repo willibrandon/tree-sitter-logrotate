@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, realpath, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -741,7 +741,7 @@ test("Node prebuilds use a removable workspace below the isolated build mount", 
     assert.equal(
       invokedArguments[invokedArguments.indexOf("--node-gyp") + 1],
       join(
-        directory,
+        await realpath(directory),
         "node_modules/.bin",
         process.platform === "win32" ? "node-gyp.cmd" : "node-gyp",
       ),
