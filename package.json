@@ -97,7 +97,7 @@
     "test:wasm:browser": "node scripts/test-wasm-browser.mjs",
     "test:wasm:node": "node --test test/wasm/*.test.mjs",
     "verify": "npm run check:versions && npm run check:generated && npm test && npm run build:native && npm run build:wasm",
-    "package:node-prebuild": "prebuildify --napi --strip --target 24.19.0",
+    "package:node-prebuild": "node scripts/build-node-prebuild.mjs",
     "check:release-tag": "node scripts/check-release-tag.mjs",
     "package:release": "node scripts/build-release-artifacts.mjs",
     "release:version": "node scripts/set-version.mjs",

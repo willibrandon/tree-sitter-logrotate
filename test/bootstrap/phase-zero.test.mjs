@@ -555,6 +555,15 @@ test("development container includes the Swift compiler runtime used by tests", 
   assert.match(dockerfile, /COPY --from=swift_toolchain \/usr\/lib\/libIndexStore\.so\* \/usr\/lib\//u);
 });
 
+test("development container includes every release verification tool", async () => {
+  const dockerfile = await readRequired(".devcontainer/Dockerfile");
+  const verification = await readRequired(".devcontainer/verify.sh");
+
+  assert.match(dockerfile, /^\s*unzip\s+\\$/mu);
+  assert.match(verification, /^command -v unzip >\/dev\/null$/mu);
+  assert.match(verification, /npm run verify:release/u);
+});
+
 test("Node binding installation preserves an isolated build mount", async () => {
   const packageJson = await readJson("package.json");
   assert.equal(packageScript(packageJson, "install"), "node scripts/install-node-binding.mjs");
@@ -593,6 +602,106 @@ test("Node binding installation preserves an isolated build mount", async () => 
     assert.equal(after.ino, before.ino, "The build mount root must not be deleted and recreated");
     await assert.rejects(stat(staleArtifact), { code: "ENOENT" });
     assert.deepEqual((await readFile(commandLog, "utf8")).trim().split("\n"), ["configure", "build"]);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("Node prebuilds use a removable workspace below the isolated build mount", async () => {
+  const packageJson = await readJson("package.json");
+  assert.equal(packageScript(packageJson, "package:node-prebuild"), "node scripts/build-node-prebuild.mjs");
+
+  const script = await readRequired("scripts/build-node-prebuild.mjs");
+  assert.match(script, /TREE_SITTER_BUILD_DIR/u);
+  assert.match(script, /resolve\(isolatedOutputRoot, "node-prebuild"\)/u);
+  assert.match(script, /"--cwd",\s*stagingDirectory/u);
+  assert.match(script, /"--out",\s*stagingDirectory/u);
+  assert.match(script, /cp\(resolve\(stagingDirectory, "prebuilds", entry\.name\), destination/u);
+  assert.doesNotMatch(script, /rm\(resolve\(repositoryRoot, "build"\)/u);
+
+  const configuration = await readJson(".devcontainer/devcontainer.json");
+  const mounts = configuration.mounts.map((mount) =>
+    typeof mount === "string" ? mount : JSON.stringify(mount),
+  );
+  assert.ok(
+    mounts.some(
+      (mount) =>
+        /type=volume/u.test(mount) && /target=[^,]*\/prebuilds(?:,|$)/u.test(mount),
+    ),
+    "prebuilds must live in a named volume rather than the host worktree",
+  );
+
+  const directory = await mkdtemp(join(tmpdir(), "tree-sitter-logrotate-prebuild-"));
+  const buildDirectory = join(directory, "build");
+  const isolatedOutput = join(directory, "isolated-output");
+  const staleArtifact = join(buildDirectory, "stale.node");
+  const fakePrebuildify = join(directory, "node_modules/prebuildify/bin.js");
+  const argumentsLog = join(directory, "prebuildify-arguments.json");
+
+  try {
+    await mkdir(join(directory, "bindings/node"), { recursive: true });
+    await mkdir(join(directory, "src/tree_sitter"), { recursive: true });
+    await mkdir(dirname(fakePrebuildify), { recursive: true });
+    await mkdir(buildDirectory);
+    await writeFile(
+      join(directory, "package.json"),
+      JSON.stringify({ name: "tree-sitter-logrotate", engines: { node: expectedNodeVersion } }),
+      "utf8",
+    );
+    for (const path of [
+      "binding.gyp",
+      "bindings/node/binding.cc",
+      "src/parser.c",
+      "src/scanner.c",
+      "src/tree_sitter/parser.h",
+    ]) {
+      await writeFile(join(directory, path), "fixture", "utf8");
+    }
+    await writeFile(staleArtifact, "must survive", "utf8");
+    await writeFile(
+      fakePrebuildify,
+      [
+        'import { mkdir, rename, writeFile } from "node:fs/promises";',
+        'import { join } from "node:path";',
+        'const valueAfter = (name) => process.argv[process.argv.indexOf(name) + 1];',
+        'const cwd = valueAfter("--cwd");',
+        'const out = valueAfter("--out");',
+        'await writeFile(process.env.PREBUILD_ARGUMENTS_LOG, JSON.stringify(process.argv.slice(2)));',
+        'const addon = join(cwd, "build/Release/tree-sitter-logrotate.node");',
+        'const output = join(out, "prebuilds/linux-x64/tree-sitter-logrotate.node");',
+        'await mkdir(join(cwd, "build/Release"), { recursive: true });',
+        'await mkdir(join(out, "prebuilds/linux-x64"), { recursive: true });',
+        'await writeFile(addon, "prebuilt");',
+        'await rename(addon, output);',
+      ].join("\n"),
+      "utf8",
+    );
+    const before = await stat(buildDirectory);
+
+    const result = spawnSync(process.execPath, [join(repositoryRoot, "scripts/build-node-prebuild.mjs")], {
+      cwd: directory,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        PREBUILD_ARGUMENTS_LOG: argumentsLog,
+        TREE_SITTER_BUILD_DIR: isolatedOutput,
+      },
+      shell: false,
+      timeout: 30_000,
+    });
+
+    assert.equal(result.status, 0, `Node prebuild failed:\n${result.stdout}\n${result.stderr}`);
+    const after = await stat(buildDirectory);
+    assert.equal(after.ino, before.ino, "The build mount root must not be deleted and recreated");
+    assert.equal(await readFile(staleArtifact, "utf8"), "must survive");
+    assert.equal(
+      await readFile(join(directory, "prebuilds/linux-x64/tree-sitter-logrotate.node"), "utf8"),
+      "prebuilt",
+    );
+    await assert.rejects(stat(join(isolatedOutput, "node-prebuild")), { code: "ENOENT" });
+    const invokedArguments = JSON.parse(await readFile(argumentsLog, "utf8"));
+    assert.equal(invokedArguments[invokedArguments.indexOf("--cwd") + 1], join(isolatedOutput, "node-prebuild"));
+    assert.equal(invokedArguments[invokedArguments.indexOf("--out") + 1], join(isolatedOutput, "node-prebuild"));
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

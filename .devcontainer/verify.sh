@@ -16,6 +16,7 @@ command -v java >/dev/null
 command -v jq >/dev/null
 command -v shellcheck >/dev/null
 command -v swift >/dev/null
+command -v unzip >/dev/null
 command -v zig >/dev/null
 test -x .venv/bin/python
 .venv/bin/python -m build --version >/dev/null

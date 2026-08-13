@@ -24,6 +24,7 @@
   "mounts": [
     "source=tree-sitter-logrotate-${devcontainerId}-node-modules,target=${containerWorkspaceFolder}/node_modules,type=volume",
     "source=tree-sitter-logrotate-${devcontainerId}-node-build,target=${containerWorkspaceFolder}/build,type=volume",
+    "source=tree-sitter-logrotate-${devcontainerId}-node-prebuilds,target=${containerWorkspaceFolder}/prebuilds,type=volume",
     "source=tree-sitter-logrotate-${devcontainerId}-swift-build,target=${containerWorkspaceFolder}/.build,type=volume",
     "source=tree-sitter-logrotate-${devcontainerId}-python-venv,target=${containerWorkspaceFolder}/.venv,type=volume",
     "source=tree-sitter-logrotate-${devcontainerId}-zig-cache,target=${containerWorkspaceFolder}/.zig-cache,type=volume",
