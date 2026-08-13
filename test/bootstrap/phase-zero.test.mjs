@@ -623,12 +623,18 @@ test("Node binding installation preserves an isolated build mount", async () => 
 test("Node prebuilds use a removable workspace below the isolated build mount", async () => {
   const packageJson = await readJson("package.json");
   assert.equal(packageScript(packageJson, "package:node-prebuild"), "node scripts/build-node-prebuild.mjs");
+  assert.equal(
+    packageJson.devDependencies?.["node-gyp"],
+    "13.0.1",
+    "prebuildify must not select an older transitive node-gyp that cannot detect Visual Studio 2026",
+  );
 
   const script = await readRequired("scripts/build-node-prebuild.mjs");
   assert.match(script, /TREE_SITTER_BUILD_DIR/u);
   assert.match(script, /resolve\(isolatedOutputRoot, "node-prebuild"\)/u);
   assert.match(script, /"--cwd",\s*stagingDirectory/u);
   assert.match(script, /"--out",\s*stagingDirectory/u);
+  assert.match(script, /"--node-gyp",\s*nodeGyp/u);
   assert.match(script, /cp\(resolve\(stagingDirectory, "prebuilds", entry\.name\), destination/u);
   assert.doesNotMatch(script, /rm\(resolve\(repositoryRoot, "build"\)/u);
 
@@ -721,6 +727,14 @@ test("Node prebuilds use a removable workspace below the isolated build mount", 
     const invokedArguments = JSON.parse(await readFile(argumentsLog, "utf8"));
     assert.equal(invokedArguments[invokedArguments.indexOf("--cwd") + 1], join(isolatedOutput, "node-prebuild"));
     assert.equal(invokedArguments[invokedArguments.indexOf("--out") + 1], join(isolatedOutput, "node-prebuild"));
+    assert.equal(
+      invokedArguments[invokedArguments.indexOf("--node-gyp") + 1],
+      join(
+        directory,
+        "node_modules/.bin",
+        process.platform === "win32" ? "node-gyp.cmd" : "node-gyp",
+      ),
+    );
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
