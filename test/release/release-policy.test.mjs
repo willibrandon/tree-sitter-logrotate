@@ -35,6 +35,23 @@ test("release artifacts are built from committed parser sources", async () => {
   }
 });
 
+test("Rust release packaging excludes ignored nested grammar sources", async () => {
+  const manifest = await read("Cargo.toml");
+  const builder = await read("scripts/build-release-artifacts.mjs");
+  const packaged = spawnSync("cargo", ["package", "--locked", "--allow-dirty", "--no-verify", "--list"], {
+    cwd: root,
+    encoding: "utf8",
+  });
+
+  assert.equal(packaged.status, 0, packaged.stderr);
+  assert.match(manifest, /^\s*"\/grammar\.js",$/mu);
+  assert.doesNotMatch(builder, /"--allow-dirty"/u);
+
+  const files = packaged.stdout.trim().split("\n");
+  assert.deepEqual(files.filter((path) => path.endsWith("grammar.js")), ["grammar.js"]);
+  assert.equal(files.some((path) => path.startsWith("node_modules/") || path.includes("/.build/")), false);
+});
+
 test("release workflow publishes through protected, least-privilege jobs", async () => {
   const workflow = await read(".github/workflows/release.yml");
 

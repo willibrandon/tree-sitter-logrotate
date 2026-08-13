@@ -91,7 +91,7 @@ try {
   run(process.execPath, [npmCli, "pack", "--ignore-scripts", "--pack-destination", outputDirectory]);
 
   const cargoTarget = resolve(buildDirectory, "cargo");
-  run("cargo", ["package", "--locked", "--allow-dirty", "--no-verify", "--target-dir", cargoTarget]);
+  run("cargo", ["package", "--locked", "--no-verify", "--target-dir", cargoTarget]);
   await copyFile(
     resolve(cargoTarget, "package", `${prefix}.crate`),
     resolve(outputDirectory, `${prefix}.crate`),
