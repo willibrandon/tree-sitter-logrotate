@@ -407,6 +407,15 @@ test("Node build scripts invoke the pinned local Tree-sitter CLI without a comma
   }
 });
 
+test("WASM builds retry only transient WASI SDK download failures", async () => {
+  const source = await readRequired("scripts/build-wasm.mjs");
+
+  assert.match(source, /maximumDownloadAttempts\s*=\s*3/u);
+  assert.match(source, /Failed to download wasi-sdk/u);
+  assert.match(source, /!wasiDownloadFailed/u);
+  assert.match(source, /setTimeout/u);
+});
+
 test("empty grammar builds native and WASM artifacts into an isolated output directory", async () => {
   const outputDirectory = await mkdtemp(join(tmpdir(), "tree-sitter-logrotate-build-"));
   try {
