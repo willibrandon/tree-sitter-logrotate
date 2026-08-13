@@ -6,6 +6,7 @@
   },
   "remoteUser": "vscode",
   "updateRemoteUserUID": true,
+  "runArgs": ["--hostname", "tree-sitter-logrotate-dev"],
   "containerEnv": {
     "ASTRO_TELEMETRY_DISABLED": "1",
     "CARGO_HOME": "/home/vscode/.cache/cargo",
@@ -55,6 +56,7 @@
       "settings": {
         "terminal.integrated.shellIntegration.enabled": true,
         "terminal.integrated.suggest.enabled": true,
+        "terminal.integrated.suggest.inlineSuggestion": "alwaysOnTopExceptExactMatch",
         "terminal.integrated.suggest.quickSuggestions": {
           "commands": "on",
           "arguments": "on",
@@ -66,7 +68,7 @@
         "ziglang.vscode-zig",
         "vscjava.vscode-java-pack",
         "ms-vscode.cmake-tools",
-        "willibrandon.logrotate",
+        "willibrandon.logrotate@0.1.9",
         "docker.docker"
       ]
     }

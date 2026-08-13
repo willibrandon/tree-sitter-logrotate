@@ -594,6 +594,7 @@ async function listAbsoluteFiles(directory) {
 
 test("development container is reproducible, credential-free, and isolates host outputs", async () => {
   const dockerfile = await readRequired(".devcontainer/Dockerfile");
+  const zshConfiguration = await readRequired(".devcontainer/zshrc");
   const configuration = await readJson(".devcontainer/devcontainer.json");
   const dockerignore = await readRequired(".dockerignore");
   const gitignore = await readRequired(".gitignore");
@@ -607,6 +608,19 @@ test("development container is reproducible, credential-free, and isolates host 
   assert.match(dockerfile, /^ARG\s+(?:CLANG|LLVM)(?:_VERSION)?=[^\s]+$/mu);
   assert.doesNotMatch(dockerfile, /\b(?:latest|main|master|stable|next)\b/iu);
   assert.match(dockerfile, /^\s*bash-completion\s+\\$/mu);
+  assert.match(dockerfile, /^\s*locales\s+\\$/mu);
+  assert.match(dockerfile, /^\s*zsh\s+\\$/mu);
+  assert.match(dockerfile, /^\s*zsh-autosuggestions\s+\\$/mu);
+  assert.match(dockerfile, /^\s*LANG=en_US\.UTF-8\s+\\$/mu);
+  assert.match(dockerfile, /en_US\.UTF-8 UTF-8/u);
+  assert.match(dockerfile, /locale-gen\s+\\/u);
+  assert.match(dockerfile, /COPY --chmod=0644 \.devcontainer\/zshrc \/etc\/zsh\/zshrc/u);
+  assert.match(zshConfiguration, /ZSH_AUTOSUGGEST_STRATEGY=\(history completion\)/u);
+  assert.match(dockerfile, /useradd[^\n]+--shell \/bin\/zsh vscode/u);
+  assert.match(zshConfiguration, /autoload -Uz add-zsh-hook compinit vcs_info/u);
+  assert.match(zshConfiguration, /%n@%m%f %F\{39\}%1~%f\$\{vcs_info_msg_0_\}/u);
+  assert.match(zshConfiguration, /TREE_SITTER_LOGROTATE_DIRTY/u);
+  assert.deepEqual(configuration.runArgs, ["--hostname", "tree-sitter-logrotate-dev"]);
 
   assert.equal(configuration.build?.dockerfile, "Dockerfile");
   assert.ok(Array.isArray(configuration.mounts), "devcontainer.json must declare isolated mounts");
@@ -645,11 +659,21 @@ test("development container is reproducible, credential-free, and isolates host 
   const terminalSettings = configuration.customizations?.vscode?.settings;
   assert.equal(terminalSettings?.["terminal.integrated.shellIntegration.enabled"], true);
   assert.equal(terminalSettings?.["terminal.integrated.suggest.enabled"], true);
+  assert.equal(
+    terminalSettings?.["terminal.integrated.suggest.inlineSuggestion"],
+    "alwaysOnTopExceptExactMatch",
+  );
   assert.deepEqual(terminalSettings?.["terminal.integrated.suggest.quickSuggestions"], {
     commands: "on",
     arguments: "on",
     unknown: "off",
   });
+  assert.ok(
+    configuration.customizations?.vscode?.extensions?.includes(
+      "willibrandon.logrotate@0.1.9",
+    ),
+    "the pre-release Logrotate extension must be installed at its published version",
+  );
   assert.equal(
     terminalSettings?.["terminal.integrated.suggest.suggestOnTriggerCharacters"],
     true,

@@ -19,9 +19,11 @@ For a shorter parser-only cycle, use:
 npm run verify
 ```
 
-Bash completion and Visual Studio Code terminal IntelliSense are enabled in the container. Command,
-argument, file, and folder suggestions appear while typing; press `Ctrl+Space` to request them
-manually and `Tab` to accept a selected suggestion.
+Zsh is the default integrated terminal shell. Its history-based autosuggestions reuse completed
+commands as you type, and its history is kept in the container's persistent cache volume. Visual
+Studio Code terminal IntelliSense also suggests commands, arguments, files, and folders. Press
+`Ctrl+Space` to request the suggestion list manually and `Tab` to accept a selected suggestion.
+Bash remains available with conventional completion enabled.
 
 ## Documentation site
 
