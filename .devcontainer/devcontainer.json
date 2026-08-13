@@ -33,5 +33,14 @@
     "cpus": 4,
     "memory": "8gb",
     "storage": "16gb"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ziglang.vscode-zig",
+        "vscjava.vscode-java-pack",
+        "ms-vscode.cmake-tools"
+      ]
+    }
   }
 }
