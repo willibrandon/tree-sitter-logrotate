@@ -71,6 +71,12 @@ test("release workflow publishes through protected, least-privilege jobs", async
     const block = workflow.slice(start, end);
     assert.match(block, /id-token: write/u);
   }
+  assert.match(workflow, /NPM_BOOTSTRAP_TOKEN: \$\{\{ secrets\.NPM_BOOTSTRAP_TOKEN \}\}/u);
+  assert.match(workflow, /CRATES_IO_BOOTSTRAP_TOKEN: \$\{\{ secrets\.CRATES_IO_BOOTSTRAP_TOKEN \}\}/u);
+  assert.match(workflow, /if: env\.NPM_BOOTSTRAP_TOKEN == ''[\s\S]*npm publish[\s\S]*--provenance/u);
+  assert.match(workflow, /if: env\.CRATES_IO_BOOTSTRAP_TOKEN == ''[\s\S]*crates-auth\.outputs\.token/u);
+  assert.match(workflow, /if: env\.NPM_BOOTSTRAP_TOKEN != ''[\s\S]*NODE_AUTH_TOKEN/u);
+  assert.match(workflow, /if: env\.CRATES_IO_BOOTSTRAP_TOKEN != ''[\s\S]*CRATES_IO_TOKEN/u);
   for (const reference of workflow.matchAll(/^\s+uses:\s+([^\s#]+)/gmu)) {
     assert.match(reference[1], /@[0-9a-f]{40}$/u, `${reference[1]} is not immutable`);
   }

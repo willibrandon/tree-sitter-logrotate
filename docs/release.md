@@ -11,8 +11,16 @@ Create protected GitHub environments named `github-release`, `npm`, `pypi`, `cra
 repository policy calls for it.
 
 npm, PyPI, and crates.io use GitHub Actions trusted publishing with OIDC. Configure each registry
-to trust this repository, the `release.yml` workflow, and its matching GitHub environment. No
-long-lived npm, PyPI, or crates.io token belongs in repository secrets.
+to trust this repository, the `release.yml` workflow, and its matching GitHub environment. PyPI
+supports a pending publisher for the first release. Use project name `tree-sitter-logrotate`, owner
+`willibrandon`, repository `tree-sitter-logrotate`, workflow `release.yml`, and environment `pypi`.
+
+npm and crates.io require their package to exist before trusted publishing can be configured. For
+the first release only, add environment-protected `NPM_BOOTSTRAP_TOKEN` to `npm` and
+`CRATES_IO_BOOTSTRAP_TOKEN` to `crates-io`. Use granular tokens restricted to publishing the new
+public package. After `0.1.0` is published, configure both registries to trust `release.yml` and
+their matching GitHub environments, then delete both bootstrap secrets. Later releases fail closed
+to OIDC when those secrets are absent.
 
 Maven Central does not use the same publishing path. Add environment-protected
 `MAVEN_CENTRAL_USERNAME`, `MAVEN_CENTRAL_PASSWORD`, `MAVEN_GPG_PRIVATE_KEY`, and
