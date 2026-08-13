@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, realpath, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -623,14 +623,31 @@ test("Node binding installation preserves an isolated build mount", async () => 
 test("Node prebuilds use a removable workspace below the isolated build mount", async () => {
   const packageJson = await readJson("package.json");
   assert.equal(packageScript(packageJson, "package:node-prebuild"), "node scripts/build-node-prebuild.mjs");
+  assert.equal(
+    packageJson.devDependencies?.["node-gyp"],
+    "13.0.1",
+    "prebuildify must not select an older transitive node-gyp that cannot detect Visual Studio 2026",
+  );
 
   const script = await readRequired("scripts/build-node-prebuild.mjs");
   assert.match(script, /TREE_SITTER_BUILD_DIR/u);
   assert.match(script, /resolve\(isolatedOutputRoot, "node-prebuild"\)/u);
   assert.match(script, /"--cwd",\s*stagingDirectory/u);
   assert.match(script, /"--out",\s*stagingDirectory/u);
+  assert.match(script, /"--node-gyp",\s*nodeGyp/u);
   assert.match(script, /cp\(resolve\(stagingDirectory, "prebuilds", entry\.name\), destination/u);
   assert.doesNotMatch(script, /rm\(resolve\(repositoryRoot, "build"\)/u);
+
+  const ci = await readRequired(".github/workflows/ci.yml");
+  const crossPlatformJob = workflowJobBlocks(ci).find((job) =>
+    /\$\{\{\s*matrix\.os\s*\}\}/u.test(job),
+  );
+  assert.ok(crossPlatformJob, "CI must run one build job over an operating-system matrix");
+  assert.match(
+    crossPlatformJob,
+    /npm\s+run\s+package:node-prebuild/u,
+    "every supported native CI host must build the Node precompiled binding",
+  );
 
   const configuration = await readJson(".devcontainer/devcontainer.json");
   const postCreate = await readRequired(".devcontainer/post-create.sh");
@@ -655,12 +672,18 @@ test("Node prebuilds use a removable workspace below the isolated build mount", 
   const isolatedOutput = join(directory, "isolated-output");
   const staleArtifact = join(buildDirectory, "stale.node");
   const fakePrebuildify = join(directory, "node_modules/prebuildify/bin.js");
+  const fakeNodeGyp = join(
+    directory,
+    "node_modules/.bin",
+    process.platform === "win32" ? "node-gyp.cmd" : "node-gyp",
+  );
   const argumentsLog = join(directory, "prebuildify-arguments.json");
 
   try {
     await mkdir(join(directory, "bindings/node"), { recursive: true });
     await mkdir(join(directory, "src/tree_sitter"), { recursive: true });
     await mkdir(dirname(fakePrebuildify), { recursive: true });
+    await mkdir(dirname(fakeNodeGyp), { recursive: true });
     await mkdir(buildDirectory);
     await writeFile(
       join(directory, "package.json"),
@@ -677,6 +700,7 @@ test("Node prebuilds use a removable workspace below the isolated build mount", 
       await writeFile(join(directory, path), "fixture", "utf8");
     }
     await writeFile(staleArtifact, "must survive", "utf8");
+    await writeFile(fakeNodeGyp, "fixture", "utf8");
     await writeFile(
       fakePrebuildify,
       [
@@ -721,6 +745,8 @@ test("Node prebuilds use a removable workspace below the isolated build mount", 
     const invokedArguments = JSON.parse(await readFile(argumentsLog, "utf8"));
     assert.equal(invokedArguments[invokedArguments.indexOf("--cwd") + 1], join(isolatedOutput, "node-prebuild"));
     assert.equal(invokedArguments[invokedArguments.indexOf("--out") + 1], join(isolatedOutput, "node-prebuild"));
+    const invokedNodeGyp = invokedArguments[invokedArguments.indexOf("--node-gyp") + 1];
+    assert.equal(await realpath(invokedNodeGyp), await realpath(fakeNodeGyp));
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

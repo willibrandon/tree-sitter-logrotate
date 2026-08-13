@@ -45,6 +45,8 @@ jobs:
           git diff --exit-code
       - name: Run tests
         run: npm test
+      - name: Build Node precompiled binding
+        run: npm run package:node-prebuild
       - name: Build native and WASM parsers
         run: |
           npm run build:native

@@ -15,6 +15,11 @@ const isolatedOutputRoot = resolve(
 );
 const stagingDirectory = resolve(isolatedOutputRoot, "node-prebuild");
 const prebuildify = resolve(repositoryRoot, "node_modules/prebuildify/bin.js");
+const nodeGyp = resolve(
+  repositoryRoot,
+  "node_modules/.bin",
+  process.platform === "win32" ? "node-gyp.cmd" : "node-gyp",
+);
 const prebuildsDirectory = resolve(repositoryRoot, "prebuilds");
 
 await rm(stagingDirectory, { recursive: true, force: true });
@@ -41,6 +46,8 @@ try {
       stagingDirectory,
       "--out",
       stagingDirectory,
+      "--node-gyp",
+      nodeGyp,
     ],
     {
       encoding: "utf8",
