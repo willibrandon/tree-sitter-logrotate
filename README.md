@@ -20,12 +20,14 @@ shell-injection, and fold queries live in `queries/`.
 
 Helix, Neovim, and Zed integrations are separate delivery phases. None is claimed as an upstream
 editor integration until its editor repository accepts and tests the pinned grammar revision. See
-[the design](docs/tree-sitter-logrotate-design.md) for that work.
+[the design](https://github.com/willibrandon/tree-sitter-logrotate/blob/main/docs/tree-sitter-logrotate-design.md)
+for that work.
 
 ## Local development
 
-The [development container](.devcontainer/README.md) is the reference environment. It pins every
-toolchain, does not forward host credentials, and keeps platform-specific output in named volumes.
+The [development container](https://github.com/willibrandon/tree-sitter-logrotate/blob/main/.devcontainer/README.md)
+is the reference environment. It pins every toolchain, does not forward host credentials, and
+keeps platform-specific output in named volumes.
 
 For a native checkout, install the versions in `toolchains.json`, then run:
 
@@ -45,10 +47,12 @@ Run `npm run generate` after changing `grammar.js`. Generated parser files are c
 pass `npm run check:generated`. `TREE_SITTER_BUILD_DIR` relocates native and WASM output; its default
 is the ignored `build` directory.
 
-More native setup details are in [docs/native-development.md](docs/native-development.md).
+More native setup details are in
+[docs/native-development.md](https://github.com/willibrandon/tree-sitter-logrotate/blob/main/docs/native-development.md).
 
 The documentation site has a separate locked dependency tree. Its local development and preview
-commands are described in [docs/documentation-site.md](docs/documentation-site.md).
+commands are described in
+[docs/documentation-site.md](https://github.com/willibrandon/tree-sitter-logrotate/blob/main/docs/documentation-site.md).
 
 ## Binding examples
 
@@ -133,9 +137,11 @@ try (var parser = new Parser(language);
 }
 ```
 
-The Maven coordinates are `io.github.willibrandon:jtreesitter-logrotate`. Java applications also
-need JTreeSitter 0.26 and its compatible native Tree-sitter runtime. The grammar artifact includes
-the platform grammar library; it does not replace the Tree-sitter runtime used by JTreeSitter.
+The Maven coordinates are
+[`io.github.willibrandon:jtreesitter-logrotate`](https://central.sonatype.com/artifact/io.github.willibrandon/jtreesitter-logrotate).
+Java applications also need JTreeSitter 0.26 and its compatible native Tree-sitter runtime. The
+grammar artifact includes the platform grammar library; it does not replace the Tree-sitter runtime
+used by JTreeSitter.
 
 ### Swift
 
@@ -204,7 +210,8 @@ captures as compatibility surfaces even before 1.0.
 
 Each release aligns every package version, builds from committed generated source, and publishes a
 source archive, WASM parser, checksums, CycloneDX SBOMs, and GitHub provenance attestations. See
-[docs/compatibility.md](docs/compatibility.md) and [docs/release.md](docs/release.md).
+[docs/compatibility.md](https://github.com/willibrandon/tree-sitter-logrotate/blob/main/docs/compatibility.md)
+and [docs/release.md](https://github.com/willibrandon/tree-sitter-logrotate/blob/main/docs/release.md).
 
 ## License
 

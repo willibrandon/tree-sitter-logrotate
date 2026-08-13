@@ -199,7 +199,7 @@ test("release CycloneDX SBOM has a reproducible UUID serial number accepted by a
   assert.deepEqual(first.components, input.components);
 });
 
-test("package metadata links GitHub without publishing a personal email address", async () => {
+test("package metadata links source control without publishing a personal email address", async () => {
   const paths = ["package.json", "tree-sitter.json", "Cargo.toml", "pyproject.toml", "pom.xml"];
   const sources = await Promise.all(paths.map(read));
   const packageMetadata = JSON.parse(sources[0]);
@@ -207,10 +207,42 @@ test("package metadata links GitHub without publishing a personal email address"
   const metadata = sources.join("\n");
 
   assert.equal(packageMetadata.author.url, "https://github.com/willibrandon");
+  assert.equal(
+    packageMetadata.repository.url,
+    "git+https://github.com/willibrandon/tree-sitter-logrotate.git",
+  );
   assert.equal(grammarMetadata.metadata.authors[0].url, "https://github.com/willibrandon");
-  assert.match(sources[2], /^homepage = "https:\/\/github\.com\/willibrandon\/tree-sitter-logrotate"$/mu);
-  assert.match(sources[3], /^Homepage = "https:\/\/github\.com\/willibrandon\/tree-sitter-logrotate"$/mu);
-  assert.match(sources[4], /^\s*<url>https:\/\/github\.com\/willibrandon\/tree-sitter-logrotate<\/url>$/mu);
+  assert.match(sources[2], /^repository = "https:\/\/github\.com\/willibrandon\/tree-sitter-logrotate"$/mu);
+  assert.match(sources[3], /^Source = "https:\/\/github\.com\/willibrandon\/tree-sitter-logrotate"$/mu);
+  assert.match(sources[4], /^\s*<scm>[\s\S]*?<url>https:\/\/github\.com\/willibrandon\/tree-sitter-logrotate<\/url>/mu);
   assert.doesNotMatch(metadata, /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/iu);
   assert.match(metadata, /io\.github\.willibrandon/u);
+});
+
+test("published package metadata uses portable documentation links", async () => {
+  const documentationUrl = "https://willibrandon.github.io/tree-sitter-logrotate/";
+  const readme = await read("README.md");
+  const packageJson = JSON.parse(await read("package.json"));
+  const cargo = await read("Cargo.toml");
+  const python = await read("pyproject.toml");
+  const maven = await read("pom.xml");
+  const cmake = await read("CMakeLists.txt");
+  const make = await read("Makefile");
+
+  const markdownTargets = [...readme.matchAll(/\[[^\]]+\]\(([^)]+)\)/gu)].map(
+    ([, target]) => target,
+  );
+  assert.ok(markdownTargets.length > 0, "README.md must contain useful links");
+  for (const target of markdownTargets) {
+    assert.match(target, /^(?:https:\/\/|#)/u, `package README contains a relative link: ${target}`);
+  }
+
+  assert.equal(packageJson.homepage, documentationUrl);
+  assert.match(cargo, /^homepage = "https:\/\/willibrandon\.github\.io\/tree-sitter-logrotate\/"$/mu);
+  assert.match(cargo, /^documentation = "https:\/\/willibrandon\.github\.io\/tree-sitter-logrotate\/"$/mu);
+  assert.match(python, /^Homepage = "https:\/\/willibrandon\.github\.io\/tree-sitter-logrotate\/"$/mu);
+  assert.match(python, /^Documentation = "https:\/\/willibrandon\.github\.io\/tree-sitter-logrotate\/"$/mu);
+  assert.match(maven, /^\s*<url>https:\/\/willibrandon\.github\.io\/tree-sitter-logrotate\/<\/url>$/mu);
+  assert.match(cmake, /^\s*HOMEPAGE_URL "https:\/\/willibrandon\.github\.io\/tree-sitter-logrotate\/"$/mu);
+  assert.match(make, /^HOMEPAGE_URL := https:\/\/willibrandon\.github\.io\/tree-sitter-logrotate\/$/mu);
 });

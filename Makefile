@@ -1,6 +1,6 @@
 LANGUAGE_NAME := tree-sitter-logrotate
-HOMEPAGE_URL := https://github.com/willibrandon/tree-sitter-logrotate
-VERSION := 0.1.1
+HOMEPAGE_URL := https://willibrandon.github.io/tree-sitter-logrotate/
+VERSION := 0.1.2
 DESCRIPTION := Logrotate configuration grammar for Tree-sitter
 
 # repository

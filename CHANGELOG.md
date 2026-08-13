@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.2
+
+Published README links are now absolute, so documentation and development references work from
+PyPI as well as npm and crates.io. Package homepages point to the user documentation, and the Java
+example links directly to the Maven Central artifact.
+
+This release also adds the Astro documentation site and its GitHub Pages workflow, refines the
+reproducible development container, and rebuilds stale local Node bindings before tests. Parser
+behavior, public nodes, queries, ABI 15, and minimum runtime versions are unchanged.
+
 ## 0.1.1
 
 Rust source packages now anchor `grammar.js` to the repository root, preventing dependency
