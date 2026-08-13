@@ -81,8 +81,16 @@ test("release workflow publishes through protected, least-privilege jobs", async
 
 test("package metadata links GitHub without publishing a personal email address", async () => {
   const paths = ["package.json", "tree-sitter.json", "Cargo.toml", "pyproject.toml", "pom.xml"];
-  const metadata = (await Promise.all(paths.map(read))).join("\n");
-  assert.ok(metadata.includes("https://github.com/willibrandon"));
+  const sources = await Promise.all(paths.map(read));
+  const packageMetadata = JSON.parse(sources[0]);
+  const grammarMetadata = JSON.parse(sources[1]);
+  const metadata = sources.join("\n");
+
+  assert.equal(packageMetadata.author.url, "https://github.com/willibrandon");
+  assert.equal(grammarMetadata.metadata.authors[0].url, "https://github.com/willibrandon");
+  assert.match(sources[2], /^homepage = "https:\/\/github\.com\/willibrandon\/tree-sitter-logrotate"$/mu);
+  assert.match(sources[3], /^Homepage = "https:\/\/github\.com\/willibrandon\/tree-sitter-logrotate"$/mu);
+  assert.match(sources[4], /^\s*<url>https:\/\/github\.com\/willibrandon\/tree-sitter-logrotate<\/url>$/mu);
   assert.doesNotMatch(metadata, /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/iu);
   assert.match(metadata, /io\.github\.willibrandon/u);
 });
