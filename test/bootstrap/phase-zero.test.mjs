@@ -170,6 +170,7 @@ function escapeRegularExpression(text) {
 function runNpmScript(name, outputDirectory) {
   const npmCli = process.env.npm_execpath;
   assert.equal(typeof npmCli, "string", "npm_execpath must identify npm's JavaScript entry point");
+  const timeout = name === "build:wasm" ? 300_000 : 120_000;
   return spawnSync(process.execPath, [npmCli, "run", "--silent", name], {
     cwd: repositoryRoot,
     encoding: "utf8",
@@ -178,7 +179,7 @@ function runNpmScript(name, outputDirectory) {
       TREE_SITTER_BUILD_DIR: outputDirectory,
     },
     shell: false,
-    timeout: 120_000,
+    timeout,
   });
 }
 
