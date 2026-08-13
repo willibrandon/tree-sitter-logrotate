@@ -18,10 +18,28 @@ supports a pending publisher for the first release. Use project name `tree-sitte
 npm and crates.io require their package to exist before trusted publishing can be configured. For
 the first release only, add environment-protected `NPM_BOOTSTRAP_TOKEN` to `npm` and
 `CRATES_IO_BOOTSTRAP_TOKEN` to `crates-io`. Use tokens with the shortest practical expiration and
-the minimum account permissions that permit package creation. After `0.1.0` is published,
-configure both registries to trust
-`release.yml` and their matching GitHub environments, then delete both bootstrap secrets. Later
-releases use only OIDC.
+the minimum account permissions that permit package creation.
+
+After `0.1.0` is published, configure npm from an authenticated npm 12 shell:
+
+```sh
+npm trust github tree-sitter-logrotate \
+  --repository willibrandon/tree-sitter-logrotate \
+  --file release.yml \
+  --environment npm \
+  --allow-publish
+```
+
+In the crates.io package settings, add a GitHub trusted publisher for owner `willibrandon`,
+repository `tree-sitter-logrotate`, workflow `release.yml`, and environment `crates-io`. Remove the
+bootstrap secrets after both trust relationships exist:
+
+```sh
+gh secret delete NPM_BOOTSTRAP_TOKEN --env npm
+gh secret delete CRATES_IO_BOOTSTRAP_TOKEN --env crates-io
+```
+
+Later releases use only OIDC.
 
 Maven Central does not use the same publishing path. Add environment-protected
 `MAVEN_CENTRAL_USERNAME`, `MAVEN_CENTRAL_PASSWORD`, `MAVEN_GPG_PRIVATE_KEY`, and
