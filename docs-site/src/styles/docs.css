@@ -11,12 +11,10 @@
   --sl-color-accent-high: #dcefe2;
 }
 
-.sl-markdown-content h2 {
-  margin-top: 2.25rem;
-}
-
-.sl-markdown-content h3 {
-  margin-top: 1.75rem;
+.sl-markdown-content
+  :not(h1, h2, h3, h4, h5, h6, .sl-heading-wrapper)
+  + .sl-heading-wrapper.level-h2 {
+  margin-top: 0.75em;
 }
 
 .sl-markdown-content :not(pre) > code {

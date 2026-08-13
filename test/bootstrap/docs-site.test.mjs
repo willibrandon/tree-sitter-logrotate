@@ -70,6 +70,25 @@ test("site pages are concise, navigable, and free of placeholder claims", async 
   assert.match(editors, /It does not imply that a stock editor already ships\s+Logrotate support/u);
 });
 
+test("section spacing follows Starlight heading wrappers", async () => {
+  const styles = await readDocs("src/styles/docs.css");
+
+  assert.match(
+    styles,
+    /\.sl-markdown-content\s+:not\(h1, h2, h3, h4, h5, h6, \.sl-heading-wrapper\)\s+\+ \.sl-heading-wrapper\.level-h2\s*\{\s*margin-top: 0\.75em;/u,
+  );
+  assert.doesNotMatch(styles, /\.sl-markdown-content\s+h[23]\s*\{/u);
+});
+
+test("public compatibility documentation includes every release platform", async () => {
+  const publicCompatibility = await readDocs("src/content/docs/compatibility.md");
+  const repositoryCompatibility = await read("docs/compatibility.md");
+  const platformDescription = "Linux x64 and arm64, macOS arm64, Windows x64 and arm64";
+
+  assert.match(publicCompatibility, new RegExp(platformDescription, "u"));
+  assert.match(repositoryCompatibility, new RegExp(platformDescription, "u"));
+});
+
 test("custom highlighting and portable query guidance stay aligned", async () => {
   const language = JSON.parse(await readDocs("src/languages/logrotate.tmLanguage.json"));
   const queries = await readDocs("src/content/docs/queries.md");

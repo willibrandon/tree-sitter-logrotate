@@ -10,7 +10,7 @@ CLI 0.26.12 and rebuilt in CI with 0.26.3, the declared minimum.
 
 | Surface | Tested versions and platforms |
 | --- | --- |
-| Native parser | Linux x64 and arm64, macOS arm64, Windows x64 |
+| Native parser | Linux x64 and arm64, macOS arm64, Windows x64 and arm64 |
 | Tree-sitter CLI | 0.26.3 and 0.26.12 |
 | Node.js | Node.js 24.19.0 with `tree-sitter` 0.25.1 |
 | Python | CPython 3.10 through 3.14 |

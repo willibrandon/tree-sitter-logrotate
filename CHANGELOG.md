@@ -7,8 +7,9 @@ and the native parser embedded in the Java archive. These artifacts are built an
 native Windows 11 ARM64 runner, and stable workflow gates require every platform runner to pass.
 
 VS Code's C and C++ configuration now discovers the compiler and IntelliSense mode for the current
-host instead of assuming Linux Clang. Parser behavior, public nodes, queries, ABI 15, and minimum
-runtime versions are unchanged.
+host instead of assuming Linux Clang. Documentation section spacing now matches the established
+Starlight layout. Parser behavior, public nodes, queries, ABI 15, and minimum runtime versions are
+unchanged.
 
 ## 0.1.2
 
