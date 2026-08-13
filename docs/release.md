@@ -17,10 +17,11 @@ supports a pending publisher for the first release. Use project name `tree-sitte
 
 npm and crates.io require their package to exist before trusted publishing can be configured. For
 the first release only, add environment-protected `NPM_BOOTSTRAP_TOKEN` to `npm` and
-`CRATES_IO_BOOTSTRAP_TOKEN` to `crates-io`. Use granular tokens restricted to publishing the new
-public package. After `0.1.0` is published, configure both registries to trust `release.yml` and
-their matching GitHub environments, then delete both bootstrap secrets. Later releases fail closed
-to OIDC when those secrets are absent.
+`CRATES_IO_BOOTSTRAP_TOKEN` to `crates-io`. Use tokens with the shortest practical expiration and
+the minimum account permissions that permit package creation. After `0.1.0` is published,
+configure both registries to trust
+`release.yml` and their matching GitHub environments, then delete both bootstrap secrets. Later
+releases use only OIDC.
 
 Maven Central does not use the same publishing path. Add environment-protected
 `MAVEN_CENTRAL_USERNAME`, `MAVEN_CENTRAL_PASSWORD`, `MAVEN_GPG_PRIVATE_KEY`, and
