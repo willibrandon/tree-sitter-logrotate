@@ -13,6 +13,17 @@ zstyle ':vcs_info:*' enable git
 _tree_sitter_logrotate_prompt() {
   local exit_status=$?
   local dirty_count
+  local repo_root
+
+  repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
+  if [[ -n "${repo_root}" && "${PWD}" == "${repo_root}" ]]; then
+    typeset -g TREE_SITTER_LOGROTATE_LOCATION=''
+  elif [[ -n "${repo_root}" && "${PWD}" == "${repo_root}"/* ]]; then
+    typeset -g TREE_SITTER_LOGROTATE_LOCATION=" %F{39}${PWD#${repo_root}/}%f"
+  else
+    typeset -g TREE_SITTER_LOGROTATE_LOCATION=' %F{39}%1~%f'
+  fi
+
   dirty_count=$(git status --porcelain=v1 2>/dev/null | wc -l)
 
   if (( dirty_count )); then
@@ -37,4 +48,4 @@ ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=8'
 source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 
-PROMPT='%F{245}%n@%m%f %F{39}%1~%f${vcs_info_msg_0_}${TREE_SITTER_LOGROTATE_DIRTY} ${TREE_SITTER_LOGROTATE_PROMPT_CHAR} '
+PROMPT='%F{245}%m%f${TREE_SITTER_LOGROTATE_LOCATION}${vcs_info_msg_0_}${TREE_SITTER_LOGROTATE_DIRTY} ${TREE_SITTER_LOGROTATE_PROMPT_CHAR} '

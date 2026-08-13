@@ -618,9 +618,13 @@ test("development container is reproducible, credential-free, and isolates host 
   assert.match(zshConfiguration, /ZSH_AUTOSUGGEST_STRATEGY=\(history completion\)/u);
   assert.match(dockerfile, /useradd[^\n]+--shell \/bin\/zsh vscode/u);
   assert.match(zshConfiguration, /autoload -Uz add-zsh-hook compinit vcs_info/u);
-  assert.match(zshConfiguration, /%n@%m%f %F\{39\}%1~%f\$\{vcs_info_msg_0_\}/u);
+  assert.match(
+    zshConfiguration,
+    /%m%f\$\{TREE_SITTER_LOGROTATE_LOCATION\}\$\{vcs_info_msg_0_\}/u,
+  );
+  assert.match(zshConfiguration, /"\$\{PWD\}" == "\$\{repo_root\}"/u);
   assert.match(zshConfiguration, /TREE_SITTER_LOGROTATE_DIRTY/u);
-  assert.deepEqual(configuration.runArgs, ["--hostname", "tree-sitter-logrotate-dev"]);
+  assert.deepEqual(configuration.runArgs, ["--hostname", "tslr"]);
 
   assert.equal(configuration.build?.dockerfile, "Dockerfile");
   assert.ok(Array.isArray(configuration.mounts), "devcontainer.json must declare isolated mounts");

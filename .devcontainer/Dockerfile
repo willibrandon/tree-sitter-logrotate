@@ -163,7 +163,7 @@ RUN node --version \
     && test "$(LC_ALL=en_US.UTF-8 locale charmap)" = "UTF-8" \
     && test "$(getent passwd vscode | cut -d: -f7)" = "/bin/zsh" \
     && zsh -ic '(( ${+functions[_zsh_autosuggest_strategy_history]} ))' \
-    && zsh -ic '_tree_sitter_logrotate_prompt; [[ ${PROMPT} == *%n@%m* && ${PROMPT} == *\$\{vcs_info_msg_0_\}* ]]'
+    && zsh -ic '_tree_sitter_logrotate_prompt; [[ ${PROMPT} == *%m* && ${PROMPT} == *\$\{vcs_info_msg_0_\}* ]]'
 
 RUN printf '%s\n' \
       'export RUSTUP_HOME=/usr/local/rustup' \
