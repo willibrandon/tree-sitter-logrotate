@@ -71,6 +71,8 @@
     "docs:build": "npm --prefix docs-site run build",
     "docs:check": "npm --prefix docs-site run check",
     "docs:dev": "npm --prefix docs-site run dev",
+    "docs:install": "npm --prefix docs-site ci",
+    "docs:preview": "npm --prefix docs-site run preview",
     "generate": "tree-sitter generate --abi 15",
     "install": "node scripts/install-node-binding.mjs",
     "prestart": "npm run build:wasm",

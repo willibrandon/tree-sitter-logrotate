@@ -19,6 +19,23 @@ For a shorter parser-only cycle, use:
 npm run verify
 ```
 
+## Documentation site
+
+The post-create command installs the site's locked dependencies in a separate named volume. Start
+the site with:
+
+```sh
+npm run docs:dev
+```
+
+Port 4321 is forwarded automatically. Open
+`http://localhost:4321/tree-sitter-logrotate/` when Visual Studio Code reports that the port is
+available. The repository path is required because it matches the GitHub Pages deployment.
+
+Run `npm run docs:check` and `npm run docs:build` before committing documentation changes. The
+complete native and WSL workflow is in
+[docs/documentation-site.md](../docs/documentation-site.md).
+
 `node_modules`, Node-gyp, Maven, Swift, Python, Zig, Cargo, compiler output, release output, and
 download caches use named volumes or ignored container-owned paths. They remain outside the host's
 platform-specific build output so Windows, macOS, and Linux do not reuse incompatible native files.

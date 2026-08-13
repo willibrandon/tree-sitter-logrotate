@@ -23,6 +23,7 @@
   },
   "mounts": [
     "source=tree-sitter-logrotate-${devcontainerId}-node-modules,target=${containerWorkspaceFolder}/node_modules,type=volume",
+    "source=tree-sitter-logrotate-${devcontainerId}-docs-node-modules,target=${containerWorkspaceFolder}/docs-site/node_modules,type=volume",
     "source=tree-sitter-logrotate-${devcontainerId}-node-build,target=${containerWorkspaceFolder}/build,type=volume",
     "source=tree-sitter-logrotate-${devcontainerId}-node-prebuilds,target=${containerWorkspaceFolder}/prebuilds,type=volume",
     "source=tree-sitter-logrotate-${devcontainerId}-swift-build,target=${containerWorkspaceFolder}/.build,type=volume",
@@ -33,6 +34,13 @@
     "source=tree-sitter-logrotate-${devcontainerId}-output,target=${containerWorkspaceFolder}/.devcontainer-output,type=volume",
     "source=tree-sitter-logrotate-${devcontainerId}-cache,target=/home/vscode/.cache,type=volume"
   ],
+  "forwardPorts": [4321],
+  "portsAttributes": {
+    "4321": {
+      "label": "tree-sitter-logrotate documentation",
+      "onAutoForward": "notify"
+    }
+  },
   "postCreateCommand": "bash .devcontainer/post-create.sh",
   "hostRequirements": {
     "cpus": 4,

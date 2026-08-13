@@ -47,6 +47,9 @@ is the ignored `build` directory.
 
 More native setup details are in [docs/native-development.md](docs/native-development.md).
 
+The documentation site has a separate locked dependency tree. Its local development and preview
+commands are described in [docs/documentation-site.md](docs/documentation-site.md).
+
 ## Binding examples
 
 Every example parses supplied text. None reads a configuration from disk or starts logrotate.

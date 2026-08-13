@@ -94,3 +94,39 @@ test("Pages workflow builds pull requests and confines deployment permissions", 
   assert.equal(rootManifest.scripts["docs:check"], "npm --prefix docs-site run check");
   assert.equal(rootManifest.scripts["docs:build"], "npm --prefix docs-site run build");
 });
+
+test("local documentation workflow works from WSL and the development container", async () => {
+  const rootManifest = JSON.parse(await read("package.json"));
+  const docsManifest = JSON.parse(await readDocs("package.json"));
+  const configuration = JSON.parse(await read(".devcontainer/devcontainer.json"));
+  const postCreate = await read(".devcontainer/post-create.sh");
+  const developmentGuide = await read("docs/documentation-site.md");
+  const mounts = configuration.mounts.map((mount) =>
+    typeof mount === "string" ? mount : JSON.stringify(mount),
+  );
+
+  assert.equal(rootManifest.scripts["docs:install"], "npm --prefix docs-site ci");
+  assert.equal(rootManifest.scripts["docs:dev"], "npm --prefix docs-site run dev");
+  assert.equal(rootManifest.scripts["docs:preview"], "npm --prefix docs-site run preview");
+  assert.equal(docsManifest.scripts.dev, "astro dev --host 0.0.0.0");
+  assert.equal(docsManifest.scripts.preview, "astro preview --host 0.0.0.0");
+  assert.deepEqual(configuration.forwardPorts, [4321]);
+  assert.equal(configuration.portsAttributes["4321"].onAutoForward, "notify");
+  assert.ok(
+    mounts.some(
+      (mount) =>
+        /type=volume/u.test(mount) &&
+        /target=[^,]*\/docs-site\/node_modules(?:,|$)/u.test(mount),
+    ),
+    "documentation dependencies must use a named volume",
+  );
+  assert.match(postCreate, /npm --prefix docs-site ci/u);
+  assert.match(developmentGuide, /npm run docs:install/u);
+  assert.match(developmentGuide, /npm run docs:dev/u);
+  assert.match(
+    developmentGuide,
+    /http:\/\/localhost:4321\/tree-sitter-logrotate\//u,
+  );
+  assert.match(developmentGuide, /hostname -I/u);
+  assert.match(developmentGuide, /Building the site does not start a server/u);
+});
