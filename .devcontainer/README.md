@@ -19,11 +19,14 @@ For a shorter parser-only cycle, use:
 npm run verify
 ```
 
+CMake Tools configures the project with Ninja when the container opens. It does not scan for or
+prompt for a compiler kit. Its build tree is stored in the container-owned
+`.devcontainer-output/cmake` directory.
+
 Zsh is the default integrated terminal shell. Its history-based autosuggestions reuse completed
-commands as you type, and its history is kept in the container's persistent cache volume. Visual
-Studio Code terminal IntelliSense also suggests commands, arguments, files, and folders. Press
-`Ctrl+Space` to request the suggestion list manually and `Tab` to accept a selected suggestion.
-Bash remains available with conventional completion enabled.
+commands as you type, and its history is kept in the container's persistent cache volume. Press
+the right arrow to accept a suggestion. Bash remains available with conventional completion
+enabled.
 
 ## Documentation site
 

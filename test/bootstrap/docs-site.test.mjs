@@ -108,7 +108,10 @@ test("local documentation workflow works from WSL and the development container"
     typeof mount === "string" ? mount : JSON.stringify(mount),
   );
 
-  assert.equal(rootManifest.scripts["docs:install"], "npm --prefix docs-site ci");
+  assert.equal(
+    rootManifest.scripts["docs:install"],
+    "npm --prefix docs-site ci --include=optional",
+  );
   assert.equal(rootManifest.scripts["docs:dev"], "npm --prefix docs-site run dev");
   assert.equal(rootManifest.scripts["docs:preview"], "npm --prefix docs-site run preview");
   assert.equal(docsManifest.scripts.dev, "astro dev");
@@ -129,7 +132,7 @@ test("local documentation workflow works from WSL and the development container"
     ),
     "documentation dependencies must use a named volume",
   );
-  assert.match(postCreate, /npm --prefix docs-site ci/u);
+  assert.match(postCreate, /npm --prefix docs-site ci --include=optional/u);
   assert.match(developmentGuide, /npm run docs:install/u);
   assert.match(developmentGuide, /npm run docs:dev/u);
   assert.match(

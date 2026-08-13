@@ -6,13 +6,16 @@ mkdir -p "${HISTFILE:h}"
 setopt append_history hist_ignore_all_dups prompt_subst share_history
 bindkey -e
 
+eval "$(dircolors -b)"
+alias ls='ls --color=tty'
+
 autoload -Uz add-zsh-hook compinit vcs_info
 compinit -d "${HOME}/.cache/zsh/zcompdump"
 zstyle ':vcs_info:*' enable git
 
 _tree_sitter_logrotate_prompt() {
   local exit_status=$?
-  local dirty_count
+  local dirty
   local repo_root
 
   repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
@@ -24,13 +27,12 @@ _tree_sitter_logrotate_prompt() {
     typeset -g TREE_SITTER_LOGROTATE_LOCATION=' %F{39}%1~%f'
   fi
 
-  dirty_count=$(git status --porcelain=v1 2>/dev/null | wc -l)
+  dirty=$(git status --porcelain=v1 2>/dev/null)
 
-  if (( dirty_count )); then
-    zstyle ':vcs_info:git:*' formats ' %F{178}%b%f'
-    typeset -g TREE_SITTER_LOGROTATE_DIRTY=" %F{178}!${dirty_count}%f"
+  zstyle ':vcs_info:git:*' formats ' %F{76}%b%f'
+  if [[ -n "${dirty}" ]]; then
+    typeset -g TREE_SITTER_LOGROTATE_DIRTY=' %F{178}!%f'
   else
-    zstyle ':vcs_info:git:*' formats ' %F{76}%b%f'
     typeset -g TREE_SITTER_LOGROTATE_DIRTY=''
   fi
 
@@ -48,4 +50,5 @@ ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=8'
 source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 
-PROMPT='%F{245}%m%f${TREE_SITTER_LOGROTATE_LOCATION}${vcs_info_msg_0_}${TREE_SITTER_LOGROTATE_DIRTY} ${TREE_SITTER_LOGROTATE_PROMPT_CHAR} '
+PROMPT='%B%F{39}%m%f%b${TREE_SITTER_LOGROTATE_LOCATION}${vcs_info_msg_0_}${TREE_SITTER_LOGROTATE_DIRTY} ${TREE_SITTER_LOGROTATE_PROMPT_CHAR} '
+RPROMPT='%F{66}%D{%H:%M:%S}%f'

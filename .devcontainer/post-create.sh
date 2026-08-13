@@ -19,7 +19,7 @@ sudo chown -R "$(id --user):$(id --group)" \
 
 cd "$workspace_root"
 npm ci
-npm --prefix docs-site ci
+npm --prefix docs-site ci --include=optional
 python3 -m venv .venv
 .venv/bin/python -m pip install \
   --disable-pip-version-check \

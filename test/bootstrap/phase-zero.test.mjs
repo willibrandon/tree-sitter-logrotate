@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
+import { createRequire } from "node:module";
 import { copyFile, mkdir, mkdtemp, readFile, readdir, realpath, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
@@ -616,15 +617,38 @@ test("development container is reproducible, credential-free, and isolates host 
   assert.match(dockerfile, /locale-gen\s+\\/u);
   assert.match(dockerfile, /COPY --chmod=0644 \.devcontainer\/zshrc \/etc\/zsh\/zshrc/u);
   assert.match(zshConfiguration, /ZSH_AUTOSUGGEST_STRATEGY=\(history completion\)/u);
+  assert.match(zshConfiguration, /eval "\$\(dircolors -b\)"/u);
+  assert.match(zshConfiguration, /alias ls='ls --color=tty'/u);
+  assert.equal((await readRequired(".npmrc")).trim(), "omit=optional");
+  assert.match(await readRequired(".devcontainer/post-create.sh"), /^npm ci$/mu);
+  const packageJson = await readJson("package.json");
+  assert.deepEqual(
+    {
+      ajv: packageJson.devDependencies?.ajv,
+      "ajv-formats": packageJson.devDependencies?.["ajv-formats"],
+      "ajv-formats-draft2019": packageJson.devDependencies?.["ajv-formats-draft2019"],
+    },
+    {
+      ajv: "8.20.0",
+      "ajv-formats": "3.0.1",
+      "ajv-formats-draft2019": "1.6.1",
+    },
+  );
   assert.match(dockerfile, /useradd[^\n]+--shell \/bin\/zsh vscode/u);
   assert.match(zshConfiguration, /autoload -Uz add-zsh-hook compinit vcs_info/u);
   assert.match(
     zshConfiguration,
-    /%m%f\$\{TREE_SITTER_LOGROTATE_LOCATION\}\$\{vcs_info_msg_0_\}/u,
+    /%B%F\{39\}%m%f%b\$\{TREE_SITTER_LOGROTATE_LOCATION\}\$\{vcs_info_msg_0_\}/u,
   );
+  assert.match(zshConfiguration, /RPROMPT='%F\{66\}%D\{%H:%M:%S\}%f'/u);
   assert.match(zshConfiguration, /"\$\{PWD\}" == "\$\{repo_root\}"/u);
   assert.match(zshConfiguration, /TREE_SITTER_LOGROTATE_DIRTY/u);
-  assert.deepEqual(configuration.runArgs, ["--hostname", "tslr"]);
+  assert.match(
+    zshConfiguration,
+    /formats ' %F\{76\}%b%f'[\s\S]+TREE_SITTER_LOGROTATE_DIRTY=' %F\{178\}!%f'/u,
+  );
+  assert.doesNotMatch(zshConfiguration, /dirty_count|wc -l/u);
+  assert.deepEqual(configuration.runArgs, ["--hostname", "vscode"]);
 
   assert.equal(configuration.build?.dockerfile, "Dockerfile");
   assert.ok(Array.isArray(configuration.mounts), "devcontainer.json must declare isolated mounts");
@@ -661,17 +685,18 @@ test("development container is reproducible, credential-free, and isolates host 
   assert.doesNotMatch(dockerfile, /(?:GITHUB_TOKEN|GH_TOKEN|NPM_TOKEN|COPY\s+\.ssh|COPY\s+\.git)/iu);
   assert.match(gitignore, /^\.devcontainer-output\/$/mu);
   const terminalSettings = configuration.customizations?.vscode?.settings;
+  assert.equal(terminalSettings?.["cmake.buildDirectory"], "${workspaceFolder}/.devcontainer-output/cmake");
+  assert.equal(terminalSettings?.["cmake.configureOnOpen"], true);
+  assert.equal(terminalSettings?.["cmake.enableAutomaticKitScan"], false);
+  assert.equal(terminalSettings?.["cmake.generator"], "Ninja");
+  assert.equal(terminalSettings?.["cmake.useCMakePresets"], "never");
   assert.equal(terminalSettings?.["terminal.integrated.shellIntegration.enabled"], true);
-  assert.equal(terminalSettings?.["terminal.integrated.suggest.enabled"], true);
+  assert.equal(terminalSettings?.["terminal.integrated.suggest.enabled"], false);
   assert.equal(
     terminalSettings?.["terminal.integrated.suggest.inlineSuggestion"],
-    "alwaysOnTopExceptExactMatch",
+    undefined,
   );
-  assert.deepEqual(terminalSettings?.["terminal.integrated.suggest.quickSuggestions"], {
-    commands: "on",
-    arguments: "on",
-    unknown: "off",
-  });
+  assert.equal(terminalSettings?.["terminal.integrated.suggest.quickSuggestions"], undefined);
   assert.ok(
     configuration.customizations?.vscode?.extensions?.includes(
       "willibrandon.logrotate@0.1.9",
@@ -680,7 +705,7 @@ test("development container is reproducible, credential-free, and isolates host 
   );
   assert.equal(
     terminalSettings?.["terminal.integrated.suggest.suggestOnTriggerCharacters"],
-    true,
+    undefined,
   );
 
   for (const excluded of [".git", ".env", "node_modules", "build", "target", ".cache", "*.pem", "*.key"]) {
@@ -718,19 +743,25 @@ test("development container includes every release verification tool", async () 
   assert.match(verification, /npm run verify:release/u);
 });
 
-test("Node binding installation preserves an isolated build mount", async () => {
+test("Node binding installation rebuilds a stale local binding without replacing its mount", async () => {
   const packageJson = await readJson("package.json");
   assert.equal(packageScript(packageJson, "install"), "node scripts/install-node-binding.mjs");
+  assert.equal(
+    packageScript(packageJson, "test:bindings:node"),
+    "npm run build:node && node --test bindings/node/*_test.js",
+  );
 
   const directory = await mkdtemp(join(tmpdir(), "tree-sitter-logrotate-node-install-"));
   const buildDirectory = join(directory, "build");
-  const staleArtifact = join(buildDirectory, "stale.node");
+  const staleArtifact = join(buildDirectory, "Release/tree_sitter_logrotate_binding.node");
   const fakeNodeGyp = join(directory, "node-gyp.mjs");
   const commandLog = join(directory, "node-gyp.log");
 
   try {
-    await mkdir(buildDirectory);
-    await writeFile(staleArtifact, "stale", "utf8");
+    const installedBinding = createRequire(import.meta.url)("node-gyp-build").path(repositoryRoot);
+    await mkdir(dirname(staleArtifact), { recursive: true });
+    await mkdir(join(directory, "prebuilds"));
+    await copyFile(installedBinding, staleArtifact);
     await writeFile(
       fakeNodeGyp,
       'import { appendFileSync } from "node:fs";\nappendFileSync(process.env.NODE_GYP_LOG, `${process.argv[2]}\\n`);\n',

@@ -6,7 +6,7 @@
   },
   "remoteUser": "vscode",
   "updateRemoteUserUID": true,
-  "runArgs": ["--hostname", "tslr"],
+  "runArgs": ["--hostname", "vscode"],
   "containerEnv": {
     "ASTRO_TELEMETRY_DISABLED": "1",
     "CARGO_HOME": "/home/vscode/.cache/cargo",
@@ -54,15 +54,13 @@
   "customizations": {
     "vscode": {
       "settings": {
+        "cmake.buildDirectory": "${workspaceFolder}/.devcontainer-output/cmake",
+        "cmake.configureOnOpen": true,
+        "cmake.enableAutomaticKitScan": false,
+        "cmake.generator": "Ninja",
+        "cmake.useCMakePresets": "never",
         "terminal.integrated.shellIntegration.enabled": true,
-        "terminal.integrated.suggest.enabled": true,
-        "terminal.integrated.suggest.inlineSuggestion": "alwaysOnTopExceptExactMatch",
-        "terminal.integrated.suggest.quickSuggestions": {
-          "commands": "on",
-          "arguments": "on",
-          "unknown": "off"
-        },
-        "terminal.integrated.suggest.suggestOnTriggerCharacters": true
+        "terminal.integrated.suggest.enabled": false
       },
       "extensions": [
         "ziglang.vscode-zig",
