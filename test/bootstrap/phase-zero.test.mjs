@@ -593,6 +593,29 @@ async function listAbsoluteFiles(directory) {
   return result;
 }
 
+test("VS Code C and C++ configuration remains portable across development hosts", async () => {
+  const configuration = await readJson(".vscode/c_cpp_properties.json");
+  assert.ok(Array.isArray(configuration.configurations));
+  assert.ok(configuration.configurations.length > 0);
+
+  for (const entry of configuration.configurations) {
+    assert.equal(
+      entry.compilerPath,
+      undefined,
+      `${String(entry.name)} must let the C/C++ extension discover the host compiler`,
+    );
+    assert.equal(
+      entry.intelliSenseMode,
+      undefined,
+      `${String(entry.name)} must let the C/C++ extension select the host IntelliSense mode`,
+    );
+    assert.deepEqual(entry.includePath, [
+      "${workspaceFolder}/src/**",
+      "${workspaceFolder}/.venv/include/**",
+    ]);
+  }
+});
+
 test("development container is reproducible, credential-free, and isolates host outputs", async () => {
   const dockerfile = await readRequired(".devcontainer/Dockerfile");
   const zshConfiguration = await readRequired(".devcontainer/zshrc");
@@ -1012,6 +1035,7 @@ test("CI declares the required cross-platform and compatibility surfaces", async
   assert.match(ci, /ubuntu-(?:22\.04|24\.04|[0-9]{4})/u);
   assert.match(ci, /macos-(?:14|15|[0-9]{2})/u);
   assert.match(ci, /windows-(?:2022|2025|[0-9]{4})/u);
+  assert.match(ci, /windows-11-vs2026-arm/u);
   assert.match(ci, /npm\s+run\s+ci:install/u);
   assert.match(ci, /npm\s+run\s+check:generated/u);
   assert.match(ci, /npm\s+run\s+build:native/u);
@@ -1026,14 +1050,41 @@ test("CI declares the required cross-platform and compatibility surfaces", async
   assert.match(crossPlatformJob, /ubuntu-(?:22\.04|24\.04|[0-9]{4})/u);
   assert.match(crossPlatformJob, /macos-(?:14|15|[0-9]{2})/u);
   assert.match(crossPlatformJob, /windows-(?:2022|2025|[0-9]{4})/u);
+  assert.match(crossPlatformJob, /windows-11-vs2026-arm/u);
   for (const command of ["check:generated", "build:native", "build:wasm"]) {
     assert.match(crossPlatformJob, new RegExp(`npm\\s+run\\s+${escapeRegularExpression(command)}`, "u"));
   }
 
+  const requiredCiJob = ciWorkflows
+    .flatMap(({ source }) => workflowJobBlocks(source))
+    .find((job) => /name:\s*Required CI/u.test(job));
+  assert.ok(requiredCiJob, "CI must expose one stable check that requires every test runner");
+  assert.match(requiredCiJob, /if:\s*\$\{\{\s*always\(\)\s*\}\}/u);
+  for (const dependency of [
+    "build",
+    "fixtures",
+    "wasm-browser",
+    "tree-sitter-cli",
+    "go",
+    "python",
+    "rust",
+    "swift",
+    "zig",
+    "java",
+    "sanitizers",
+    "performance",
+  ]) {
+    const resultReference = dependency.includes("-")
+      ? `needs\\[['\"]${escapeRegularExpression(dependency)}['\"]\\]\\.result`
+      : `needs\\.${escapeRegularExpression(dependency)}\\.result`;
+    assert.match(requiredCiJob, new RegExp(resultReference, "u"));
+  }
+  assert.match(requiredCiJob, /success/u);
+
   for (const requiredSurface of [
     /Linux.*x64.*arm64/iu,
     /macOS.*arm64/iu,
-    /Windows.*x64/iu,
+    /Windows.*x64.*arm64/iu,
     /Node.*browser/iu,
     /Neovim.*stable.*development/iu,
     /Helix.*stable.*main/iu,

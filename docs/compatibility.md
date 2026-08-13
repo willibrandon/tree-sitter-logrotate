@@ -8,7 +8,7 @@ A release does not silently raise either value.
 
 | Surface | Tested versions and platforms |
 | --- | --- |
-| Native parser | Linux x64 and arm64, macOS arm64, Windows x64 |
+| Native parser | Linux x64 and arm64, macOS arm64, Windows x64 and arm64 |
 | Tree-sitter CLI | 0.26.3 and 0.26.12 |
 | Node | Node.js 24.19.0 with `tree-sitter` 0.25.1 |
 | Python | CPython 3.10 through 3.14 using ABI3 wheels where supported |

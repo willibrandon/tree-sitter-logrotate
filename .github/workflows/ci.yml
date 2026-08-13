@@ -26,6 +26,7 @@ jobs:
           - ubuntu-24.04-arm
           - macos-14
           - windows-2025
+          - windows-11-vs2026-arm
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -299,3 +300,54 @@ jobs:
           name: parser-performance-linux-x64
           path: build/performance/results.json
           if-no-files-found: error
+
+  required:
+    name: Required CI
+    needs:
+      - build
+      - fixtures
+      - wasm-browser
+      - tree-sitter-cli
+      - go
+      - python
+      - rust
+      - swift
+      - zig
+      - java
+      - sanitizers
+      - performance
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every test runner
+        env:
+          BUILD_RESULT: ${{ needs.build.result }}
+          FIXTURES_RESULT: ${{ needs.fixtures.result }}
+          WASM_BROWSER_RESULT: ${{ needs['wasm-browser'].result }}
+          TREE_SITTER_CLI_RESULT: ${{ needs['tree-sitter-cli'].result }}
+          GO_RESULT: ${{ needs.go.result }}
+          PYTHON_RESULT: ${{ needs.python.result }}
+          RUST_RESULT: ${{ needs.rust.result }}
+          SWIFT_RESULT: ${{ needs.swift.result }}
+          ZIG_RESULT: ${{ needs.zig.result }}
+          JAVA_RESULT: ${{ needs.java.result }}
+          SANITIZERS_RESULT: ${{ needs.sanitizers.result }}
+          PERFORMANCE_RESULT: ${{ needs.performance.result }}
+        run: |
+          for result in \
+            "$BUILD_RESULT" \
+            "$FIXTURES_RESULT" \
+            "$WASM_BROWSER_RESULT" \
+            "$TREE_SITTER_CLI_RESULT" \
+            "$GO_RESULT" \
+            "$PYTHON_RESULT" \
+            "$RUST_RESULT" \
+            "$SWIFT_RESULT" \
+            "$ZIG_RESULT" \
+            "$JAVA_RESULT" \
+            "$SANITIZERS_RESULT" \
+            "$PERFORMANCE_RESULT"
+          do
+            test "$result" = success
+          done

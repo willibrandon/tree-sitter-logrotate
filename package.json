@@ -1,6 +1,6 @@
 {
   "name": "tree-sitter-logrotate",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Logrotate configuration grammar for Tree-sitter",
   "type": "module",
   "repository": {

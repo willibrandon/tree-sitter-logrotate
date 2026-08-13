@@ -10,6 +10,12 @@ import {
   run,
   sha256,
 } from "./release-common.mjs";
+import {
+  nativeLibraryName,
+  nativePlatform,
+  releasePlatforms,
+  wheelPlatform,
+} from "./release-platforms.mjs";
 import { createReleaseSbom } from "./release-sbom.mjs";
 
 const metadata = await packageMetadata();
@@ -21,28 +27,6 @@ const suppliedWheels = optionValue("--python-wheels", undefined);
 const suppliedNativeLibraries = optionValue("--native-libraries", undefined);
 const rootWasm = resolve(repositoryRoot, "tree-sitter-logrotate.wasm");
 let savedRootWasm;
-
-const nativePlatform = (path) => {
-  const normalized = path.replaceAll("\\", "/").toLowerCase();
-  const architecture = normalized.includes("arm64") || normalized.includes("aarch64") ? "arm64" : normalized.includes("x64") || normalized.includes("x86_64") || normalized.includes("amd64") ? "x64" : undefined;
-  const platform = normalized.includes("windows") || normalized.includes("win32") ? "win32" : normalized.includes("macos") || normalized.includes("darwin") ? "darwin" : normalized.includes("linux") ? "linux" : undefined;
-  return platform === undefined || architecture === undefined ? undefined : `${platform}-${architecture}`;
-};
-
-const nativeLibraryName = (platform) => platform.startsWith("win32-")
-  ? "tree-sitter-logrotate.dll"
-  : platform.startsWith("darwin-")
-    ? "libtree-sitter-logrotate.dylib"
-    : "libtree-sitter-logrotate.so";
-
-const wheelPlatform = (name) => {
-  const normalized = name.toLowerCase();
-  if (normalized.includes("win_amd64")) return "win32-x64";
-  if (normalized.includes("macosx") && normalized.includes("arm64")) return "darwin-arm64";
-  if ((normalized.includes("manylinux") || normalized.includes("musllinux")) && normalized.includes("aarch64")) return "linux-arm64";
-  if ((normalized.includes("manylinux") || normalized.includes("musllinux")) && normalized.includes("x86_64")) return "linux-x64";
-  return undefined;
-};
 
 if (outputDirectory === repositoryRoot || !outputDirectory.startsWith(`${repositoryRoot}/`)) {
   throw new Error("Release output must be a directory inside the repository.");
@@ -77,7 +61,7 @@ try {
     npmRun("package:node-prebuild");
   }
   if (suppliedNativeLibraries !== undefined) {
-    for (const platform of ["linux-x64", "linux-arm64", "darwin-arm64", "win32-x64"]) {
+    for (const platform of releasePlatforms) {
       try {
         await lstat(resolve(repositoryRoot, "prebuilds", platform));
       } catch (error) {
@@ -111,7 +95,7 @@ try {
         if (platform !== undefined) wheelPlatforms.add(platform);
       }
     }
-    for (const platform of ["linux-x64", "linux-arm64", "darwin-arm64", "win32-x64"]) {
+    for (const platform of releasePlatforms) {
       if (!wheelPlatforms.has(platform)) throw new Error(`Missing Python wheel for ${platform}.`);
     }
   }
@@ -144,7 +128,7 @@ try {
     throw new Error("No native parser libraries were available for the Java package.");
   }
   if (suppliedNativeLibraries !== undefined) {
-    for (const platform of ["linux-x64", "linux-arm64", "darwin-arm64", "win32-x64"]) {
+    for (const platform of releasePlatforms) {
       if (!nativePlatforms.has(platform)) throw new Error(`Missing native parser library for ${platform}.`);
     }
   }

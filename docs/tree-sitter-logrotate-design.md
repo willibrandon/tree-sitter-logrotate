@@ -697,7 +697,7 @@ Before each release, test:
 
 | Surface       | Required targets                                      |
 | ------------- | ----------------------------------------------------- |
-| Native parser | Linux x64 and arm64, macOS arm64, Windows x64         |
+| Native parser | Linux x64 and arm64, macOS arm64, Windows x64 and arm64 |
 | Toolchain     | Pinned minimum and current Tree-sitter 0.26 patch     |
 | WASM          | Node host and browser host                            |
 | Neovim        | Current stable and current development build          |

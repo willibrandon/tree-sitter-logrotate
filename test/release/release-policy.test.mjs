@@ -4,6 +4,12 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
+import {
+  nativeLibraryName,
+  nativePlatform,
+  releasePlatforms,
+  wheelPlatform,
+} from "../../scripts/release-platforms.mjs";
 
 const root = resolve(import.meta.dirname, "../..");
 const read = (path) => readFile(resolve(root, path), "utf8");
@@ -29,6 +35,7 @@ test("release artifacts are built from committed parser sources", async () => {
   assert.match(nodeBinding, /node-gyp-build/u);
   assert.match(builder, /META-INF\/native/u);
   assert.match(verifier, /Java package does not contain a native parser library/u);
+  assert.match(builder, /releasePlatforms/u);
   assert.match(consumer, /maven-dependency-plugin:3\.11\.0:build-classpath/u);
   assert.match(consumer, /TREE_SITTER_BUILD_JAVA_TEST_RUNTIME=true/u);
   assert.match(consumer, /tree\.getRootNode\(\)\.hasError\(\)/u);
@@ -37,6 +44,34 @@ test("release artifacts are built from committed parser sources", async () => {
   for (const artifact of [".tgz", ".crate", ".whl", ".jar", ".wasm", "source.tar.gz", "cdx.json", "SHA256SUMS"]) {
     assert.ok(releaseSource.includes(artifact), `release source does not cover ${artifact}`);
   }
+});
+
+test("release platform mapping recognizes every supported artifact", () => {
+  assert.deepEqual(releasePlatforms, [
+    "linux-x64",
+    "linux-arm64",
+    "darwin-arm64",
+    "win32-x64",
+    "win32-arm64",
+  ]);
+
+  assert.equal(nativePlatform("native-Windows-ARM64/tree-sitter-logrotate.dll"), "win32-arm64");
+  assert.equal(nativePlatform("native-Windows-X64/tree-sitter-logrotate.dll"), "win32-x64");
+  assert.equal(nativePlatform("native-Linux-ARM64/tree-sitter-logrotate.so"), "linux-arm64");
+  assert.equal(nativePlatform("native-Linux-X64/tree-sitter-logrotate.so"), "linux-x64");
+  assert.equal(nativePlatform("native-macOS-ARM64/tree-sitter-logrotate.dylib"), "darwin-arm64");
+  assert.equal(nativePlatform("native-unknown/tree-sitter-logrotate.so"), undefined);
+
+  assert.equal(wheelPlatform("tree_sitter_logrotate-0.1.3-cp310-abi3-win_arm64.whl"), "win32-arm64");
+  assert.equal(wheelPlatform("tree_sitter_logrotate-0.1.3-cp310-abi3-win_amd64.whl"), "win32-x64");
+  assert.equal(wheelPlatform("tree_sitter_logrotate-0.1.3-cp310-abi3-manylinux_2_17_aarch64.whl"), "linux-arm64");
+  assert.equal(wheelPlatform("tree_sitter_logrotate-0.1.3-cp310-abi3-manylinux_2_17_x86_64.whl"), "linux-x64");
+  assert.equal(wheelPlatform("tree_sitter_logrotate-0.1.3-cp310-abi3-macosx_11_0_arm64.whl"), "darwin-arm64");
+  assert.equal(wheelPlatform("tree_sitter_logrotate-0.1.3-py3-none-any.whl"), undefined);
+
+  assert.equal(nativeLibraryName("win32-arm64"), "tree-sitter-logrotate.dll");
+  assert.equal(nativeLibraryName("darwin-arm64"), "libtree-sitter-logrotate.dylib");
+  assert.equal(nativeLibraryName("linux-arm64"), "libtree-sitter-logrotate.so");
 });
 
 test("Rust release packaging excludes ignored nested grammar sources", async () => {
@@ -76,9 +111,21 @@ test("release workflow publishes through protected, least-privilege jobs", async
   ]) {
     assert.match(workflow, new RegExp(`cmp .*${artifact}`, "u"));
   }
-  for (const platform of ["ubuntu-24.04", "ubuntu-24.04-arm", "macos-14", "windows-2025"]) {
+  for (const platform of [
+    "ubuntu-24.04",
+    "ubuntu-24.04-arm",
+    "macos-14",
+    "windows-2025",
+    "windows-11-vs2026-arm",
+  ]) {
     assert.match(workflow, new RegExp(platform.replaceAll(".", "\\."), "u"));
   }
+  assert.match(workflow, /os: windows-11-vs2026-arm\n\s+arch: ARM64/u);
+  assert.match(
+    workflow,
+    /release-platforms:\n[\s\S]*?name: Required release artifact runners[\s\S]*?needs: \[node-prebuilds, native-libraries, python-wheels\][\s\S]*?if: \$\{\{ always\(\) \}\}[\s\S]*?needs\.(?:node-prebuilds|native-libraries|python-wheels)\.result/u,
+  );
+  assert.match(workflow, /assemble:\n[\s\S]*?needs: \[validate, validate-swift, release-platforms\]/u);
   assert.equal([...workflow.matchAll(/actions\/attest@[0-9a-f]{40}/gu)].length, 2);
   assert.doesNotMatch(workflow, /actions\/attest-(?:build-provenance|sbom)@/u);
   assert.match(workflow, /sha256sum --check SHA256SUMS/u);
