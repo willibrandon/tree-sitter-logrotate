@@ -821,6 +821,17 @@ test("security automation covers dependencies, code, secrets, sanitizers, and fu
   assert.match(dependabot, /interval:\s*["']?(?:weekly|monthly)["']?/u);
 });
 
+test("CodeQL analyzes hand-written C without indexing the generated parser", async () => {
+  const codeql = await readRequired(".github/workflows/codeql.yml");
+  const config = await readRequired(".github/codeql/codeql-config.yml");
+
+  assert.match(codeql, /language:\s*c-cpp[\s\S]*?build-mode:\s*none/u);
+  assert.match(codeql, /config-file:\s*\.\/\.github\/codeql\/codeql-config\.yml/u);
+  assert.doesNotMatch(codeql, /npm\s+run\s+build:native/u);
+  assert.match(config, /paths-ignore:[\s\S]*?-\s*src\/parser\.c/u);
+  assert.doesNotMatch(config, /src\/scanner\.c/u);
+});
+
 test("CI declares the required cross-platform and compatibility surfaces", async () => {
   const workflows = await workflowSources();
   const ciWorkflows = workflows
