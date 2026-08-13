@@ -28,8 +28,8 @@ the site with:
 npm run docs:dev
 ```
 
-Port 4321 is forwarded automatically. Open
-`http://localhost:4321/tree-sitter-logrotate/` when Visual Studio Code reports that the port is
+Port 4323 is forwarded automatically. Open
+`http://localhost:4323/tree-sitter-logrotate/` when Visual Studio Code reports that the port is
 available. The repository path is required because it matches the GitHub Pages deployment.
 
 Run `npm run docs:check` and `npm run docs:build` before committing documentation changes. The

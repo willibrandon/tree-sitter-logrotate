@@ -108,10 +108,10 @@ test("local documentation workflow works from WSL and the development container"
   assert.equal(rootManifest.scripts["docs:install"], "npm --prefix docs-site ci");
   assert.equal(rootManifest.scripts["docs:dev"], "npm --prefix docs-site run dev");
   assert.equal(rootManifest.scripts["docs:preview"], "npm --prefix docs-site run preview");
-  assert.equal(docsManifest.scripts.dev, "astro dev");
-  assert.equal(docsManifest.scripts.preview, "astro preview");
-  assert.deepEqual(configuration.forwardPorts, [4321]);
-  assert.equal(configuration.portsAttributes["4321"].onAutoForward, "notify");
+  assert.equal(docsManifest.scripts.dev, "astro dev --port 4323");
+  assert.equal(docsManifest.scripts.preview, "astro preview --port 4323");
+  assert.deepEqual(configuration.forwardPorts, [4323]);
+  assert.equal(configuration.portsAttributes["4323"].onAutoForward, "notify");
   assert.ok(
     mounts.some(
       (mount) =>
@@ -125,7 +125,7 @@ test("local documentation workflow works from WSL and the development container"
   assert.match(developmentGuide, /npm run docs:dev/u);
   assert.match(
     developmentGuide,
-    /http:\/\/localhost:4321\/tree-sitter-logrotate\//u,
+    /http:\/\/localhost:4323\/tree-sitter-logrotate\//u,
   );
   assert.match(developmentGuide, /hostname -I/u);
   assert.match(

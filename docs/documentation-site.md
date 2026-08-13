@@ -23,9 +23,9 @@ Start the development server from the repository root:
 npm run docs:dev
 ```
 
-Open `http://localhost:4321/tree-sitter-logrotate/`. The `/tree-sitter-logrotate/` path is required
-because it matches the GitHub Pages deployment. A request to `http://localhost:4321/` returns 404
-by design.
+Open `http://localhost:4323/tree-sitter-logrotate/`. Port 4323 lets this site run beside the
+vscode-logrotate documentation site. The `/tree-sitter-logrotate/` path is required because it
+matches the GitHub Pages deployment. A request to `http://localhost:4323/` returns 404 by design.
 
 Astro binds to `localhost` by default. WSL normally forwards that listener to Windows, so the same
 URL works in a Windows browser.
@@ -43,10 +43,10 @@ Get the WSL address with:
 hostname -I | awk '{print $1}'
 ```
 
-Then open `http://<address>:4321/tree-sitter-logrotate/`. Stop the server with `Ctrl+C` or press
+Then open `http://<address>:4323/tree-sitter-logrotate/`. Stop the server with `Ctrl+C` or press
 `q` in its terminal.
 
-Inside the development container, Visual Studio Code forwards port 4321 and reports when it is
+Inside the development container, Visual Studio Code forwards port 4323 and reports when it is
 ready. Use the same `/tree-sitter-logrotate/` path on the forwarded address.
 
 ## Check and preview
@@ -64,5 +64,5 @@ Building the site does not start a server. To inspect the generated production o
 npm run docs:preview
 ```
 
-Open `http://localhost:4321/tree-sitter-logrotate/` again. The preview server uses the built files
+Open `http://localhost:4323/tree-sitter-logrotate/` again. The preview server uses the built files
 and does not provide the development server's live updates.

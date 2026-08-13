@@ -34,9 +34,9 @@
     "source=tree-sitter-logrotate-${devcontainerId}-output,target=${containerWorkspaceFolder}/.devcontainer-output,type=volume",
     "source=tree-sitter-logrotate-${devcontainerId}-cache,target=/home/vscode/.cache,type=volume"
   ],
-  "forwardPorts": [4321],
+  "forwardPorts": [4323],
   "portsAttributes": {
-    "4321": {
+    "4323": {
       "label": "tree-sitter-logrotate documentation",
       "onAutoForward": "notify"
     }
