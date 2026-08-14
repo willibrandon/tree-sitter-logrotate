@@ -1016,6 +1016,23 @@ test("security automation covers dependencies, code, secrets, sanitizers, and fu
   assert.match(dependabot, /interval:\s*["']?(?:weekly|monthly)["']?/u);
 });
 
+test("upstream Tree-sitter checks satisfy downstream parser requirements", async () => {
+  const ci = await readRequired(".github/workflows/ci.yml");
+  const fuzz = await readRequired(".github/workflows/fuzz.yml");
+
+  assert.match(ci, /tree-sitter\/setup-action\/cli@[0-9a-f]{40}/u);
+  assert.match(ci, /tree-sitter\/parser-test-action@[0-9a-f]{40}/u);
+  assert.match(ci, /tree-sitter-ref:\s*v0\.26\.12/u);
+  assert.match(ci, /abi-version:\s*["']?15["']?/u);
+  assert.match(ci, /ts_query_ls\/releases\/download\/v3\.16\.0/u);
+  assert.match(ci, /35859176141c3ebaac231000fd96d50a14c6bc26963f0a1662aac33f656d443d/u);
+  assert.match(ci, /ts_query_ls[^\n]*check\s+--format/u);
+  assert.match(ci, /^\s+queries\/$/mu);
+  assert.match(ci, /required:\n[\s\S]*?needs:[\s\S]*?upstream-parser[\s\S]*?query-validation/u);
+
+  assert.match(fuzz, /tree-sitter\/fuzz-action@[0-9a-f]{40}/u);
+});
+
 test("CodeQL traces only the hand-written C scanner", async () => {
   const codeql = await readRequired(".github/workflows/codeql.yml");
 

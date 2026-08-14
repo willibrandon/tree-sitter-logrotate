@@ -123,6 +123,58 @@ jobs:
           npm exec --yes --allow-scripts=tree-sitter-cli --package="tree-sitter-cli@${TREE_SITTER_VERSION}" -- tree-sitter --version
           npm exec --yes --allow-scripts=tree-sitter-cli --package="tree-sitter-cli@${TREE_SITTER_VERSION}" -- tree-sitter test --rebuild
 
+  upstream-parser:
+    name: Upstream Tree-sitter parser checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Tree-sitter CLI
+        uses: tree-sitter/setup-action/cli@49f8c1f20b60102eae8c033bb7c7f6cd056f6086 # v2
+        with:
+          tree-sitter-ref: v0.26.12
+      - name: Run upstream parser checks
+        uses: tree-sitter/parser-test-action@05f6ce7c7e54603c45cd87ed926725dc870bcc63 # v3
+        with:
+          abi-version: "15"
+
+  query-validation:
+    name: Tree-sitter query validation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Tree-sitter CLI
+        uses: tree-sitter/setup-action/cli@49f8c1f20b60102eae8c033bb7c7f6cd056f6086 # v2
+        with:
+          tree-sitter-ref: v0.26.12
+      - name: Install ts_query_ls
+        shell: bash
+        env:
+          TS_QUERY_LS_SHA256: 35859176141c3ebaac231000fd96d50a14c6bc26963f0a1662aac33f656d443d
+          TS_QUERY_LS_URL: https://github.com/ribru17/ts_query_ls/releases/download/v3.16.0/ts_query_ls-x86_64-unknown-linux-gnu.tar.gz
+        run: |
+          archive="$RUNNER_TEMP/ts_query_ls.tar.gz"
+          directory="$RUNNER_TEMP/ts_query_ls"
+          curl --fail --location --silent --show-error "$TS_QUERY_LS_URL" --output "$archive"
+          printf '%s  %s\n' "$TS_QUERY_LS_SHA256" "$archive" | sha256sum --check
+          mkdir "$directory"
+          tar --extract --gzip --file "$archive" --directory "$directory"
+      - name: Validate queries
+        shell: bash
+        run: |
+          parser="$RUNNER_TEMP/tree-sitter-logrotate.so"
+          tree-sitter build --output "$parser"
+          "$RUNNER_TEMP/ts_query_ls/ts_query_ls" check --format \
+            --config "{\"parser_install_directories\":[\"$RUNNER_TEMP\"]}" \
+            queries/
+
   go:
     name: Go ${{ matrix.go }} binding
     runs-on: ubuntu-24.04
@@ -308,6 +360,8 @@ jobs:
       - fixtures
       - wasm-browser
       - tree-sitter-cli
+      - upstream-parser
+      - query-validation
       - go
       - python
       - rust
@@ -326,6 +380,8 @@ jobs:
           FIXTURES_RESULT: ${{ needs.fixtures.result }}
           WASM_BROWSER_RESULT: ${{ needs['wasm-browser'].result }}
           TREE_SITTER_CLI_RESULT: ${{ needs['tree-sitter-cli'].result }}
+          UPSTREAM_PARSER_RESULT: ${{ needs['upstream-parser'].result }}
+          QUERY_VALIDATION_RESULT: ${{ needs['query-validation'].result }}
           GO_RESULT: ${{ needs.go.result }}
           PYTHON_RESULT: ${{ needs.python.result }}
           RUST_RESULT: ${{ needs.rust.result }}
@@ -340,6 +396,8 @@ jobs:
             "$FIXTURES_RESULT" \
             "$WASM_BROWSER_RESULT" \
             "$TREE_SITTER_CLI_RESULT" \
+            "$UPSTREAM_PARSER_RESULT" \
+            "$QUERY_VALIDATION_RESULT" \
             "$GO_RESULT" \
             "$PYTHON_RESULT" \
             "$RUST_RESULT" \
