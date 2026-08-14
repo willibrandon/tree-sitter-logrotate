@@ -1,0 +1,43 @@
+{
+  "fileNames": {
+    "accepted": [
+      "/etc/logrotate.conf",
+      "C:/ProgramData/logrotate/logrotate.conf",
+      "/etc/logrotate.d/application",
+      "C:/ProgramData/logrotate/logrotate.d/application",
+      "/tmp/application.logrotate",
+      "/tmp/application.logrotate.conf"
+    ],
+    "rejected": [
+      "/tmp/application.conf",
+      "/etc/logrotate.d/nested/application",
+      "C:/ProgramData/logrotate/logrotate.d/nested/application",
+      "/var/lib/logrotate/status"
+    ]
+  },
+  "firstLine": {
+    "pattern": "^\\s*(?:\"(?:[^\"\\\\]|\\\\.)+\"|'(?:[^'\\\\]|\\\\.)+'|(?:/|~/)(?:[^\\s{}#\\\\]|\\\\.)+)(?:\\s+(?:\"(?:[^\"\\\\]|\\\\.)+\"|'(?:[^'\\\\]|\\\\.)+'|(?:/|~/)(?:[^\\s{}#\\\\]|\\\\.)+))*\\s*\\{\\s*(?:#.*)?$",
+    "maximumLength": 8192,
+    "accepted": [
+      "/var/log/application.log {",
+      "  ~/logs/application.log { # project policy",
+      "\"/var/log/application output.log\" /var/log/second.log {",
+      "/var/log/application\\ output.log {"
+    ],
+    "rejected": [
+      "application.conf",
+      "/var/log/application.log",
+      "function deploy() {",
+      "#!/usr/bin/env bash",
+      "logrotate state -- version 1",
+      "logrotate state -- version 2"
+    ],
+    "boundary": {
+      "prefix": "/",
+      "repeat": "\\!",
+      "count": 4094,
+      "acceptedSuffix": "x {",
+      "rejectedSuffix": "xx {"
+    }
+  }
+}

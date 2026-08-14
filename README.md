@@ -1,6 +1,6 @@
 # tree-sitter-logrotate
 
-`tree-sitter-logrotate` parses logrotate configuration files with Tree-sitter. It recognizes global
+`tree-sitter-logrotate` parses [logrotate](https://github.com/logrotate/logrotate) configuration files with Tree-sitter. It recognizes global
 directives, rotation stanzas, path lists, comments, includes, quoted arguments, and all five raw
 script blocks. Unknown and vendor-specific directives remain valid syntax. Script text is preserved
 as `script_body` and is never executed.
@@ -179,16 +179,22 @@ console.log(tree.rootNode.toString());
 
 ## File names
 
-Editor integrations should recognize only high-confidence configuration names:
+Editor integrations should recognize these configuration names automatically:
 
 - `logrotate.conf`
 - files directly below a `logrotate.d` directory
 - `*.logrotate`
 - `*.logrotate.conf`
 
-Content detection may recognize an extensionless file whose first meaningful line is a complete
-absolute or tilde-prefixed path stanza ending in `{`. The `logrotate state -- version 1` and
-`logrotate state -- version 2` headers are state files and must not select this grammar.
+Hosts with content detection may also recognize an otherwise unclassified file when its first
+physical line is a complete log-path stanza. The line may contain one or more absolute or `~/`
+paths, including quoted or escaped paths, followed by `{`, optional whitespace, and an optional
+trailing comment. Detectors should examine no more than 8,192 characters. Generic configuration
+text, incomplete stanzas, shell functions, shebangs, and logrotate state files must not select this
+grammar.
+
+The machine-readable cases are in
+[`test/fixtures/file-recognition.json`](https://github.com/willibrandon/tree-sitter-logrotate/blob/main/test/fixtures/file-recognition.json).
 
 ## Syntax boundary
 
