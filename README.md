@@ -1,6 +1,6 @@
 # tree-sitter-logrotate
 
-`tree-sitter-logrotate` parses logrotate configuration files with Tree-sitter. It recognizes global
+`tree-sitter-logrotate` parses [logrotate](https://github.com/logrotate/logrotate) configuration files with Tree-sitter. It recognizes global
 directives, rotation stanzas, path lists, comments, includes, quoted arguments, and all five raw
 script blocks. Unknown and vendor-specific directives remain valid syntax. Script text is preserved
 as `script_body` and is never executed.
