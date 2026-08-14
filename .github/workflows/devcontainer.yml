@@ -33,21 +33,24 @@ jobs:
           push: never
           inheritEnv: false
           runCmd: bash .devcontainer/verify.sh
-      - name: Install Picket
-        run: bash .github/scripts/install-picket.sh "$RUNNER_TEMP/picket"
-      - name: Scan development container image
+      - name: Export development container image
         run: |
-          docker save tree-sitter-logrotate-devcontainer:ci --output "$RUNNER_TEMP/devcontainer.tar"
-          "$RUNNER_TEMP/picket/picket" scan \
-            --docker-archive "$RUNNER_TEMP/devcontainer.tar" \
-            --report-format jsonl \
-            --report-path "$RUNNER_TEMP/devcontainer.picket.jsonl" \
-            --redact 100 \
-            --max-target-megabytes 64 \
-            --max-archive-depth 2 \
-            --max-archive-entries 100000 \
-            --max-archive-megabytes 4096 \
-            --max-archive-ratio 1000 \
-            --timeout 900 \
-            --exit-code 1 \
-            --no-banner
+          docker save tree-sitter-logrotate-devcontainer:ci \
+            --output "${{ runner.temp }}/devcontainer.tar"
+      - name: Scan development container image
+        uses: willibrandon/picket@4c9f7d28260bfe0a7334865c84db093519f6f57f # v0.2.12
+        with:
+          docker-archive: ${{ runner.temp }}/devcontainer.tar
+          cache: "false"
+          report-directory: ${{ runner.temp }}/devcontainer-picket
+          fail-on: findings
+          summary: "false"
+          upload-sarif: "false"
+          annotations: "false"
+          redact: "100"
+          max-target-megabytes: "64"
+          max-archive-depth: "2"
+          max-archive-entries: "100000"
+          max-archive-megabytes: "4096"
+          max-archive-ratio: "1000"
+          timeout: "900"

@@ -1003,7 +1003,12 @@ test("security automation covers dependencies, code, secrets, sanitizers, and fu
   assert.match(all, /github\/codeql-action\/(?:init|analyze)@[0-9a-f]{40}/u);
   assert.match(all, /willibrandon\/picket[^@]*@[0-9a-f]{40}|\bpicket\s+scan\b/iu);
   assert.match(all, /docker\s+save\b/iu);
-  assert.match(all, /picket[\s\S]*--docker-archive\b/iu);
+  const devcontainerWorkflow = workflows.find(
+    ({ path }) => path === ".github/workflows/devcontainer.yml",
+  );
+  assert.ok(devcontainerWorkflow, "The development container workflow is required");
+  assert.match(devcontainerWorkflow.source, /willibrandon\/picket@[0-9a-f]{40}/u);
+  assert.match(devcontainerWorkflow.source, /docker-archive:\s*\$\{\{\s*runner\.temp\s*\}\}\/devcontainer\.tar/u);
   assert.match(all, /(?:-fsanitize=(?:address,undefined|undefined,address)|ASAN_OPTIONS|UndefinedBehaviorSanitizer)/u);
 
   const fuzzWorkflow = workflows.find(({ path, source }) => /fuzz/iu.test(path) || /tree-sitter\s+fuzz/iu.test(source));
