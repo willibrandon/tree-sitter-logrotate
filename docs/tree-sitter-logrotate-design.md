@@ -21,7 +21,7 @@ The intended repository layout is:
 | `zed-logrotate`                   | Maintained here       | Thin Zed language extension pinned to a released grammar revision                |
 | `helix-editor/helix`              | Upstream contribution | Language registration and Helix-specific queries                                 |
 | `nvim-treesitter/nvim-treesitter` | Upstream contribution | Parser registration and Neovim-specific queries                                  |
-| `vim/vim` and `neovim/neovim`     | Upstream contribution | Narrow logrotate file type detection                                             |
+| `vim/vim` and `neovim/neovim`     | Upstream contribution | Logrotate file type detection with the shared recognition contract               |
 
 This split keeps one authoritative syntax tree while allowing each editor to use its own query
 captures and release process. A monorepo would couple grammar releases to the Zed registry without
@@ -481,7 +481,8 @@ language semantics in the portable tag query.
 
 ## File type detection
 
-File type detection must be narrow. The grammar should not claim every `.conf` or `status` file.
+File type detection must follow the shared recognition contract. The grammar should not claim
+every `.conf` or `status` file.
 
 Recommended high-confidence names and paths are:
 
@@ -490,17 +491,19 @@ Recommended high-confidence names and paths are:
 - `*.logrotate`;
 - `*.logrotate.conf`.
 
-An editor that supports content detection may also recognize an extensionless file when its first
-meaningful line is a complete absolute or tilde-prefixed log path stanza ending in `{`. The detector
-must require the complete structural signal rather than a single directive word that could occur in
-another format.
+An editor that supports content detection may also recognize an otherwise unclassified file when
+its first physical line is a complete log-path stanza. The line may contain one or more absolute or
+`~/` paths, including quoted or escaped paths, followed by `{`, optional whitespace, and an optional
+trailing comment. The detector must require the complete structural signal and examine no more than
+8,192 characters. Generic configuration text, incomplete stanzas, shell functions, shebangs, and
+state file headers are negative cases.
 
 The logrotate state file is a different file type. Its `logrotate state -- version 1` or
 `logrotate state -- version 2` header must never select the configuration grammar.
 
 Neovim currently lacks a standard logrotate file type. The integration sequence is:
 
-1. Add narrow detection to Vim's runtime, including tests.
+1. Add the shared detection contract to Vim's runtime, including tests.
 2. Sync or mirror the accepted detection in Neovim according to its normal Vim runtime process.
 3. Register the `logrotate` parser and queries in `nvim-treesitter`.
 
@@ -508,8 +511,14 @@ Until upstream detection is available, document a small `vim.filetype.add()` set
 the parser locally. That temporary configuration is documentation, not a reason to maintain a
 separate Neovim plugin.
 
-Helix should use its exact file names and glob-aware file type entries. Zed should use path suffixes
-for safe names and `first_line_pattern` only for the complete high-confidence content form.
+Helix should use its exact file names and glob-aware file type entries. Helix does not support
+first-line file type detection, so an extensionless file uses `:set-language logrotate` or its
+short form, `:lang logrotate`. Zed should use path suffixes for safe names and
+`first_line_pattern` only for the complete content form.
+
+Helix uses `{ glob = "logrotate.d/*", literal-separator = true }` for the directory rule. The
+path-aware option preserves ordinary glob behavior while ensuring that only files immediately below
+`logrotate.d` select the language.
 
 ## Editor integrations
 
@@ -534,7 +543,9 @@ release includes that detection.
 ### Helix
 
 The Helix contribution adds a `[[language]]` entry, a pinned `[[grammar]]` source, and
-`runtime/queries/logrotate`.
+`runtime/queries/logrotate`. The initial integration uses grammar release 0.1.3 at commit
+`6f0297864e944728fd5922ec6f15d986df1a0719`. A later grammar release updates that pin through a
+separate Helix change after the same verification commands pass.
 
 The contribution must run:
 
@@ -544,9 +555,12 @@ hx --grammar build
 cargo xtask docgen
 ```
 
-It should test exact names, `logrotate.d` paths, the supported suffixes, highlighting, shell
-injection, text objects, folds, and indentation. Query captures should use Helix's current names,
-including its more specific path and integer captures where appropriate.
+It should test exact names, `logrotate.d` paths, the supported suffixes, highlighting, Bash
+injection in all five script blocks, text objects, section tags, and indentation. Query captures
+should use Helix's current names, including its more specific path and integer captures where
+appropriate. A rotation block is exposed as `@entry.around`; no `@entry.inside` capture is invented.
+The path list names a `@definition.section` tag. Helix does not load fold queries, so this integration
+does not add one.
 
 ### Zed
 
@@ -890,7 +904,8 @@ Exit condition: the integration is accepted upstream or has a documented, review
 
 ### Phase 4: Vim, Neovim, and nvim-treesitter
 
-- Land narrow file type detection in Vim and Neovim through their normal upstream process.
+- Land the shared file type detection contract in Vim and Neovim through their normal upstream
+  process.
 - Add parser registration and Neovim-native queries to `nvim-treesitter`.
 - Test clean install, real highlighting, injection, folding, and indentation.
 

@@ -43,6 +43,13 @@ logrotate build. Unknown directives intentionally parse as ordinary directives.
 Logrotate state files are outside this grammar. A state header such as
 `logrotate state -- version 2` must not be treated as a configuration-file detection signal.
 
+Editor integrations recognize `logrotate.conf`, files directly below a `logrotate.d` directory,
+`*.logrotate`, and `*.logrotate.conf`. A host with content detection may also recognize an
+otherwise unclassified file when its first physical line is a complete absolute or `~/` log-path
+stanza. Quoted paths, escaped paths, multiple paths, leading whitespace, and a trailing comment are
+valid. The detector examines at most 8,192 characters and rejects generic configuration text,
+incomplete stanzas, shell functions, shebangs, and state file headers.
+
 ## Editor status
 
 Helix, Neovim, and Zed integrations follow the grammar release in later delivery phases. Until an

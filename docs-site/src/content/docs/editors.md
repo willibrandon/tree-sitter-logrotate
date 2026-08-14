@@ -12,7 +12,7 @@ pinned, and tested by that editor.
 | Editor | Status |
 | --- | --- |
 | Neovim | Grammar and queries are ready; built-in integration is not yet claimed |
-| Helix | Grammar and queries are ready; upstream language entry is not yet claimed |
+| Helix | Grammar and queries are ready; built-in integration is not yet available |
 | Zed | Grammar is ready for the separate extension; published support is not yet claimed |
 
 This page describes the integration contract. It does not imply that a stock editor already ships
@@ -27,10 +27,13 @@ their node names stay aligned.
 The language name is `logrotate`, its scope is `source.logrotate`, and its generated symbol is
 `tree_sitter_logrotate`. Script injection expects an available Bash parser.
 
-File detection should remain narrow. High-confidence names are `logrotate.conf`, files directly
-below a `logrotate.d` directory, `*.logrotate`, and `*.logrotate.conf`. A file beginning with
-`logrotate state -- version 1` or `logrotate state -- version 2` is a state file and must not select
-this grammar.
+Editor integrations should recognize `logrotate.conf`, files directly below a `logrotate.d`
+directory, `*.logrotate`, and `*.logrotate.conf`. Hosts with content detection may also recognize
+an otherwise unclassified file when its first physical line is a complete log-path stanza. The
+line may contain one or more absolute or `~/` paths, including quoted or escaped paths, followed by
+`{`, optional whitespace, and an optional trailing comment. Detectors should examine no more than
+8,192 characters. Generic configuration text, incomplete stanzas, shell functions, shebangs, and
+logrotate state files must not select this grammar.
 
 ## Neovim
 
@@ -51,12 +54,21 @@ are not performed by this grammar package.
 
 ## Helix
 
-Helix integrations pin a grammar repository and revision in `languages.toml`, add a `logrotate`
-language entry, and place editor queries under `runtime/queries/logrotate/`.
+The Phase 3 Helix integration pins grammar release 0.1.3 at commit
+`6f0297864e944728fd5922ec6f15d986df1a0719`. Its `languages.toml` entry handles the automatic file
+names above with Helix's current glob support. The pin is updated only after the replacement
+revision passes Helix's grammar, query, indentation, and workspace tests.
 
-The portable highlight and injection queries are suitable starting points. Helix-specific
-indentation, text objects, and file detection should be reviewed with the editor integration. The
-Bash injection requires Helix’s Bash grammar to be present.
+Helix uses `{ glob = "logrotate.d/*", literal-separator = true }` for the directory rule. The
+path-aware option recognizes direct children without also matching nested descendants.
+
+Helix does not support first-line file type detection. Open an extensionless file with a complete
+first-line stanza, then run `:set-language logrotate`; `:lang logrotate` is the short form. This is
+the editor's documented fallback for content that cannot be identified by its file name.
+
+Helix-specific queries provide path and directive highlighting, Bash injection in all five script
+blocks, rotation-block indentation and text objects, comment text objects, and a section tag named
+from the stanza's path list. Bash injection requires Helix's Bash grammar.
 
 ## Zed
 
