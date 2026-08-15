@@ -2,7 +2,7 @@
 
 from importlib.resources import files as _files
 
-from ._binding import language
+from ._binding import language, state_language
 
 
 def _get_query(name, file):
@@ -23,16 +23,20 @@ def __getattr__(name):
         return _get_query("LOCALS_QUERY", "queries/locals.scm")
     if name == "TAGS_QUERY":
         return _get_query("TAGS_QUERY", "queries/tags.scm")
+    if name == "STATE_HIGHLIGHTS_QUERY":
+        return _get_query("STATE_HIGHLIGHTS_QUERY", "queries/state/highlights.scm")
 
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 __all__ = [
     "language",
+    "state_language",
     "HIGHLIGHTS_QUERY",
     "INJECTIONS_QUERY",
     "LOCALS_QUERY",
     "TAGS_QUERY",
+    "STATE_HIGHLIGHTS_QUERY",
 ]
 
 

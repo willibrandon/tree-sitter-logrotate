@@ -3,9 +3,14 @@
 typedef struct TSLanguage TSLanguage;
 
 TSLanguage *tree_sitter_logrotate(void);
+TSLanguage *tree_sitter_logrotate_state(void);
 
 static PyObject* _binding_language(PyObject *Py_UNUSED(self), PyObject *Py_UNUSED(args)) {
     return PyCapsule_New(tree_sitter_logrotate(), "tree_sitter.Language", NULL);
+}
+
+static PyObject* _binding_state_language(PyObject *Py_UNUSED(self), PyObject *Py_UNUSED(args)) {
+    return PyCapsule_New(tree_sitter_logrotate_state(), "tree_sitter.Language", NULL);
 }
 
 static struct PyModuleDef_Slot slots[] = {
@@ -18,6 +23,8 @@ static struct PyModuleDef_Slot slots[] = {
 static PyMethodDef methods[] = {
     {"language", _binding_language, METH_NOARGS,
      "Get the tree-sitter language for this grammar."},
+    {"state_language", _binding_state_language, METH_NOARGS,
+     "Get the tree-sitter language for logrotate state files."},
     {NULL, NULL, 0, NULL}
 };
 

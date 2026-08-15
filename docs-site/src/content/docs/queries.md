@@ -3,14 +3,15 @@ title: Queries
 description: Use the portable highlight, injection, and fold queries.
 ---
 
-The `queries/` directory contains editor-neutral Tree-sitter queries. They use common capture names
-and avoid predicates tied to a particular host.
+The `queries/` directory contains portable Tree-sitter queries. They use common capture names and
+avoid predicates tied to a particular host.
 
 ## Highlighting
 
-`queries/highlights.scm` captures comments, paths, quoted values, escapes, numbers, braces,
-operators, and directive names. Known Logrotate directives use `@keyword`; an unknown directive
-uses `@property`.
+`queries/highlights.scm` captures comments, paths, quoted values, escapes, numbers, user and group
+arguments, braces, operators, and directive names. Known Logrotate directives use `@keyword`; an
+unknown directive uses `@property`. User and group arguments for `create`, `createolddir`, and `su`
+use `@variable.parameter`.
 
 ```scheme
 ((directive
@@ -24,8 +25,7 @@ uses `@property`.
 ```
 
 The repository’s full query contains the complete reviewed directive set. Copy the file unchanged
-when an editor supports the standard captures, then add host-specific refinements in the editor
-integration.
+when a host supports the standard captures, then add refinements in the host integration.
 
 ## Shell injection
 
@@ -50,7 +50,7 @@ does not execute the captured text.
 ] @fold
 ```
 
-An editor may translate `@fold` to a host-specific capture name or reuse it directly.
+A host may translate `@fold` to a native capture name or reuse it directly.
 
 ## Package access
 
@@ -58,8 +58,8 @@ The npm package exports the query files through `tree-sitter-logrotate/queries/*
 bindings also expose highlight and injection query strings when their binding generator supports
 those constants. Rust includes query constants behind the corresponding build configuration.
 
-Editors commonly copy queries into their runtime layout. Pin the grammar commit and query files
-together because query node names form part of the compatibility contract.
+Copy queries into the host runtime layout. Pin the grammar commit and query files together because
+query node names form part of the compatibility contract.
 
 ## Validate changes
 

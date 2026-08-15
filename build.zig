@@ -24,6 +24,10 @@ pub fn build(b: *std.Build) !void {
         .file = b.path("src/parser.c"),
         .flags = &.{"-std=c11"},
     });
+    lib.root_module.addCSourceFile(.{
+        .file = b.path("src/state/src/parser.c"),
+        .flags = &.{"-std=c11"},
+    });
     if (fileExists(b, "src/scanner.c")) {
         lib.root_module.addCSourceFile(.{
             .file = b.path("src/scanner.c"),
@@ -42,12 +46,21 @@ pub fn build(b: *std.Build) !void {
 
     b.installArtifact(lib);
     b.installFile("src/node-types.json", "node-types.json");
+    b.installFile("src/state/src/node-types.json", "state-node-types.json");
 
     if (fileExists(b, "queries")) {
         b.installDirectory(.{
             .source_dir = b.path("queries"),
             .install_dir = .prefix,
             .install_subdir = "queries",
+            .include_extensions = &.{"scm"},
+        });
+    }
+    if (fileExists(b, "src/state/queries")) {
+        b.installDirectory(.{
+            .source_dir = b.path("src/state/queries"),
+            .install_dir = .prefix,
+            .install_subdir = "queries/logrotate_state",
             .include_extensions = &.{"scm"},
         });
     }

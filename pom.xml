@@ -162,6 +162,11 @@
             ${project.build.directory}/reports/surefire
           </reportsDirectory>
           <argLine>--enable-native-access=ALL-UNNAMED -Djava.library.path=${project.build.directory}/native</argLine>
+          <environmentVariables>
+            <LD_LIBRARY_PATH>${project.build.directory}/native:${env.LD_LIBRARY_PATH}</LD_LIBRARY_PATH>
+            <DYLD_LIBRARY_PATH>${project.build.directory}/native:${env.DYLD_LIBRARY_PATH}</DYLD_LIBRARY_PATH>
+            <PATH>${project.build.directory}/native${path.separator}${env.PATH}</PATH>
+          </environmentVariables>
         </configuration>
       </plugin>
       <plugin>

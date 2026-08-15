@@ -1,0 +1,221 @@
+[
+  {
+    "type": "day",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "header",
+    "named": true,
+    "fields": {
+      "keyword": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "header_keyword",
+            "named": true
+          }
+        ]
+      },
+      "version": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "version",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "hour",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "minute",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "month",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "quoted_path",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "escape_sequence",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "record",
+    "named": true,
+    "fields": {
+      "path": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "quoted_path",
+            "named": true
+          }
+        ]
+      },
+      "timestamp": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "timestamp",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "second",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "source_file",
+    "named": true,
+    "root": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "header",
+          "named": true
+        },
+        {
+          "type": "invalid_record",
+          "named": true
+        },
+        {
+          "type": "record",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "timestamp",
+    "named": true,
+    "fields": {
+      "day": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "day",
+            "named": true
+          }
+        ]
+      },
+      "hour": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "hour",
+            "named": true
+          }
+        ]
+      },
+      "minute": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "minute",
+            "named": true
+          }
+        ]
+      },
+      "month": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "month",
+            "named": true
+          }
+        ]
+      },
+      "second": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "second",
+            "named": true
+          }
+        ]
+      },
+      "year": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "year",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "year",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": " ",
+    "named": false
+  },
+  {
+    "type": "\"",
+    "named": false
+  },
+  {
+    "type": "-",
+    "named": false
+  },
+  {
+    "type": ":",
+    "named": false
+  },
+  {
+    "type": "escape_sequence",
+    "named": true
+  },
+  {
+    "type": "header_keyword",
+    "named": true
+  },
+  {
+    "type": "invalid_record",
+    "named": true
+  },
+  {
+    "type": "version",
+    "named": true
+  }
+]

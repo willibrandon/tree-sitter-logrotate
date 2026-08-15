@@ -1,0 +1,2 @@
+logrotate state -- version 1
+"/var/log/application.log" 2026-8-14-12:30:45

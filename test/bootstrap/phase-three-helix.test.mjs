@@ -4,13 +4,17 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
-const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const repositoryRoot = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../..",
+);
 const read = (path) => readFile(resolve(repositoryRoot, path), "utf8");
 
 test("shared file recognition cases preserve the editor integration contract", async () => {
   const fixture = JSON.parse(await read("test/fixtures/file-recognition.json"));
 
-  assert.deepEqual(fixture.fileNames.accepted, [
+  assert.equal(fixture.configuration.language, "logrotate");
+  assert.deepEqual(fixture.configuration.fileNames.accepted, [
     "/etc/logrotate.conf",
     "C:/ProgramData/logrotate/logrotate.conf",
     "/etc/logrotate.d/application",
@@ -18,29 +22,70 @@ test("shared file recognition cases preserve the editor integration contract", a
     "/tmp/application.logrotate",
     "/tmp/application.logrotate.conf",
   ]);
-  assert.deepEqual(fixture.fileNames.rejected, [
+  assert.deepEqual(fixture.configuration.fileNames.rejected, [
     "/tmp/application.conf",
     "/etc/logrotate.d/nested/application",
     "C:/ProgramData/logrotate/logrotate.d/nested/application",
+    "/var/lib/logrotate.status",
     "/var/lib/logrotate/status",
   ]);
 
-  const detector = new RegExp(fixture.firstLine.pattern, "u");
-  for (const line of fixture.firstLine.accepted) {
+  const detector = new RegExp(fixture.configuration.firstLine.pattern, "u");
+  for (const line of fixture.configuration.firstLine.accepted) {
     assert.ok(detector.test(line), line);
   }
-  for (const line of fixture.firstLine.rejected) {
+  for (const line of fixture.configuration.firstLine.rejected) {
     assert.equal(detector.test(line), false, line);
   }
 
-  const boundary = fixture.firstLine.boundary;
+  const boundary = fixture.configuration.firstLine.boundary;
   const prefix = boundary.prefix + boundary.repeat.repeat(boundary.count);
   const accepted = prefix + boundary.acceptedSuffix;
   const rejected = prefix + boundary.rejectedSuffix;
-  assert.equal(accepted.length, fixture.firstLine.maximumLength);
-  assert.equal(rejected.length, fixture.firstLine.maximumLength + 1);
+  assert.equal(accepted.length, fixture.configuration.firstLine.maximumLength);
+  assert.equal(
+    rejected.length,
+    fixture.configuration.firstLine.maximumLength + 1,
+  );
   assert.ok(detector.test(accepted));
   assert.ok(detector.test(rejected));
+
+  assert.equal(fixture.state.language, "logrotate_state");
+  assert.deepEqual(fixture.state.fileNames.accepted, [
+    "/var/lib/logrotate.status",
+    "C:/ProgramData/logrotate/logrotate.status",
+    "/var/lib/logrotate/status",
+    "C:/ProgramData/logrotate/status",
+  ]);
+  const stateDetector = new RegExp(fixture.state.firstLine.pattern, "u");
+  for (const line of fixture.state.firstLine.accepted) {
+    assert.ok(stateDetector.test(line), line);
+  }
+  for (const line of fixture.state.firstLine.rejected) {
+    assert.equal(stateDetector.test(line), false, line);
+  }
+
+  assert.equal(fixture.includes.rootMustBeOpen, true);
+  assert.deepEqual(
+    fixture.includes.accepted.map(({ name }) => name),
+    [
+      "relative file",
+      "absolute file",
+      "quoted file",
+      "directory",
+      "Windows relative file",
+      "Windows absolute file",
+    ],
+  );
+  assert.deepEqual(
+    fixture.includes.rejected.map(({ name }) => name),
+    [
+      "closed root",
+      "missing target",
+      "nested directory entry",
+      "wildcard target",
+    ],
+  );
 });
 
 test("repository and public docs state the complete recognition behavior", async () => {
@@ -58,7 +103,12 @@ test("repository and public docs state the complete recognition behavior", async
     assert.match(source, /\*\.logrotate\.conf/u);
     assert.match(source, /first\s+physical\s+line/iu);
     assert.match(source, /8,192/u);
-    assert.match(source, /state file/iu);
+    assert.match(source, /logrotate\.status/u);
+    assert.match(source, /logrotate\/status/u);
+    assert.match(source, /logrotate state -- version 1/u);
+    assert.match(source, /logrotate state -- version 2/u);
+    assert.match(source, /include`?\s+directives?/iu);
+    assert.match(source, /open (?:configuration )?root/iu);
     assert.doesNotMatch(source, /detection (?:should|must) remain narrow/iu);
     assert.doesNotMatch(source, /first meaningful line/iu);
   }
@@ -71,12 +121,21 @@ test("Helix guidance records automatic names and the extensionless fallback", as
   for (const source of [design, editors]) {
     assert.match(source, /:set-language logrotate/u);
     assert.match(source, /:lang logrotate/u);
-    assert.match(source, /does\s+not\s+support\s+first-line\s+file\s+type\s+detection/iu);
-    assert.match(source, /6f0297864e944728fd5922ec6f15d986df1a0719/u);
+    assert.match(
+      source,
+      /does\s+not\s+support\s+first-line\s+file\s+type\s+detection/iu,
+    );
+    assert.match(source, /logrotate_state/u);
     assert.match(source, /Bash\s+injection/iu);
     assert.match(source, /all\s+five\s+script/iu);
-    assert.match(source, /rotation(?:-| )(?:stanza|block)[\s\S]{0,240}section/iu);
+    assert.match(
+      source,
+      /rotation(?:-| )(?:stanza|block)[\s\S]{0,240}section/iu,
+    );
     assert.match(source, /literal-separator\s*=\s*true/u);
-    assert.doesNotMatch(source, /nested path[\s\S]{0,120}(?:accepted|known) host limitation/iu);
+    assert.doesNotMatch(
+      source,
+      /nested path[\s\S]{0,120}(?:accepted|known) host limitation/iu,
+    );
   }
 });

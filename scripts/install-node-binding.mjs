@@ -10,13 +10,16 @@ const prebuiltBinding = resolve(
   `${process.platform}-${process.arch}`,
   "tree-sitter-logrotate.node",
 );
+const forceBuild = process.argv.includes("--force");
 
-try {
-  await access(prebuiltBinding);
-  createRequire(import.meta.url)(prebuiltBinding);
-  process.exit(0);
-} catch {
-  // A source checkout has no prebuilds. Compile the committed generated parser.
+if (!forceBuild) {
+  try {
+    await access(prebuiltBinding);
+    createRequire(import.meta.url)(prebuiltBinding);
+    process.exit(0);
+  } catch {
+    // A source checkout has no prebuilds. Compile the committed generated parsers.
+  }
 }
 
 const buildDirectory = resolve("build");

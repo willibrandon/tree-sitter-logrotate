@@ -1,0 +1,61 @@
+*tree-sitter-logrotate.txt*  Logrotate configuration and state support
+
+==============================================================================
+CONTENTS                                              *tree-sitter-logrotate*
+
+1. Requirements ............. |tree-sitter-logrotate-requirements|
+2. Installation ............. |tree-sitter-logrotate-installation|
+3. Commands ................. |tree-sitter-logrotate-commands|
+4. Features ................. |tree-sitter-logrotate-features|
+
+==============================================================================
+REQUIREMENTS                                 *tree-sitter-logrotate-requirements*
+
+- Neovim 0.12.0 or newer
+- nvim-treesitter from its current main branch
+- tree-sitter CLI and a C compiler while installing or updating parsers
+
+The Bash parser is installed as a dependency so script bodies receive Bash
+highlighting and indentation.
+
+==============================================================================
+INSTALLATION                                 *tree-sitter-logrotate-installation*
+
+The plugin is configured automatically after it is added to 'runtimepath'.
+Native vim.pack uses a PackChanged hook to source build.lua after installation
+and updates. lazy.nvim detects build.lua directly. Both rebuild the
+configuration and state parsers. See the project README for complete examples.
+
+Run |:checkhealth| with this plugin's name to verify the complete runtime: >
+
+  :checkhealth tree-sitter-logrotate
+<
+
+==============================================================================
+COMMANDS                                         *tree-sitter-logrotate-commands*
+
+                                                *:LogrotateInstall*
+:LogrotateInstall[!]
+    Install the configuration and state parsers. With [!], rebuild parsers
+    that are already installed.
+
+                                                *:LogrotateUpdate*
+:LogrotateUpdate
+    Rebuild both parsers from the installed plugin revision.
+
+                                                *:LogrotateUninstall*
+:LogrotateUninstall
+    Remove both parsers. The shared Bash parser remains installed.
+
+==============================================================================
+FEATURES                                         *tree-sitter-logrotate-features*
+
+The plugin recognizes logrotate configuration and state files by their safe
+names, bounded first-line content, and open configuration includes. It enables
+Tree-sitter highlighting, Bash injection, indentation, folding, comments,
+script matching with %, and scope-aware directive completion.
+
+The standard omnifunc provides completion with CTRL-X CTRL-O. When blink.cmp
+is available, the same source is added for logrotate buffers automatically.
+
+vim:tw=78:ts=8:noet:ft=help:norl:

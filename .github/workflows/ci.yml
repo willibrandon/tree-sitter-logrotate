@@ -97,6 +97,118 @@ jobs:
       - name: Test the browser WASM package
         run: npm run test:wasm
 
+  neovim:
+    name: Neovim ${{ matrix.channel }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - channel: stable-0.12.4-linux
+            os: ubuntu-24.04
+            revision: 68ea43cd0c28af25cd47731308c94fedfcfd1b0b
+            nvim: .ci/neovim-dist/nvim/bin/nvim
+          - channel: development-linux
+            os: ubuntu-24.04
+            revision: 1c9002a70ebcc77ddec169d779fea6f64ccf755a
+            nvim: .ci/neovim-dist/nvim/bin/nvim
+          - channel: stable-0.12.4-macos-arm64
+            os: macos-14
+            asset: nvim-macos-arm64.tar.gz
+            sha256: 51ab83afa66d663627c2ab1be43209b0f4e81360d4598b53efaa4d8195f24c89
+            nvim: .ci/neovim-dist/nvim-macos-arm64/bin/nvim
+          - channel: stable-0.12.4-windows-x64
+            os: windows-2025
+            asset: nvim-win64.zip
+            sha256: 9fc3572829ffd13debb6e32555da2c8cc02555568260a9fc4cf1f65bbcca319c
+            nvim: .ci/neovim-dist/nvim-win64/bin/nvim.exe
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check out Neovim
+        if: matrix.revision != ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: neovim/neovim
+          ref: ${{ matrix.revision }}
+          path: .ci/neovim
+          persist-credentials: false
+      - name: Check out Bash grammar
+        if: matrix.revision != ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: tree-sitter/tree-sitter-bash
+          ref: a06c2e4415e9bc0346c6b86d401879ffb44058f7
+          path: .ci/tree-sitter-bash
+          persist-credentials: false
+      - name: Check out nvim-treesitter
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: nvim-treesitter/nvim-treesitter
+          ref: a1bcffc8095c142ad1f7a9671a4ae180333f9209
+          path: .ci/nvim-treesitter
+          persist-credentials: false
+      - name: Check out LazyVim
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: LazyVim/LazyVim
+          ref: 459a4c3b1059671e766a46c7cc223827dc67e3d0
+          path: .ci/LazyVim
+          persist-credentials: false
+      - name: Check out lazy.nvim
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: folke/lazy.nvim
+          ref: 85c7ff3711b730b4030d03144f6db6375044ae82
+          path: .ci/lazy.nvim
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.0.0
+        with:
+          node-version: 24.19.0
+          cache: npm
+      - name: Install dependencies
+        run: npm run ci:install
+      - name: Download stable Neovim
+        if: matrix.asset != ''
+        shell: bash
+        run: |
+          mkdir -p .ci/neovim-dist
+          curl --fail --location --silent --show-error \
+            "https://github.com/neovim/neovim/releases/download/v0.12.4/${{ matrix.asset }}" \
+            --output ".ci/neovim-dist/${{ matrix.asset }}"
+          node scripts/check-file-sha256.mjs \
+            ".ci/neovim-dist/${{ matrix.asset }}" \
+            "${{ matrix.sha256 }}"
+          cmake -E chdir .ci/neovim-dist \
+            cmake -E tar xvf "${{ matrix.asset }}"
+      - name: Build development test dependencies
+        if: matrix.revision != ''
+        shell: bash
+        run: |
+          make -C .ci/neovim CMAKE_BUILD_TYPE=RelWithDebInfo CMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/.ci/neovim-dist/nvim" install
+          mkdir -p "$GITHUB_WORKSPACE/.ci/tree-sitter-bash-runtime/parser"
+          npm exec -- tree-sitter build \
+            --output "$GITHUB_WORKSPACE/.ci/tree-sitter-bash-runtime/parser/bash.so" \
+            .ci/tree-sitter-bash
+      - name: Test the direct Neovim runtime
+        if: matrix.revision != ''
+        env:
+          NVIM: ${{ matrix.nvim }}
+          NVIM_TREESITTER_RUNTIME: ${{ github.workspace }}/.ci/nvim-treesitter
+          XDG_DATA_DIRS: ${{ github.workspace }}/.ci/tree-sitter-bash-runtime
+        run: npm run test:neovim
+      - name: Test clean Neovim and LazyVim installations
+        env:
+          NVIM: ${{ matrix.nvim }}
+          NVIM_TREESITTER_SOURCE: ${{ github.workspace }}/.ci/nvim-treesitter
+          LAZY_NVIM_SOURCE: ${{ github.workspace }}/.ci/lazy.nvim
+          LAZYVIM_SOURCE: ${{ github.workspace }}/.ci/LazyVim
+        run: npm run test:neovim:install
+
   tree-sitter-cli:
     name: Tree-sitter CLI ${{ matrix.tree-sitter }}
     runs-on: ubuntu-24.04
@@ -121,7 +233,8 @@ jobs:
         run: |
           npm run ci:install
           npm exec --yes --allow-scripts=tree-sitter-cli --package="tree-sitter-cli@${TREE_SITTER_VERSION}" -- tree-sitter --version
-          npm exec --yes --allow-scripts=tree-sitter-cli --package="tree-sitter-cli@${TREE_SITTER_VERSION}" -- tree-sitter test --rebuild
+          npm exec --yes --allow-scripts=tree-sitter-cli --package="tree-sitter-cli@${TREE_SITTER_VERSION}" -- tree-sitter test --grammar-path .
+          npm exec --yes --allow-scripts=tree-sitter-cli --package="tree-sitter-cli@${TREE_SITTER_VERSION}" -- tree-sitter test --grammar-path src/state
 
   upstream-parser:
     name: Upstream Tree-sitter parser checks
@@ -140,6 +253,7 @@ jobs:
         uses: tree-sitter/parser-test-action@05f6ce7c7e54603c45cd87ed926725dc870bcc63 # v3
         with:
           abi-version: "15"
+          test-parser-cmd: tree-sitter test --grammar-path . && tree-sitter test --grammar-path src/state
 
   query-validation:
     name: Tree-sitter query validation
@@ -169,8 +283,8 @@ jobs:
       - name: Validate queries
         shell: bash
         run: |
-          parser="$RUNNER_TEMP/tree-sitter-logrotate.so"
-          tree-sitter build --output "$parser"
+          tree-sitter build --output "$RUNNER_TEMP/tree-sitter-logrotate.so" .
+          tree-sitter build --output "$RUNNER_TEMP/tree-sitter-logrotate_state.so" src/state
           "$RUNNER_TEMP/ts_query_ls/ts_query_ls" check --format \
             --config "{\"parser_install_directories\":[\"$RUNNER_TEMP\"]}" \
             queries/
@@ -359,6 +473,7 @@ jobs:
       - build
       - fixtures
       - wasm-browser
+      - neovim
       - tree-sitter-cli
       - upstream-parser
       - query-validation
@@ -379,6 +494,7 @@ jobs:
           BUILD_RESULT: ${{ needs.build.result }}
           FIXTURES_RESULT: ${{ needs.fixtures.result }}
           WASM_BROWSER_RESULT: ${{ needs['wasm-browser'].result }}
+          NEOVIM_RESULT: ${{ needs.neovim.result }}
           TREE_SITTER_CLI_RESULT: ${{ needs['tree-sitter-cli'].result }}
           UPSTREAM_PARSER_RESULT: ${{ needs['upstream-parser'].result }}
           QUERY_VALIDATION_RESULT: ${{ needs['query-validation'].result }}
@@ -395,6 +511,7 @@ jobs:
             "$BUILD_RESULT" \
             "$FIXTURES_RESULT" \
             "$WASM_BROWSER_RESULT" \
+            "$NEOVIM_RESULT" \
             "$TREE_SITTER_CLI_RESULT" \
             "$UPSTREAM_PARSER_RESULT" \
             "$QUERY_VALIDATION_RESULT" \

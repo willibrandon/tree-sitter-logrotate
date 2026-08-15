@@ -19,7 +19,7 @@ include = [
   "bindings/rust/*",
   "/grammar.js",
   "queries/*",
-  "src/*",
+  "src/**",
   "tree-sitter.json",
   "/LICENSE",
 ]

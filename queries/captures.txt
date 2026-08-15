@@ -10,3 +10,4 @@ string
 string.escape
 injection.content
 string.special.path
+variable.parameter

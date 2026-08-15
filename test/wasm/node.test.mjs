@@ -9,6 +9,7 @@ const root = resolve(import.meta.dirname, "../..");
 
 await Parser.init();
 const language = await Language.load(resolve(process.env.TREE_SITTER_BUILD_DIR ?? resolve(root, "build"), "tree-sitter-logrotate.wasm"));
+const stateLanguage = await Language.load(resolve(process.env.TREE_SITTER_BUILD_DIR ?? resolve(root, "build"), "tree-sitter-logrotate-state.wasm"));
 
 test("the Node WASM host parses the complete example", async () => {
   const parser = new Parser();
@@ -50,5 +51,33 @@ test("the Node WASM host reparses an incremental script edit", () => {
   coldTree.delete();
   incrementalTree.delete();
   oldTree.delete();
+  parser.delete();
+});
+
+test("the Node WASM host parses a logrotate state file", () => {
+  const parser = new Parser();
+  parser.setLanguage(stateLanguage);
+  const tree = parser.parse(
+    'logrotate state -- version 2\n"/var/log/application.log" 2026-8-14-12:30:45\n',
+  );
+  assert.ok(tree);
+  const rootNode = tree.rootNode;
+  assert.equal(rootNode.hasError, false, rootNode.toString());
+  assert.equal(rootNode.type, "source_file");
+  assert.deepEqual(rootNode.namedChildren.map(({ type }) => type), ["header", "record"]);
+
+  const [header, record] = rootNode.namedChildren;
+  assert.equal(header.childForFieldName("keyword")?.text, "logrotate state -- version");
+  assert.equal(header.childForFieldName("version")?.text, "2");
+  assert.equal(record.childForFieldName("path")?.text, '"/var/log/application.log"');
+  const timestamp = record.childForFieldName("timestamp");
+  assert.equal(timestamp?.text, "2026-8-14-12:30:45");
+  assert.deepEqual(
+    ["year", "month", "day", "hour", "minute", "second"].map(
+      (field) => timestamp?.childForFieldName(field)?.text,
+    ),
+    ["2026", "8", "14", "12", "30", "45"],
+  );
+  tree.delete();
   parser.delete();
 });

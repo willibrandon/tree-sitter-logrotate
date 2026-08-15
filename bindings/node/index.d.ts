@@ -37,6 +37,9 @@ declare const binding: {
    */
   language: unknown;
 
+  /** The inner state-file language object. */
+  stateLanguage: unknown;
+
   /**
    * The content of the `node-types.json` file for this grammar.
    *
@@ -55,6 +58,18 @@ declare const binding: {
 
   /** The symbol tagging query for this grammar. */
   TAGS_QUERY?: string;
+};
+
+/** The tree-sitter language object for logrotate state files. */
+export declare const stateLanguage: {
+  /** The inner language object. */
+  language: unknown;
+
+  /** The state grammar's node type information. */
+  nodeTypeInfo: NodeInfo[];
+
+  /** The syntax highlighting query for state files. */
+  HIGHLIGHTS_QUERY?: string;
 };
 
 export default binding;

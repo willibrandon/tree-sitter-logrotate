@@ -26,7 +26,9 @@ const buildDirectory = resolve(repositoryRoot, process.env.RELEASE_BUILD_DIR ?? 
 const suppliedWheels = optionValue("--python-wheels", undefined);
 const suppliedNativeLibraries = optionValue("--native-libraries", undefined);
 const rootWasm = resolve(repositoryRoot, "tree-sitter-logrotate.wasm");
+const rootStateWasm = resolve(repositoryRoot, "tree-sitter-logrotate-state.wasm");
 let savedRootWasm;
+let savedRootStateWasm;
 
 if (outputDirectory === repositoryRoot || !outputDirectory.startsWith(`${repositoryRoot}/`)) {
   throw new Error("Release output must be a directory inside the repository.");
@@ -35,6 +37,11 @@ if (outputDirectory === repositoryRoot || !outputDirectory.startsWith(`${reposit
 try {
   try {
     savedRootWasm = await readFile(rootWasm);
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+  }
+  try {
+    savedRootStateWasm = await readFile(rootStateWasm);
   } catch (error) {
     if (error.code !== "ENOENT") throw error;
   }
@@ -50,8 +57,11 @@ try {
   const wasmBuildDirectory = resolve(buildDirectory, "wasm");
   npmRun("build:wasm", [], { env: { ...process.env, TREE_SITTER_BUILD_DIR: wasmBuildDirectory } });
   const wasmName = `${prefix}.wasm`;
+  const stateWasmName = `${prefix}-state.wasm`;
   await copyFile(resolve(wasmBuildDirectory, "tree-sitter-logrotate.wasm"), resolve(outputDirectory, wasmName));
+  await copyFile(resolve(wasmBuildDirectory, "tree-sitter-logrotate-state.wasm"), resolve(outputDirectory, stateWasmName));
   await copyFile(resolve(wasmBuildDirectory, "tree-sitter-logrotate.wasm"), rootWasm);
+  await copyFile(resolve(wasmBuildDirectory, "tree-sitter-logrotate-state.wasm"), rootStateWasm);
 
   const platformPrebuild = resolve(repositoryRoot, "prebuilds", `${process.platform}-${process.arch}`);
   try {
@@ -244,5 +254,10 @@ try {
     await rm(rootWasm, { force: true });
   } else {
     await writeFile(rootWasm, savedRootWasm);
+  }
+  if (savedRootStateWasm === undefined) {
+    await rm(rootStateWasm, { force: true });
+  } else {
+    await writeFile(rootStateWasm, savedRootStateWasm);
   }
 }
