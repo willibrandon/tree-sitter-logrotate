@@ -196,6 +196,7 @@ test("release workflow publishes through protected, least-privilege jobs", async
     assert.match(neovimJob, new RegExp(`os: ${os}`, "u"));
   }
   assert.match(neovimJob, /node scripts\/check-file-sha256\.mjs/u);
+  assert.match(neovimJob, /cmake -E tar xvf/u);
   assert.equal([...neovimJob.matchAll(/^\s+sha256: [0-9a-f]{64}$/gmu)].length, 3);
   assert.match(workflow, /^  native-libraries:$/mu);
   assert.match(workflow, /--native-libraries build\/native-libraries/u);

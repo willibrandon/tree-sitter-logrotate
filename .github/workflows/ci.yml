@@ -183,7 +183,8 @@ jobs:
           node scripts/check-file-sha256.mjs \
             ".ci/neovim-dist/${{ matrix.asset }}" \
             "${{ matrix.sha256 }}"
-          tar -xf ".ci/neovim-dist/${{ matrix.asset }}" -C .ci/neovim-dist
+          cmake -E chdir .ci/neovim-dist \
+            cmake -E tar xvf "${{ matrix.asset }}"
       - name: Build development test dependencies
         if: matrix.revision != ''
         shell: bash

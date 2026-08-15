@@ -501,6 +501,7 @@ test("CMake installs the native parser on Unix and Windows", async () => {
   const bindingTest = await readRequired("scripts/test-c-binding.mjs");
 
   assert.match(cmake, /WINDOWS_EXPORT_ALL_SYMBOLS\s+ON/u);
+  assert.match(cmake, /if\(WIN32\)[\s\S]*?PREFIX\s+""[\s\S]*?endif\(\)/u);
   assert.match(cmake, /ARCHIVE DESTINATION "\$\{CMAKE_INSTALL_LIBDIR\}"/u);
   assert.match(cmake, /LIBRARY DESTINATION "\$\{CMAKE_INSTALL_LIBDIR\}"/u);
   assert.match(cmake, /RUNTIME DESTINATION "\$\{CMAKE_INSTALL_BINDIR\}"/u);

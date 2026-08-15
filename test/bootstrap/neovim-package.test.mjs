@@ -61,3 +61,12 @@ test("Neovim query mirrors stay identical to the portable queries", async () => 
     assert.equal(await read(runtime), await read(portable), `${runtime} drifted`);
   }
 });
+
+test("clean installation fixtures expose complete local Git repositories", async () => {
+  const installer = await read("scripts/test-neovim-install.mjs");
+
+  assert.match(installer, /checkout-index/u);
+  assert.match(installer, /run\("git", \["init", "--initial-branch=main"/u);
+  assert.match(installer, /pathToFileURL\(path\)\.href/u);
+  assert.doesNotMatch(installer, /process\.platform === "win32" \? pathToFileURL/u);
+});

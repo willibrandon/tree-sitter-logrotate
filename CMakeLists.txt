@@ -90,6 +90,10 @@ set_target_properties(tree-sitter-logrotate
                       WINDOWS_EXPORT_ALL_SYMBOLS ON
                       DEFINE_SYMBOL "")
 
+if(WIN32)
+  set_target_properties(tree-sitter-logrotate PROPERTIES PREFIX "")
+endif()
+
 if(TREE_SITTER_BUILD_JAVA_TEST_RUNTIME)
   set(TREE_SITTER_RUNTIME_ROOT
       "${CMAKE_CURRENT_SOURCE_DIR}/node_modules/tree-sitter/vendor/tree-sitter/lib")

@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 import { findNeovim, repositoryRoot } from "./neovim-runtime.mjs";
 
@@ -41,7 +41,15 @@ const git = (directory, ...arguments_) =>
     stdio: "pipe",
   });
 
-const pluginUrl = (path) => process.platform === "win32" ? pathToFileURL(path).href : path;
+const pluginUrl = (path) => pathToFileURL(path).href;
+
+const initializeRepository = (directory, message) => {
+  run("git", ["init", "--initial-branch=main", directory], { stdio: "pipe" });
+  git(directory, "config", "user.name", "Neovim install test");
+  git(directory, "config", "user.email", "neovim-install-test@example.invalid");
+  git(directory, "add", ".");
+  git(directory, "commit", "--message", message);
+};
 
 const createPluginRepository = async (temporaryRoot) => {
   const source = join(temporaryRoot, "tree-sitter-logrotate");
@@ -61,13 +69,23 @@ const createPluginRepository = async (temporaryRoot) => {
   ]) {
     await cp(join(repositoryRoot, path), join(source, path), { recursive: true });
   }
-  run("git", ["init", "--initial-branch=main", source], { stdio: "pipe" });
-  git(source, "config", "user.name", "Neovim install test");
-  git(source, "config", "user.email", "neovim-install-test@example.invalid");
-  git(source, "add", ".");
-  git(source, "commit", "--message", "Test current worktree");
+  initializeRepository(source, "Test current worktree");
   git(source, "tag", `v${packageVersion}`);
   return source;
+};
+
+const createReferenceRepository = async (temporaryRoot, reference, name) => {
+  const staged = join(temporaryRoot, "references", name);
+  await mkdir(staged, { recursive: true });
+  git(
+    reference,
+    "checkout-index",
+    "--all",
+    "--force",
+    `--prefix=${staged}${sep}`,
+  );
+  initializeRepository(staged, `Stage ${name}`);
+  return staged;
 };
 
 const profileEnvironment = (root) => ({
@@ -108,16 +126,21 @@ const neovim = await findNeovim();
 const temporaryRoot = await mkdtemp(join(tmpdir(), "tslr-"));
 
 try {
-  const stageReference = async (reference, name) => {
-    if (process.platform !== "win32" || !reference.startsWith("\\\\")) return reference;
-    const staged = join(temporaryRoot, "references", name);
-    await mkdir(join(temporaryRoot, "references"), { recursive: true });
-    await cp(reference, staged, { recursive: true });
-    return staged;
-  };
-  const treesitterSource = await stageReference(referenceTreesitter, "nvim-treesitter");
-  const lazySource = await stageReference(referenceLazy, "lazy.nvim");
-  const lazyVimSource = await stageReference(referenceLazyVim, "LazyVim");
+  const treesitterSource = await createReferenceRepository(
+    temporaryRoot,
+    referenceTreesitter,
+    "nvim-treesitter",
+  );
+  const lazySource = await createReferenceRepository(
+    temporaryRoot,
+    referenceLazy,
+    "lazy.nvim",
+  );
+  const lazyVimSource = await createReferenceRepository(
+    temporaryRoot,
+    referenceLazyVim,
+    "LazyVim",
+  );
   const source = await createPluginRepository(temporaryRoot);
   const profile = join(temporaryRoot, "native");
   const config = join(profile, "config", "nvim");
