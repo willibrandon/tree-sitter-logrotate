@@ -360,6 +360,7 @@ test("release versioning updates every version-bearing manifest", async (context
     "package.json",
     "package-lock.json",
     "tree-sitter.json",
+    "src/state/tree-sitter.json",
     "Cargo.toml",
     "Cargo.lock",
     "pyproject.toml",
@@ -375,6 +376,7 @@ test("release versioning updates every version-bearing manifest", async (context
   context.after(() => rm(directory, { force: true, recursive: true }));
   await mkdir(join(directory, "scripts"));
   await mkdir(join(directory, "docs-site/src/content/docs"), { recursive: true });
+  await mkdir(join(directory, "src/state"), { recursive: true });
   await Promise.all(paths.map((path) => copyFile(join(repositoryRoot, path), join(directory, path))));
 
   const result = spawnSync(process.execPath, ["scripts/set-version.mjs", nextVersion], {
@@ -387,6 +389,9 @@ test("release versioning updates every version-bearing manifest", async (context
   const packageJson = JSON.parse(await readTemporary("package.json"));
   const packageLock = JSON.parse(await readTemporary("package-lock.json"));
   const treeSitterConfiguration = JSON.parse(await readTemporary("tree-sitter.json"));
+  const stateTreeSitterConfiguration = JSON.parse(
+    await readTemporary("src/state/tree-sitter.json"),
+  );
   const cargo = await readTemporary("Cargo.toml");
   const cargoLock = await readTemporary("Cargo.lock");
   const python = await readTemporary("pyproject.toml");
@@ -402,6 +407,7 @@ test("release versioning updates every version-bearing manifest", async (context
   assert.equal(packageLock.version, nextVersion);
   assert.equal(packageLock.packages?.[""]?.version, nextVersion);
   assert.equal(treeSitterConfiguration.metadata?.version, nextVersion);
+  assert.equal(stateTreeSitterConfiguration.metadata?.version, nextVersion);
   assert.equal(exactTomlVersion(cargo, "package", "Cargo.toml"), nextVersion);
   assert.equal(
     cargoLock.match(/\[\[package\]\]\nname\s*=\s*"tree-sitter-logrotate"\nversion\s*=\s*"([^"]+)"/u)?.[1],

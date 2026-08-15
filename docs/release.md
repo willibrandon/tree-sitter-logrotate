@@ -1,9 +1,9 @@
 # Release process
 
 Releases use one `vX.Y.Z` tag for every package and artifact. The tag version must match
-`package.json`, `tree-sitter.json`, `Cargo.toml`, `Cargo.lock`, `pyproject.toml`, `pom.xml`,
-`CMakeLists.txt`, `Makefile`, `build.zig.zon`, and the generated binding metadata. `Package.swift`
-does not contain a version; Swift package versions come from the Git tag.
+`package.json`, `tree-sitter.json`, `src/state/tree-sitter.json`, `Cargo.toml`, `Cargo.lock`,
+`pyproject.toml`, `pom.xml`, `CMakeLists.txt`, `Makefile`, `build.zig.zon`, and the generated binding
+metadata. `Package.swift` does not contain a version; Swift package versions come from the Git tag.
 
 ## Repository configuration
 

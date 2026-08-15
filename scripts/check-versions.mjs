@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 const packageJson = JSON.parse(await readFile("package.json", "utf8"));
 const packageLock = JSON.parse(await readFile("package-lock.json", "utf8"));
 const treeSitterJson = JSON.parse(await readFile("tree-sitter.json", "utf8"));
+const stateTreeSitterJson = JSON.parse(await readFile("src/state/tree-sitter.json", "utf8"));
 const toolchains = JSON.parse(await readFile("toolchains.json", "utf8"));
 const cargo = await readFile("Cargo.toml", "utf8");
 const cargoLock = await readFile("Cargo.lock", "utf8");
@@ -56,6 +57,11 @@ const expectEqual = (actual, expected, description) => {
 expectEqual(packageLock.version, packageVersion, "npm lockfile version");
 expectEqual(packageLock.packages?.[""]?.version, packageVersion, "npm root lockfile version");
 expectEqual(treeSitterJson.metadata?.version, packageVersion, "Tree-sitter metadata version");
+expectEqual(
+  stateTreeSitterJson.metadata?.version,
+  packageVersion,
+  "state Tree-sitter metadata version",
+);
 expectEqual(exactTomlVersion(cargo, "package"), packageVersion, "Rust crate version");
 expectEqual(cargoLockVersion, packageVersion, "Rust lockfile package version");
 expectEqual(exactTomlVersion(python, "project"), packageVersion, "Python package version");

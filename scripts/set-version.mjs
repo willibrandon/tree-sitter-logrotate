@@ -24,6 +24,7 @@ await updateJson("package-lock.json", (value) => {
   value.packages[""].version = version;
 });
 await updateJson("tree-sitter.json", (value) => { value.metadata.version = version; });
+await updateJson("src/state/tree-sitter.json", (value) => { value.metadata.version = version; });
 await replace("Cargo.toml", /(\[package\][\s\S]*?\nversion\s*=\s*)"[^"]+"/u, `$1"${version}"`);
 await replace("Cargo.lock", /(\[\[package\]\]\nname\s*=\s*"tree-sitter-logrotate"\nversion\s*=\s*)"[^"]+"/u, `$1"${version}"`);
 await replace("pyproject.toml", /(\[project\][\s\S]*?\nversion\s*=\s*)"[^"]+"/u, `$1"${version}"`);
