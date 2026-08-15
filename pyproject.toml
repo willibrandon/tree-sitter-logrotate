@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tree-sitter-logrotate"
-description = "Logrotate configuration grammar for Tree-sitter"
-version = "0.1.3"
+description = "Logrotate configuration and state grammars for Tree-sitter"
+version = "0.2.0"
 keywords = ["incremental", "parsing", "tree-sitter", "logrotate"]
 classifiers = [
   "Intended Audience :: Developers",

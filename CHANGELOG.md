@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.2.0
+
+This release adds a separate `logrotate_state` grammar for logrotate version 1 and version 2 state
+files. Its public tree includes headers, versions, quoted paths, timestamp fields, and invalid-record
+recovery. Every published binding exposes the state parser alongside the configuration parser, and
+release packages now include a second standalone WASM parser and the state highlighting query.
+
+The new Neovim package supports native `vim.pack` configurations and LazyVim. It installs both
+logrotate parsers and provides high-confidence file recognition, include-based association,
+highlighting, Bash injection, indentation, folding, comments, matching, directive completion,
+commands, help, and health checks. Clean installations are tested with Neovim 0.12.4 on Linux,
+macOS, and Windows and with a pinned Neovim development build on Linux.
+
+Configuration highlighting now marks user and group arguments for `create`, `createolddir`, and
+`su` with the new `variable.parameter` capture. Existing configuration nodes and fields remain
+compatible, the language ABI remains 15, and the minimum Tree-sitter CLI remains 0.26.3. Release
+gates also add upstream parser tests, fuzzing, query validation, and pinned file-recognition cases.
+
 ## 0.1.3
 
 Release packages now include native Windows ARM64 support: an npm prebuild, a Python ABI3 wheel,

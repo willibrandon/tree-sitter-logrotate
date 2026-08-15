@@ -11,6 +11,9 @@ const maven = await readFile("pom.xml", "utf8");
 const cmake = await readFile("CMakeLists.txt", "utf8");
 const makefile = await readFile("Makefile", "utf8");
 const zig = await readFile("build.zig.zon", "utf8");
+const readme = await readFile("README.md", "utf8");
+const bindingsDocumentation = await readFile("docs-site/src/content/docs/bindings.md", "utf8");
+const editorDocumentation = await readFile("docs-site/src/content/docs/editors.md", "utf8");
 const nvmVersion = (await readFile(".nvmrc", "utf8")).trim();
 
 const packageVersion = packageJson.version;
@@ -22,6 +25,15 @@ const cmakeVersion = cmake.match(/project\(tree-sitter-logrotate[\s\S]*?VERSION\
 const cargoLockVersion = cargoLock.match(/\[\[package\]\]\nname\s*=\s*"tree-sitter-logrotate"\nversion\s*=\s*"([^"]+)"/u)?.[1];
 const makefileVersion = makefile.match(/^VERSION\s*:=\s*([^\s]+)$/mu)?.[1];
 const zigVersion = zig.match(/\.version\s*=\s*"([^"]+)"/u)?.[1];
+const releaseLine = packageVersion.split(".").slice(0, 2).join(".");
+const bindingMavenVersion = bindingsDocumentation.match(
+  /<artifactId>jtreesitter-logrotate<\/artifactId>\s*<version>([^<]+)<\/version>/u,
+)?.[1];
+const bindingSwiftVersion = bindingsDocumentation.match(
+  /\.package\(\s*url: "https:\/\/github\.com\/willibrandon\/tree-sitter-logrotate",\s*from: "([^"]+)"/u,
+)?.[1];
+const readmeNeovimVersion = readme.match(/vim\.version\.range\("([^"]+)"\)/u)?.[1];
+const editorNeovimVersion = editorDocumentation.match(/vim\.version\.range\("([^"]+)"\)/u)?.[1];
 
 const errors = [];
 const semanticVersionParts = (version) => version.split(".").map(Number);
@@ -51,6 +63,10 @@ expectEqual(mavenVersion, packageVersion, "Maven package version");
 expectEqual(cmakeVersion, packageVersion, "CMake project version");
 expectEqual(makefileVersion, packageVersion, "Makefile version");
 expectEqual(zigVersion, packageVersion, "Zig package version");
+expectEqual(bindingMavenVersion, packageVersion, "documented Maven package version");
+expectEqual(bindingSwiftVersion, packageVersion, "documented Swift package version");
+expectEqual(readmeNeovimVersion, releaseLine, "README Neovim release line");
+expectEqual(editorNeovimVersion, releaseLine, "editor guide Neovim release line");
 expectEqual(packageJson.engines?.node, toolchains.node, "Node.js version");
 expectEqual(nvmVersion, toolchains.node, ".nvmrc version");
 expectEqual(packageJson.packageManager, `npm@${toolchains.npm}`, "npm version");

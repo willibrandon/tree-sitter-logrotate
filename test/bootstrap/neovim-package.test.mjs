@@ -14,6 +14,7 @@ test("Neovim package exposes the standard runtime and parser lifecycle", async (
   const installer = await read("build.lua");
   const plugin = await read("plugin/tree-sitter-logrotate.lua");
   const help = await read("doc/tree-sitter-logrotate.txt");
+  const health = await read("lua/tree-sitter-logrotate/health.lua");
 
   assert.equal(manifest.engines.nvim, ">=0.12.0");
   assert.equal(manifest.scripts, undefined);
@@ -44,6 +45,8 @@ test("Neovim package exposes the standard runtime and parser lifecycle", async (
   assert.match(help, /:LogrotateInstall/u);
   assert.match(help, /:LogrotateUpdate/u);
   assert.match(help, /:LogrotateUninstall/u);
+  assert.match(health, /vim\.fn\.has\("nvim-0\.12\.0"\)/u);
+  assert.match(health, /Neovim >= 0\.12\.0 is required/u);
 });
 
 test("Neovim query mirrors stay identical to the portable queries", async () => {

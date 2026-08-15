@@ -50,7 +50,7 @@ vim.pack.add({
 vim.pack.add({
   {
     src = "https://github.com/willibrandon/tree-sitter-logrotate",
-    version = vim.version.range("0.1"),
+    version = vim.version.range("0.2"),
   },
 }, { load = true })
 ```

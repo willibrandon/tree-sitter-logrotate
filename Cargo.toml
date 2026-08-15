@@ -1,7 +1,7 @@
 [package]
 name = "tree-sitter-logrotate"
-description = "Logrotate configuration grammar for Tree-sitter"
-version = "0.1.3"
+description = "Logrotate configuration and state grammars for Tree-sitter"
+version = "0.2.0"
 authors = ["Brandon Williams"]
 license = "MIT"
 readme = "README.md"
@@ -19,7 +19,15 @@ include = [
   "bindings/rust/*",
   "/grammar.js",
   "queries/*",
-  "src/**",
+  "src/*.c",
+  "src/*.json",
+  "src/tree_sitter/*.h",
+  "src/state/grammar.js",
+  "src/state/tree-sitter.json",
+  "src/state/queries/*.scm",
+  "src/state/src/*.c",
+  "src/state/src/*.json",
+  "src/state/src/tree_sitter/*.h",
   "tree-sitter.json",
   "/LICENSE",
 ]

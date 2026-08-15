@@ -3,8 +3,8 @@ title: Compatibility
 description: Supported Tree-sitter ABI, runtime versions, platforms, and release guarantees.
 ---
 
-The 0.1 release line uses Tree-sitter language ABI 15. Parser source is generated with Tree-sitter
-CLI 0.26.12 and rebuilt in CI with 0.26.3, the declared minimum.
+The 0.1 and 0.2 release lines use Tree-sitter language ABI 15. Parser source is generated with
+Tree-sitter CLI 0.26.12 and rebuilt in CI with 0.26.3, the declared minimum.
 
 ## Tested matrix
 

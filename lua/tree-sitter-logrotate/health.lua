@@ -29,10 +29,10 @@ end
 function M.check()
   vim.health.start("tree-sitter-logrotate")
 
-  if vim.fn.has("nvim-0.11.2") == 1 then
-    vim.health.ok("Neovim >= 0.11.2")
+  if vim.fn.has("nvim-0.12.0") == 1 then
+    vim.health.ok("Neovim >= 0.12.0")
   else
-    vim.health.error("Neovim >= 0.11.2 is required")
+    vim.health.error("Neovim >= 0.12.0 is required")
   end
 
   local ok = pcall(require, "nvim-treesitter")

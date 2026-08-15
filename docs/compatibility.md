@@ -1,7 +1,8 @@
 # Compatibility
 
-The 0.1 release line uses Tree-sitter language ABI 15 and generated parser source from Tree-sitter
-CLI 0.26.12. CI also rebuilds and tests the committed parser with CLI 0.26.3, the declared minimum.
+The 0.1 and 0.2 release lines use Tree-sitter language ABI 15 and generated parser source from
+Tree-sitter CLI 0.26.12. CI also rebuilds and tests the committed parser with CLI 0.26.3, the
+declared minimum.
 A release does not silently raise either value.
 
 ## Parser and platform matrix

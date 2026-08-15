@@ -1,4 +1,4 @@
-"""Logrotate configuration grammar for Tree-sitter"""
+"""Logrotate configuration and state grammars for Tree-sitter."""
 
 from importlib.resources import files as _files
 

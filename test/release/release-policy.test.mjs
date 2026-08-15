@@ -161,7 +161,9 @@ test("Rust release packaging includes both grammars and excludes ignored artifac
 
   assert.equal(packaged.status, 0, packaged.stderr);
   assert.match(manifest, /^\s*"\/grammar\.js",$/mu);
-  assert.match(manifest, /^\s*"src\/\*\*",$/mu);
+  assert.match(manifest, /^\s*"src\/state\/grammar\.js",$/mu);
+  assert.match(manifest, /^\s*"src\/state\/src\/\*\.c",$/mu);
+  assert.doesNotMatch(manifest, /^\s*"src\/\*\*",$/mu);
   assert.doesNotMatch(builder, /"--allow-dirty"/u);
 
   const files = packaged.stdout
@@ -176,6 +178,10 @@ test("Rust release packaging includes both grammars and excludes ignored artifac
     files.some(
       (path) => path.startsWith("node_modules/") || path.includes("/.build/"),
     ),
+    false,
+  );
+  assert.equal(
+    files.some((path) => /\.(?:dll|dylib|node|so)$/u.test(path)),
     false,
   );
 });

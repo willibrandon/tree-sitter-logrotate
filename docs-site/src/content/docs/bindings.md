@@ -132,7 +132,7 @@ The Java binding requires Java 25 and JTreeSitter 0.26:
 <dependency>
   <groupId>io.github.willibrandon</groupId>
   <artifactId>jtreesitter-logrotate</artifactId>
-  <version>0.1.3</version>
+  <version>0.2.0</version>
 </dependency>
 <dependency>
   <groupId>io.github.tree-sitter</groupId>
@@ -176,7 +176,7 @@ Add the tagged package and the Swift Tree-sitter runtime:
 dependencies: [
     .package(
         url: "https://github.com/willibrandon/tree-sitter-logrotate",
-        from: "0.1.3"
+        from: "0.2.0"
     ),
     .package(
         url: "https://github.com/tree-sitter/swift-tree-sitter",

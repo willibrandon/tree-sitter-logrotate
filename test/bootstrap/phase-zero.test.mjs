@@ -367,7 +367,9 @@ test("release versioning updates every version-bearing manifest", async (context
     "CMakeLists.txt",
     "Makefile",
     "build.zig.zon",
+    "README.md",
     "docs-site/src/content/docs/bindings.md",
+    "docs-site/src/content/docs/editors.md",
     "scripts/set-version.mjs",
   ];
   context.after(() => rm(directory, { force: true, recursive: true }));
@@ -393,6 +395,8 @@ test("release versioning updates every version-bearing manifest", async (context
   const makefile = await readTemporary("Makefile");
   const zig = await readTemporary("build.zig.zon");
   const bindingsDocumentation = await readTemporary("docs-site/src/content/docs/bindings.md");
+  const readme = await readTemporary("README.md");
+  const editorDocumentation = await readTemporary("docs-site/src/content/docs/editors.md");
 
   assert.equal(packageJson.version, nextVersion);
   assert.equal(packageLock.version, nextVersion);
@@ -418,6 +422,8 @@ test("release versioning updates every version-bearing manifest", async (context
     )?.[1],
     nextVersion,
   );
+  assert.equal(readme.match(/vim\.version\.range\("([^"]+)"\)/u)?.[1], "9.8");
+  assert.equal(editorDocumentation.match(/vim\.version\.range\("([^"]+)"\)/u)?.[1], "9.8");
 });
 
 test("generation commands are explicit, ABI 15, isolated, and drift detecting", async () => {

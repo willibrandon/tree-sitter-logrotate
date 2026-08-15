@@ -62,6 +62,8 @@ test("Astro uses the repository Pages path and Starlight content layer", async (
 });
 
 test("site pages are concise, navigable, and free of placeholder claims", async () => {
+  const repositoryManifest = JSON.parse(await read("package.json"));
+  const releaseLine = repositoryManifest.version.split(".").slice(0, 2).join(".");
   const directory = join(docsRoot, "src/content/docs");
   const names = (await readdir(directory))
     .filter((name) => name.endsWith(".md"))
@@ -99,7 +101,7 @@ test("site pages are concise, navigable, and free of placeholder claims", async 
   assert.match(editors, /^### Usage$/mu);
   assert.match(editors, /PackChanged/u);
   assert.match(editors, /Neovim 0\.12\.0 or newer/u);
-  assert.match(editors, /vim\.version\.range\("0\.1"\)/u);
+  assert.ok(editors.includes(`vim.version.range("${releaseLine}")`));
   assert.match(editors, /lua\/plugins\/logrotate\.lua/u);
   assert.match(editors, /:checkhealth tree-sitter-logrotate/u);
   assert.match(editors, /npm run test:neovim:install/u);

@@ -7,8 +7,8 @@
   <groupId>io.github.willibrandon</groupId>
   <artifactId>jtreesitter-logrotate</artifactId>
   <name>JTreeSitter Logrotate</name>
-  <version>0.1.3</version>
-  <description>Logrotate configuration grammar for Tree-sitter</description>
+  <version>0.2.0</version>
+  <description>Logrotate configuration and state grammars for Tree-sitter</description>
   <url>https://willibrandon.github.io/tree-sitter-logrotate/</url>
   <licenses>
     <license>

@@ -4,6 +4,7 @@ const version = process.argv[2];
 if (version === undefined || !/^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?$/u.test(version)) {
   throw new Error("Usage: npm run release:version -- X.Y.Z");
 }
+const releaseLine = version.split(".").slice(0, 2).join(".");
 
 const updateJson = async (path, update) => {
   const value = JSON.parse(await readFile(path, "utf8"));
@@ -37,6 +38,9 @@ await replace(
   /(\.package\(\s*\n\s*url: "https:\/\/github\.com\/willibrandon\/tree-sitter-logrotate",\s*\n\s*from: ")[^"]+(")/u,
   "$1" + version + "$2",
 );
+for (const path of ["README.md", "docs-site/src/content/docs/editors.md"]) {
+  await replace(path, /(vim\.version\.range\(")[^"]+("\))/u, "$1" + releaseLine + "$2");
+}
 await replace("CMakeLists.txt", /(project\(tree-sitter-logrotate[\s\S]*?VERSION\s+")[^"]+("\s*)/u, `$1${version}$2`);
 await replace("Makefile", /(^VERSION\s*:=\s*)[^\s]+$/mu, `$1${version}`);
 await replace("build.zig.zon", /(\.version\s*=\s*)"[^"]+"/u, `$1"${version}"`);
