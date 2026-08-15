@@ -272,6 +272,14 @@ try {
   if (process.env.KEEP_NEOVIM_TEST_PROFILES === "1") {
     console.log(`Preserved test profiles at ${temporaryRoot}`);
   } else {
-    await rm(temporaryRoot, { force: true, recursive: true });
+    // Some LazyVim plugin build commands briefly outlive the headless Neovim
+    // process. Retry transient non-empty-directory failures while those
+    // children finish closing their output files.
+    await rm(temporaryRoot, {
+      force: true,
+      maxRetries: 10,
+      recursive: true,
+      retryDelay: 250,
+    });
   }
 }
