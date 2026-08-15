@@ -164,7 +164,10 @@ test("Rust release packaging includes both grammars and excludes ignored artifac
   assert.match(manifest, /^\s*"src\/\*\*",$/mu);
   assert.doesNotMatch(builder, /"--allow-dirty"/u);
 
-  const files = packaged.stdout.trim().split("\n");
+  const files = packaged.stdout
+    .trim()
+    .split("\n")
+    .map((path) => path.replaceAll("\\", "/"));
   assert.deepEqual(
     files.filter((path) => path.endsWith("grammar.js")),
     ["grammar.js", "src/state/grammar.js"],
