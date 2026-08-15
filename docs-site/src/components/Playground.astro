@@ -68,6 +68,7 @@ const parserVersion = documentationManifest.dependencies["tree-sitter-logrotate"
   import { indentWithTab } from "@codemirror/commands";
   import { indentService, indentUnit, type IndentContext } from "@codemirror/language";
   import {
+    Compartment,
     countColumn,
     EditorState,
     StateEffect,
@@ -135,6 +136,22 @@ const parserVersion = documentationManifest.dependencies["tree-sitter-logrotate"
     },
     provide: (field) => EditorView.decorations.from(field),
   });
+
+  const codeMirrorTheme = (dark: boolean) => EditorView.theme({
+    "&": {
+      colorScheme: dark ? "dark" : "light",
+    },
+    ".cm-selectionBackground": {
+      backgroundColor: "var(--selection-background-unfocused)",
+    },
+    "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": {
+      backgroundColor: "var(--selection-background-focused)",
+    },
+    ".cm-content ::selection": {
+      backgroundColor: "transparent",
+      color: "var(--selection-foreground)",
+    },
+  }, { dark });
 
   const examples: Record<Mode, Example[]> = {
     configuration: [
@@ -734,6 +751,8 @@ include "/opt/application/logrotate.conf"
       const parser = resources.createParser();
       const injectionParser = resources.createParser();
       const completionSource = logrotateCompletionSource(() => mode);
+      const themeCompartment = new Compartment();
+      let darkTheme = document.documentElement.dataset.theme === "dark";
       let editor: EditorView;
 
       const updateCursorPosition = () => {
@@ -783,6 +802,7 @@ include "/opt/application/logrotate.conf"
           doc: examples.configuration[0].source,
           extensions: [
             basicSetup,
+            themeCompartment.of(codeMirrorTheme(darkTheme)),
             highlightField,
             indentUnit.of("  "),
             indentService.of((context, position) => mode === "state"
@@ -812,6 +832,20 @@ include "/opt/application/logrotate.conf"
           ],
         }),
       });
+
+      const themeObserver = new MutationObserver(() => {
+        const nextDarkTheme = document.documentElement.dataset.theme === "dark";
+        if (nextDarkTheme === darkTheme) return;
+        darkTheme = nextDarkTheme;
+        editor.dispatch({
+          effects: themeCompartment.reconfigure(codeMirrorTheme(darkTheme)),
+        });
+      });
+      themeObserver.observe(document.documentElement, {
+        attributeFilter: ["data-theme"],
+        attributes: true,
+      });
+      document.addEventListener("astro:before-swap", () => themeObserver.disconnect(), { once: true });
 
       const populateExamples = () => {
         examplePicker.replaceChildren(
@@ -912,6 +946,9 @@ include "/opt/application/logrotate.conf"
     --comment: #68756d;
     --parameter: #005fb8;
     --operator: #a23574;
+    --selection-background-focused: #237a45;
+    --selection-background-unfocused: #527a60;
+    --selection-foreground: #ffffff;
     margin-block: 1.5rem 2rem;
     overflow: hidden;
     border: 1px solid var(--editor-border);
@@ -940,6 +977,9 @@ include "/opt/application/logrotate.conf"
     --comment: #939ab7;
     --parameter: #91d7e3;
     --operator: #f5bde6;
+    --selection-background-focused: #52785b;
+    --selection-background-unfocused: #476850;
+    --selection-foreground: #f5faf6;
     box-shadow: 0 0.75rem 2.5rem rgb(0 0 0 / 22%);
   }
 
@@ -1200,12 +1240,6 @@ include "/opt/application/logrotate.conf"
   :global(.source-editor .cm-activeLine),
   :global(.source-editor .cm-activeLineGutter) {
     background: color-mix(in srgb, var(--sl-color-accent) 8%, transparent);
-  }
-
-  :global(.source-editor .cm-selectionBackground),
-  :global(.source-editor.cm-focused .cm-selectionBackground),
-  :global(.source-editor .cm-content ::selection) {
-    background: color-mix(in srgb, var(--sl-color-accent) 35%, transparent);
   }
 
   :global(.source-editor .cm-cursor) {

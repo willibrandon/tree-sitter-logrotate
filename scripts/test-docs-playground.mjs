@@ -18,6 +18,62 @@ const contentTypes = new Map([
   [".wasm", "application/wasm"],
   [".xml", "application/xml; charset=utf-8"],
 ]);
+const minimumTextContrast = 4.5;
+const minimumSelectionContrast = 3;
+const syntaxColorPairs = [
+  { background: "--panel-background", foreground: "--editor-foreground", label: "editor foreground" },
+  { background: "--panel-background", foreground: "--editor-muted", label: "muted and punctuation" },
+  { background: "--panel-background", foreground: "--keyword", label: "keyword" },
+  { background: "--panel-background", foreground: "--property", label: "property" },
+  { background: "--panel-background", foreground: "--path", label: "path" },
+  { background: "--panel-background", foreground: "--string", label: "string" },
+  { background: "--panel-background", foreground: "--number", label: "number and constant" },
+  { background: "--panel-background", foreground: "--comment", label: "comment" },
+  { background: "--panel-background", foreground: "--parameter", label: "function and parameter" },
+  { background: "--panel-background", foreground: "--operator", label: "operator and escape" },
+  { background: "--issue-background", foreground: "--issue", label: "parse issue" },
+];
+
+const parseColor = (value) => {
+  const normalized = value.trim().toLowerCase();
+  const hexadecimal = normalized.match(/^#([\da-f]{3}|[\da-f]{6})$/u);
+  if (hexadecimal !== null) {
+    const digits = hexadecimal[1].length === 3
+      ? [...hexadecimal[1]].map((digit) => `${digit}${digit}`).join("")
+      : hexadecimal[1];
+    return [0, 2, 4].map((index) => Number.parseInt(digits.slice(index, index + 2), 16));
+  }
+  const functional = normalized.match(
+    /^rgba?\(\s*([\d.]+)(?:\s*,\s*|\s+)([\d.]+)(?:\s*,\s*|\s+)([\d.]+)/u,
+  );
+  assert.ok(functional, `Unsupported browser color: ${value}`);
+  return functional.slice(1, 4).map(Number);
+};
+
+const relativeLuminance = (color) => {
+  const [red, green, blue] = color.map((component) => {
+    const channel = component / 255;
+    return channel <= 0.04045
+      ? channel / 12.92
+      : ((channel + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+};
+
+const contrastRatio = (foreground, background) => {
+  const foregroundLuminance = relativeLuminance(parseColor(foreground));
+  const backgroundLuminance = relativeLuminance(parseColor(background));
+  return (Math.max(foregroundLuminance, backgroundLuminance) + 0.05) /
+    (Math.min(foregroundLuminance, backgroundLuminance) + 0.05);
+};
+
+const assertContrast = (foreground, background, minimum, label) => {
+  const actual = contrastRatio(foreground, background);
+  assert.ok(
+    actual >= minimum,
+    `${label} contrast is ${actual.toFixed(2)}:1; expected at least ${minimum.toFixed(1)}:1`,
+  );
+};
 
 const server = createServer(async (request, response) => {
   try {
@@ -129,6 +185,106 @@ try {
     await page.locator('[data-editor] [data-capture="operator"]').allTextContents().then((texts) => texts.join("")),
     />/u,
   );
+
+  const themePicker = page.getByRole("banner").getByLabel("Select theme");
+  const readSelectionColors = async () => {
+    const background = await page.locator("[data-editor] .cm-selectionBackground").first()
+      .evaluate((element) => getComputedStyle(element).backgroundColor);
+    const foregrounds = await page.locator("[data-editor] [data-capture]")
+      .evaluateAll((elements) => [...new Set(elements.map((element) =>
+        getComputedStyle(element, "::selection").color))]);
+    const plainForeground = await page.locator("[data-editor] .cm-line").first()
+      .evaluate((element) => getComputedStyle(element, "::selection").color);
+    return {
+      background,
+      foregrounds: [...new Set([...foregrounds, plainForeground])],
+    };
+  };
+
+  for (const theme of ["light", "dark"]) {
+    await themePicker.selectOption(theme);
+    await page.waitForFunction((expected) => {
+      const editor = document.querySelector("[data-editor] .cm-editor");
+      return document.documentElement.dataset.theme === expected &&
+        editor !== null && getComputedStyle(editor).colorScheme === expected;
+    }, theme);
+
+    const palette = await playground.evaluate((element, pairs) => {
+      const styles = getComputedStyle(element);
+      const properties = new Set([
+        ...pairs.flatMap(({ background, foreground }) => [background, foreground]),
+        "--selection-background-focused",
+        "--selection-background-unfocused",
+        "--selection-foreground",
+      ]);
+      return Object.fromEntries([...properties].map((property) =>
+        [property, styles.getPropertyValue(property).trim()]));
+    }, syntaxColorPairs);
+    for (const { background, foreground, label } of syntaxColorPairs) {
+      assertContrast(
+        palette[foreground],
+        palette[background],
+        minimumTextContrast,
+        `${theme} ${label}`,
+      );
+    }
+
+    await source.click();
+    await source.press("Control+a");
+    const focusedSelection = await readSelectionColors();
+    assert.deepEqual(
+      parseColor(focusedSelection.background),
+      parseColor(palette["--selection-background-focused"]),
+    );
+    assert.equal(focusedSelection.foregrounds.length, 1);
+    assert.deepEqual(
+      parseColor(focusedSelection.foregrounds[0]),
+      parseColor(palette["--selection-foreground"]),
+    );
+    assertContrast(
+      focusedSelection.background,
+      palette["--panel-background"],
+      minimumSelectionContrast,
+      `${theme} focused selection background`,
+    );
+    for (const foreground of focusedSelection.foregrounds) {
+      assertContrast(
+        foreground,
+        focusedSelection.background,
+        minimumTextContrast,
+        `${theme} focused selected text`,
+      );
+    }
+
+    await playground.locator("#playground-heading").click();
+    await page.waitForFunction(() =>
+      !document.querySelector("[data-editor] .cm-editor")?.classList.contains("cm-focused"));
+    const unfocusedSelection = await readSelectionColors();
+    assert.notEqual(focusedSelection.background, unfocusedSelection.background);
+    assert.deepEqual(
+      parseColor(unfocusedSelection.background),
+      parseColor(palette["--selection-background-unfocused"]),
+    );
+    assert.equal(unfocusedSelection.foregrounds.length, 1);
+    assert.deepEqual(
+      parseColor(unfocusedSelection.foregrounds[0]),
+      parseColor(palette["--selection-foreground"]),
+    );
+    assertContrast(
+      unfocusedSelection.background,
+      palette["--panel-background"],
+      minimumSelectionContrast,
+      `${theme} unfocused selection background`,
+    );
+    for (const foreground of unfocusedSelection.foregrounds) {
+      assertContrast(
+        foreground,
+        unfocusedSelection.background,
+        minimumTextContrast,
+        `${theme} unfocused selected text`,
+      );
+    }
+  }
 
   const examplePicker = playground.locator("[data-example]");
   for (const [index, expectedResult] of ["valid", "valid", "valid", "issues"].entries()) {
@@ -472,7 +628,7 @@ try {
   assert.deepEqual(browserErrors, []);
 
   process.stdout.write(
-    "Chromium exercised CodeMirror editing, scoped completion, nested indentation, configuration, state, highlighting, copy, and responsive layout.\n",
+    "Chromium exercised CodeMirror editing, synchronized themes, accessible selection contrast, scoped completion, nested indentation, configuration, state, highlighting, copy, and responsive layout.\n",
   );
 } finally {
   await browser?.close();
