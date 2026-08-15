@@ -54,6 +54,7 @@ export default defineConfig({
           label: "Use the parser",
           items: [
             { label: "Overview", slug: "" },
+            { label: "Playground", slug: "playground" },
             { label: "Getting started", slug: "getting-started" },
             { label: "Bindings", slug: "bindings" },
           ],

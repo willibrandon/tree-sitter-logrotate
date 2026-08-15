@@ -160,9 +160,18 @@ test("Rust release packaging includes both grammars and excludes ignored artifac
   );
 
   assert.equal(packaged.status, 0, packaged.stderr);
+  const includeStart = manifest.indexOf("include = [");
+  const includeEnd = manifest.indexOf("\n]", includeStart);
+  assert.ok(includeStart >= 0 && includeEnd > includeStart);
+  const includePatterns = manifest
+    .slice(includeStart, includeEnd)
+    .split("\n")
+    .slice(1)
+    .map((line) => line.trim().replace(/^"|",$/gu, ""));
+  assert.ok(includePatterns.every((pattern) => pattern.startsWith("/")));
   assert.match(manifest, /^\s*"\/grammar\.js",$/mu);
-  assert.match(manifest, /^\s*"src\/state\/grammar\.js",$/mu);
-  assert.match(manifest, /^\s*"src\/state\/src\/\*\.c",$/mu);
+  assert.match(manifest, /^\s*"\/src\/state\/grammar\.js",$/mu);
+  assert.match(manifest, /^\s*"\/src\/state\/src\/\*\.c",$/mu);
   assert.doesNotMatch(manifest, /^\s*"src\/\*\*",$/mu);
   assert.doesNotMatch(builder, /"--allow-dirty"/u);
 
@@ -176,7 +185,7 @@ test("Rust release packaging includes both grammars and excludes ignored artifac
   );
   assert.equal(
     files.some(
-      (path) => path.startsWith("node_modules/") || path.includes("/.build/"),
+      (path) => path.includes("node_modules/") || path.includes("/.build/"),
     ),
     false,
   );

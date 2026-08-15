@@ -8,6 +8,9 @@ trees. The configuration grammar recognizes global directives, rotation stanzas,
 includes, quoted arguments, comments, and every raw script block supported by Logrotate. The state
 grammar recognizes versioned headers, quoted paths, and timestamps.
 
+Open the [Playground](playground/) to edit configuration or state text and inspect the live syntax
+tree in your browser.
+
 ```logrotate
 /var/log/application.log {
   daily

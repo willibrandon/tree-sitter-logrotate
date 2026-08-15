@@ -106,6 +106,7 @@
     "test:bindings:swift": "swift package clean --scratch-path build/bindings/swift && swift test --scratch-path build/bindings/swift",
     "test:bindings:zig": "zig build test --cache-dir build/bindings/zig/cache --global-cache-dir build/bindings/zig/global-cache",
     "test:bootstrap": "node --test test/bootstrap/*.test.mjs",
+    "test:docs:playground": "npm run docs:build && node scripts/test-docs-playground.mjs",
     "test:highlight": "tree-sitter highlight --check --captures-path queries/captures.txt --config-path test/config/tree-sitter.json --scope source.logrotate --quiet test/highlight/highlights.logrotate",
     "test:fixtures": "npm run build:node && node scripts/test-upstream-fixtures.mjs",
     "test:fuzz": "node scripts/run-fuzz.mjs --edits 5 --iterations 10000",

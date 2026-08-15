@@ -22,6 +22,29 @@ const markdownSection = (source, heading, level) => {
   return next === -1 ? rest : rest.slice(0, next);
 };
 
+const assertFrontmatter = (source, name) => {
+  const lines = source.split("\n");
+  assert.equal(lines[0], "---", `${name} must start with frontmatter`);
+  const closing = lines.indexOf("---", 1);
+  assert.ok(closing >= 3, `${name} must close its frontmatter after metadata`);
+
+  const metadata = new Map();
+  for (const line of lines.slice(1, closing)) {
+    const separator = line.indexOf(":");
+    assert.ok(separator > 0, `${name} has invalid frontmatter: ${line}`);
+    const key = line.slice(0, separator);
+    const value = line.slice(separator + 1).trim();
+    assert.match(key, /^[A-Za-z]\w*$/u, `${name} has invalid frontmatter key: ${key}`);
+    assert.notEqual(value, "", `${name} has an empty ${key} value`);
+    assert.equal(metadata.has(key), false, `${name} repeats the ${key} key`);
+    metadata.set(key, value);
+  }
+
+  assert.equal(metadata.has("title"), true, `${name} needs a title`);
+  assert.equal(metadata.has("description"), true, `${name} needs a description`);
+  assert.equal(lines[closing + 1], "", `${name} needs a blank line after frontmatter`);
+};
+
 test("documentation toolchain is exact and reproducible", async () => {
   const manifest = JSON.parse(await readDocs("package.json"));
   const lock = JSON.parse(await readDocs("package-lock.json"));
@@ -32,8 +55,16 @@ test("documentation toolchain is exact and reproducible", async () => {
   assert.equal(manifest.dependencies.astro, "7.2.1");
   assert.equal(manifest.dependencies["@astrojs/starlight"], "0.41.7");
   assert.equal(manifest.dependencies["@astrojs/sitemap"], "3.7.3");
+  assert.equal(manifest.dependencies["@codemirror/autocomplete"], "6.20.3");
+  assert.equal(manifest.dependencies["@codemirror/commands"], "6.10.4");
+  assert.equal(manifest.dependencies["@codemirror/language"], "6.12.4");
+  assert.equal(manifest.dependencies["@codemirror/state"], "6.7.1");
+  assert.equal(manifest.dependencies["@codemirror/view"], "6.43.8");
+  assert.equal(manifest.dependencies.codemirror, "6.0.2");
+  assert.equal(manifest.dependencies["tree-sitter-bash"], "0.25.1");
   assert.equal(manifest.devDependencies["@astrojs/check"], "0.9.10");
   assert.equal(manifest.allowScripts["esbuild@0.28.2"], true);
+  assert.equal(manifest.allowScripts["tree-sitter-bash"], false);
   assert.equal(lock.lockfileVersion, 3);
   assert.equal(lock.packages[""].name, manifest.name);
 });
@@ -66,7 +97,7 @@ test("site pages are concise, navigable, and free of placeholder claims", async 
   const releaseLine = repositoryManifest.version.split(".").slice(0, 2).join(".");
   const directory = join(docsRoot, "src/content/docs");
   const names = (await readdir(directory))
-    .filter((name) => name.endsWith(".md"))
+    .filter((name) => /\.mdx?$/u.test(name))
     .sort();
   assert.deepEqual(names, [
     "bindings.md",
@@ -74,6 +105,7 @@ test("site pages are concise, navigable, and free of placeholder claims", async 
     "editors.md",
     "getting-started.md",
     "index.md",
+    "playground.mdx",
     "queries.md",
     "syntax-tree.md",
     "troubleshooting.md",
@@ -81,7 +113,7 @@ test("site pages are concise, navigable, and free of placeholder claims", async 
 
   for (const name of names) {
     const source = await readFile(join(directory, name), "utf8");
-    assert.match(source, /^---\ntitle:\s*.+\ndescription:\s*.+\n---\n/u, name);
+    assertFrontmatter(source, name);
     assert.ok(
       (source.match(/^##\s+/gmu) ?? []).length >= 2,
       name + " needs useful page sections",
@@ -110,6 +142,45 @@ test("site pages are concise, navigable, and free of placeholder claims", async 
   assert.match(editors, /^## Helix$/mu);
   assert.match(editors, /^## Zed$/mu);
   assert.match(editors, /one released grammar revision/iu);
+});
+
+test("playground uses the released WASM parsers and portable queries", async () => {
+  const repositoryManifest = JSON.parse(await read("package.json"));
+  const docsManifest = JSON.parse(await readDocs("package.json"));
+  const configuration = await readDocs("astro.config.mjs");
+  const page = await readDocs("src/content/docs/playground.mdx");
+  const component = await readDocs("src/components/Playground.astro");
+  const workflow = await read(".github/workflows/ci.yml");
+
+  assert.equal(docsManifest.dependencies["tree-sitter-logrotate"], "0.2.0");
+  assert.equal(docsManifest.dependencies["tree-sitter-bash"], "0.25.1");
+  assert.equal(docsManifest.dependencies["web-tree-sitter"], "0.26.12");
+  assert.equal(docsManifest.allowScripts["tree-sitter-bash"], false);
+  assert.equal(docsManifest.allowScripts["tree-sitter-logrotate"], false);
+  assert.equal(
+    repositoryManifest.scripts["test:docs:playground"],
+    "npm run docs:build && node scripts/test-docs-playground.mjs",
+  );
+  assert.match(configuration, /label:\s*"Playground",\s*slug:\s*"playground"/u);
+  assert.match(page, /<Playground\s*\/>/u);
+  assert.match(page, /CodeMirror for editing/u);
+  assert.match(page, /concrete syntax tree/iu);
+  assert.match(page, /all\s+parsing happens locally in the browser/iu);
+  assert.match(component, /tree-sitter-logrotate\/tree-sitter-logrotate\.wasm\?url/u);
+  assert.match(component, /tree-sitter-logrotate\/tree-sitter-logrotate-state\.wasm\?url/u);
+  assert.match(component, /tree-sitter-logrotate\/queries\/highlights\.scm\?raw/u);
+  assert.match(component, /tree-sitter-logrotate\/queries\/injections\.scm\?raw/u);
+  assert.match(component, /tree-sitter-logrotate\/queries\/logrotate_state\/highlights\.scm\?raw/u);
+  assert.match(component, /tree-sitter-bash\/tree-sitter-bash\.wasm\?url/u);
+  assert.match(component, /tree-sitter-bash\/queries\/highlights\.scm\?raw/u);
+  assert.match(component, /new EditorView/u);
+  assert.match(component, /logrotateCompletionSource/u);
+  assert.match(component, /indentService\.of/u);
+  assert.match(component, /keymap\.of\(\[indentWithTab\]\)/u);
+  assert.match(component, /parser\.parse\(source\)/u);
+  assert.doesNotMatch(component, /parser\.parse\(source,\s*tree\)/u);
+  assert.doesNotMatch(component, /<textarea[\s\S]*?data-source/u);
+  assert.match(workflow, /npm run test:docs:playground/u);
 });
 
 test("section spacing follows Starlight heading wrappers", async () => {
