@@ -16,11 +16,16 @@ npm install tree-sitter-logrotate tree-sitter@^0.25.1
 
 ```js
 import Parser from "tree-sitter";
-import Logrotate from "tree-sitter-logrotate";
+import Logrotate, { stateLanguage } from "tree-sitter-logrotate";
 
 const parser = new Parser();
 parser.setLanguage(Logrotate);
 const tree = parser.parse("/var/log/app.log {\n  rotate 7\n}\n");
+
+parser.setLanguage(stateLanguage);
+const stateTree = parser.parse(
+  'logrotate state -- version 2\n"/var/log/app.log" 2026-8-14-12:30:45\n',
+);
 ```
 
 The default export is the language object. It also contains `nodeTypeInfo` and packaged query
@@ -36,10 +41,15 @@ python -m pip install "tree-sitter-logrotate[core]"
 
 ```python
 from tree_sitter import Language, Parser
-from tree_sitter_logrotate import language
+from tree_sitter_logrotate import language, state_language
 
 parser = Parser(Language(language()))
 tree = parser.parse(b"/var/log/app.log {\n  rotate 7\n}\n")
+
+parser.language = Language(state_language())
+state_tree = parser.parse(
+    b'logrotate state -- version 2\n"/var/log/app.log" 2026-8-14-12:30:45\n'
+)
 ```
 
 The grammar wheels use Python’s stable ABI where supported. Python 3.10 through 3.14 is covered by
@@ -60,6 +70,16 @@ parser
 let tree = parser
     .parse("/var/log/app.log {\n  rotate 7\n}\n", None)
     .expect("parse input");
+
+parser
+    .set_language(&tree_sitter_logrotate::STATE_LANGUAGE.into())
+    .expect("load logrotate state grammar");
+let state_tree = parser
+    .parse(
+        "logrotate state -- version 2\n\"/var/log/app.log\" 2026-8-14-12:30:45\n",
+        None,
+    )
+    .expect("parse logrotate state");
 ```
 
 `LANGUAGE` is a `tree_sitter_language::LanguageFn`. The crate also publishes `NODE_TYPES` and
@@ -91,6 +111,14 @@ func main() {
 
     tree := parser.Parse([]byte("/var/log/app.log {\n  rotate 7\n}\n"), nil)
     defer tree.Close()
+
+    if err := parser.SetLanguage(sitter.NewLanguage(logrotate.StateLanguage())); err != nil {
+        panic(err)
+    }
+    stateTree := parser.Parse([]byte(
+        "logrotate state -- version 2\n\"/var/log/app.log\" 2026-8-14-12:30:45\n",
+    ), nil)
+    defer stateTree.Close()
 }
 ```
 
@@ -126,6 +154,15 @@ try (var parser = new Parser(language);
      var tree = parser.parse("/var/log/app.log {\n  rotate 7\n}\n").orElseThrow()) {
     System.out.println(tree.getRootNode().toSexp());
 }
+
+var stateLanguage =
+    new Language(Objects.requireNonNull(TreeSitterLogrotate.stateLanguage()));
+try (var parser = new Parser(stateLanguage);
+     var tree = parser.parse(
+         "logrotate state -- version 2\n\"/var/log/app.log\" 2026-8-14-12:30:45\n"
+     ).orElseThrow()) {
+    System.out.println(tree.getRootNode().toSexp());
+}
 ```
 
 The grammar artifact carries its platform grammar library. The application still needs the native
@@ -155,6 +192,11 @@ import TreeSitterLogrotate
 let parser = Parser()
 try parser.setLanguage(Language(language: tree_sitter_logrotate()))
 let tree = parser.parse("/var/log/app.log {\n  rotate 7\n}\n")
+
+try parser.setLanguage(Language(language: tree_sitter_logrotate_state()))
+let stateTree = parser.parse(
+    "logrotate state -- version 2\n\"/var/log/app.log\" 2026-8-14-12:30:45\n"
+)
 ```
 
 The tagged repository is the Swift Package Manager distribution.
@@ -166,8 +208,24 @@ commit in the consuming package, then import the module:
 
 ```zig
 const logrotate = @import("tree-sitter-logrotate");
+const ts = @import("tree-sitter");
 
-const language = logrotate.language();
+const parser = ts.Parser.create();
+defer parser.destroy();
+const language: *const ts.Language = ts.Language.fromRaw(logrotate.language());
+defer language.destroy();
+try parser.setLanguage(language);
+const tree = parser.parseString("/var/log/app.log {\n  rotate 7\n}\n", null).?;
+defer tree.destroy();
+
+const state_language: *const ts.Language = ts.Language.fromRaw(logrotate.stateLanguage());
+defer state_language.destroy();
+try parser.setLanguage(state_language);
+const state_tree = parser.parseString(
+    "logrotate state -- version 2\n\"/var/log/app.log\" 2026-8-14-12:30:45\n",
+    null,
+).?;
+defer state_tree.destroy();
 ```
 
 The bundled build compiles `src/parser.c` and `src/scanner.c`, installs `node-types.json`, and
@@ -187,7 +245,14 @@ TSParser *parser = ts_parser_new();
 ts_parser_set_language(parser, tree_sitter_logrotate());
 TSTree *tree = ts_parser_parse_string(parser, NULL, source, strlen(source));
 
+const char *state_source =
+    "logrotate state -- version 2\n\"/var/log/app.log\" 2026-8-14-12:30:45\n";
+ts_parser_set_language(parser, tree_sitter_logrotate_state());
+TSTree *state = ts_parser_parse_string(
+    parser, NULL, state_source, strlen(state_source));
+
 ts_tree_delete(tree);
+ts_tree_delete(state);
 ts_parser_delete(parser);
 ```
 
@@ -196,6 +261,20 @@ Tree-sitter CLI.
 
 ## WebAssembly
 
-The npm package and GitHub release include `tree-sitter-logrotate.wasm`. Load it with
-`web-tree-sitter` as shown in [Getting started](../getting-started/#webassembly). Browser and Node
-WASM tests run against the same committed parser before release.
+The npm package and GitHub release include both WASM parsers:
+
+```js
+import { Language, Parser } from "web-tree-sitter";
+
+await Parser.init({ locateFile: () => "/web-tree-sitter.wasm" });
+const parser = new Parser();
+parser.setLanguage(await Language.load("/tree-sitter-logrotate.wasm"));
+const tree = parser.parse("/var/log/app.log {\n  rotate 7\n}\n");
+
+parser.setLanguage(await Language.load("/tree-sitter-logrotate-state.wasm"));
+const stateTree = parser.parse(
+  'logrotate state -- version 2\n"/var/log/app.log" 2026-8-14-12:30:45\n',
+);
+```
+
+Browser and Node WASM tests run against the same committed parsers before release.

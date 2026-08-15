@@ -8,9 +8,16 @@ const binding = typeof process.versions.bun === "string"
   ? await import(`${root}/prebuilds/${process.platform}-${process.arch}/tree-sitter-logrotate.node`)
   : (await import("node-gyp-build")).default(root);
 
+const stateLanguage = { language: binding.stateLanguage };
+
 try {
   const nodeTypes = await import(`${root}/src/node-types.json`, { with: { type: "json" } });
   binding.nodeTypeInfo = nodeTypes.default;
+} catch { }
+
+try {
+  const nodeTypes = await import(`${root}/src/state/src/node-types.json`, { with: { type: "json" } });
+  stateLanguage.nodeTypeInfo = nodeTypes.default;
 } catch { }
 
 const queries = [
@@ -34,4 +41,17 @@ for (const [prop, path] of queries) {
   });
 }
 
+Object.defineProperty(stateLanguage, "HIGHLIGHTS_QUERY", {
+  configurable: true,
+  enumerable: true,
+  get() {
+    delete stateLanguage.HIGHLIGHTS_QUERY;
+    try {
+      stateLanguage.HIGHLIGHTS_QUERY = readFileSync(`${root}/src/state/queries/highlights.scm`, "utf8");
+    } catch { }
+    return stateLanguage.HIGHLIGHTS_QUERY;
+  }
+});
+
+export { stateLanguage };
 export default binding;

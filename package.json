@@ -1,7 +1,7 @@
 {
   "name": "tree-sitter-logrotate",
   "version": "0.1.3",
-  "description": "Logrotate configuration grammar for Tree-sitter",
+  "description": "Logrotate configuration and state grammars for Tree-sitter",
   "type": "module",
   "repository": {
     "type": "git",
@@ -22,6 +22,7 @@
       "default": "./bindings/node/index.js"
     },
     "./tree-sitter-logrotate.wasm": "./tree-sitter-logrotate.wasm",
+    "./tree-sitter-logrotate-state.wasm": "./tree-sitter-logrotate-state.wasm",
     "./queries/*": "./queries/*"
   },
   "keywords": [
@@ -32,13 +33,26 @@
   ],
   "files": [
     "grammar.js",
+    "build.lua",
     "tree-sitter.json",
     "binding.gyp",
     "scripts/install-node-binding.mjs",
     "prebuilds/**",
     "bindings/node/*",
-    "queries/*",
-    "src/**",
+    "doc/**",
+    "lua/**",
+    "pkg.json",
+    "plugin/**",
+    "queries/**",
+    "src/grammar.json",
+    "src/node-types.json",
+    "src/parser.c",
+    "src/scanner.c",
+    "src/tree_sitter/**",
+    "src/state/grammar.js",
+    "src/state/queries/**",
+    "src/state/src/**",
+    "src/state/tree-sitter.json",
     "*.wasm"
   ],
   "dependencies": {
@@ -66,7 +80,7 @@
     }
   },
   "scripts": {
-    "build:node": "node scripts/install-node-binding.mjs",
+    "build:node": "node scripts/install-node-binding.mjs --force",
     "build:native": "node scripts/build-native.mjs",
     "build:wasm": "node scripts/build-wasm.mjs",
     "check:generated": "node scripts/check-generated.mjs",
@@ -77,7 +91,7 @@
     "docs:dev": "npm --prefix docs-site run dev",
     "docs:install": "npm --prefix docs-site ci --include=optional",
     "docs:preview": "npm --prefix docs-site run preview",
-    "generate": "tree-sitter generate --abi 15",
+    "generate": "tree-sitter generate --abi 15 && tree-sitter generate --abi 15 --output src/state/src src/state/grammar.js",
     "install": "node scripts/install-node-binding.mjs",
     "prestart": "npm run build:wasm",
     "start": "tree-sitter playground",
@@ -97,7 +111,11 @@
     "test:fuzz": "node scripts/run-fuzz.mjs --edits 5 --iterations 10000",
     "test:fuzz:pr": "node scripts/run-fuzz.mjs --edits 5 --iterations 1000",
     "test:node": "npm run build:node && node --test test/node/*.test.mjs",
-    "test:parser": "tree-sitter test --rebuild",
+    "test:neovim": "node scripts/test-neovim.mjs",
+    "test:neovim:clean": "node scripts/test-neovim-clean.mjs",
+    "test:neovim:install": "node scripts/test-neovim-install.mjs",
+    "test:neovim:local": "node scripts/test-neovim-local.mjs",
+    "test:parser": "tree-sitter test --grammar-path . && tree-sitter test --grammar-path src/state",
     "test:performance": "npm run build:node && npm run build:native && npm run build:wasm && node scripts/benchmark.mjs",
     "test:performance:update-baseline": "npm run build:node && npm run build:native && npm run build:wasm && node scripts/benchmark.mjs --write-baseline",
     "test:release": "node scripts/test-release-artifacts.mjs",

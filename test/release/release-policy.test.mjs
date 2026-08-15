@@ -51,7 +51,10 @@ test("release artifacts are built from committed parser sources", async () => {
   assert.match(builder, /releasePlatforms/u);
   assert.match(consumer, /maven-dependency-plugin:3\.11\.0:build-classpath/u);
   assert.match(consumer, /TREE_SITTER_BUILD_JAVA_TEST_RUNTIME=true/u);
-  assert.match(consumer, /tree\.getRootNode\(\)\.hasError\(\)/u);
+  assert.match(consumer, /root\.hasError\(\)/u);
+  assert.match(consumer, /childForFieldName\("paths"\)/u);
+  assert.match(consumer, /getChildByFieldName\("timestamp"\)/u);
+  assert.match(consumer, /getChildByFieldName\("second"\)/u);
   assert.match(consumer, /TreeSitterLogrotate\.language\(\)/u);
   const releaseSource = `${builder}\n${verifier}`;
   for (const artifact of [
@@ -144,7 +147,7 @@ test("release platform mapping recognizes every supported artifact", () => {
   assert.equal(nativeLibraryName("linux-arm64"), "libtree-sitter-logrotate.so");
 });
 
-test("Rust release packaging excludes ignored nested grammar sources", async () => {
+test("Rust release packaging includes both grammars and excludes ignored artifacts", async () => {
   const manifest = await read("Cargo.toml");
   const builder = await read("scripts/build-release-artifacts.mjs");
   const packaged = spawnSync(
@@ -158,12 +161,13 @@ test("Rust release packaging excludes ignored nested grammar sources", async () 
 
   assert.equal(packaged.status, 0, packaged.stderr);
   assert.match(manifest, /^\s*"\/grammar\.js",$/mu);
+  assert.match(manifest, /^\s*"src\/\*\*",$/mu);
   assert.doesNotMatch(builder, /"--allow-dirty"/u);
 
   const files = packaged.stdout.trim().split("\n");
   assert.deepEqual(
     files.filter((path) => path.endsWith("grammar.js")),
-    ["grammar.js"],
+    ["grammar.js", "src/state/grammar.js"],
   );
   assert.equal(
     files.some(
@@ -181,6 +185,18 @@ test("release workflow publishes through protected, least-privilege jobs", async
   assert.match(workflow, /npm run package:release/u);
   assert.match(workflow, /npm run test:release/u);
   assert.match(workflow, /TREE_SITTER_FIXTURES_FETCH: always/u);
+  assert.match(workflow, /^  validate-neovim:$/mu);
+  assert.match(workflow, /name: Validate Neovim and LazyVim installation/u);
+  assert.match(workflow, /npm run test:neovim:install/u);
+  const neovimJob = workflow.match(
+    /^  validate-neovim:\n[\s\S]*?(?=^  [a-z][a-z0-9-]+:\n)/mu,
+  )?.[0];
+  assert.notEqual(neovimJob, undefined);
+  for (const os of ["ubuntu-24.04", "macos-14", "windows-2025"]) {
+    assert.match(neovimJob, new RegExp(`os: ${os}`, "u"));
+  }
+  assert.match(neovimJob, /node scripts\/check-file-sha256\.mjs/u);
+  assert.equal([...neovimJob.matchAll(/^\s+sha256: [0-9a-f]{64}$/gmu)].length, 3);
   assert.match(workflow, /^  native-libraries:$/mu);
   assert.match(workflow, /--native-libraries build\/native-libraries/u);
   assert.match(workflow, /unzip -q .*META-INF\/native/u);
@@ -209,7 +225,7 @@ test("release workflow publishes through protected, least-privilege jobs", async
   );
   assert.match(
     workflow,
-    /assemble:\n[\s\S]*?needs: \[validate, validate-swift, release-platforms\]/u,
+    /assemble:\n[\s\S]*?needs: \[validate, validate-swift, validate-neovim, release-platforms\]/u,
   );
   assert.equal(
     [...workflow.matchAll(/actions\/attest@[0-9a-f]{40}/gu)].length,

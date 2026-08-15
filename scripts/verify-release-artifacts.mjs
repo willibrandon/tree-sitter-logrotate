@@ -23,6 +23,7 @@ requireMatch(new RegExp(`^jtreesitter-logrotate-${version.replaceAll(".", "\\.")
 requireMatch(new RegExp(`^jtreesitter-logrotate-${version.replaceAll(".", "\\.")}-javadoc\\.jar$`, "u"), "Java Javadoc JAR");
 for (const name of [
   `${prefix}.wasm`,
+  `${prefix}-state.wasm`,
   `${prefix}-source.tar.gz`,
   `${prefix}-npm.cdx.json`,
   `${prefix}-release.cdx.json`,
@@ -68,17 +69,17 @@ for (const sbomName of [`${prefix}-npm.cdx.json`, `${prefix}-release.cdx.json`])
 
 const npmPackage = resolve(outputDirectory, `${prefix}.tgz`);
 const npmListing = run("tar", ["-tzf", npmPackage], { capture: true }).stdout;
-for (const required of ["package/src/parser.c", "package/src/scanner.c", "package/queries/highlights.scm", "package/tree-sitter-logrotate.wasm", "package/prebuilds/"]) {
+for (const required of ["package/src/parser.c", "package/src/scanner.c", "package/src/state/src/parser.c", "package/src/state/queries/highlights.scm", "package/queries/highlights.scm", "package/tree-sitter-logrotate.wasm", "package/tree-sitter-logrotate-state.wasm", "package/prebuilds/"]) {
   if (!npmListing.includes(required)) throw new Error(`npm package is missing ${required}.`);
 }
 
 const crateListing = run("tar", ["-tzf", resolve(outputDirectory, `${prefix}.crate`)], { capture: true }).stdout;
-for (const required of ["src/parser.c", "src/scanner.c", "bindings/rust/lib.rs"]) {
+for (const required of ["src/parser.c", "src/scanner.c", "src/state/src/parser.c", "src/state/queries/highlights.scm", "bindings/rust/lib.rs"]) {
   if (!crateListing.includes(required)) throw new Error(`Rust crate is missing ${required}.`);
 }
 
 const sourceListing = run("tar", ["-tzf", resolve(outputDirectory, `${prefix}-source.tar.gz`)], { capture: true }).stdout;
-for (const required of ["grammar.js", "src/parser.c", "src/scanner.c", "bindings/go/binding.go", "Package.swift", "build.zig"]) {
+for (const required of ["grammar.js", "src/parser.c", "src/scanner.c", "src/state/grammar.js", "src/state/src/parser.c", "bindings/go/binding.go", "Package.swift", "build.zig"]) {
   if (!sourceListing.includes(`${prefix}/${required}`)) throw new Error(`Source archive is missing ${required}.`);
 }
 
@@ -99,5 +100,7 @@ for (const name of names.filter((name) => name.endsWith(".whl"))) {
 
 const wasmStats = await stat(resolve(outputDirectory, `${prefix}.wasm`));
 if (wasmStats.size < 1_000) throw new Error("WASM artifact is unexpectedly small.");
+const stateWasmStats = await stat(resolve(outputDirectory, `${prefix}-state.wasm`));
+if (stateWasmStats.size < 1_000) throw new Error("State WASM artifact is unexpectedly small.");
 
 process.stdout.write(`Verified ${String(names.length)} release files for v${version}.\n`);

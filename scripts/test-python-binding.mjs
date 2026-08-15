@@ -21,3 +21,4 @@ const environmentPython = process.platform === "win32"
   : resolve(environmentDirectory, "bin/python");
 run(environmentPython, ["-m", "pip", "install", "--disable-pip-version-check", ".[core]"]);
 run(environmentPython, ["-m", "unittest", "discover", "-s", "bindings/python/tests", "-v"]);
+run(environmentPython, [resolve(root, "scripts", "test-python-package.py")]);

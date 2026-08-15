@@ -8,6 +8,8 @@ extern "C" {
 #endif
 
 const TSLanguage *tree_sitter_logrotate(void);
+/** Get the language for logrotate state files. */
+const TSLanguage *tree_sitter_logrotate_state(void);
 
 #ifdef __cplusplus
 }

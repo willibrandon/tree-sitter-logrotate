@@ -2,7 +2,7 @@
 
 import PackageDescription
 
-let sources = ["src/parser.c", "src/scanner.c"]
+let sources = ["src/parser.c", "src/scanner.c", "src/state/src/parser.c"]
 
 let package = Package(
     name: "TreeSitterLogrotate",

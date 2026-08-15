@@ -52,11 +52,24 @@ if(TREE_SITTER_GENERATE_PARSER)
                               --abi=${TREE_SITTER_ABI_VERSION}
                      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
                      COMMENT "Generating parser.c")
+  add_custom_command(OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/src/state/src/parser.c"
+                     BYPRODUCTS "${CMAKE_CURRENT_SOURCE_DIR}/src/state/src/grammar.json"
+                                "${CMAKE_CURRENT_SOURCE_DIR}/src/state/src/node-types.json"
+                                "${CMAKE_CURRENT_SOURCE_DIR}/src/state/src/tree_sitter/parser.h"
+                                "${CMAKE_CURRENT_SOURCE_DIR}/src/state/src/tree_sitter/alloc.h"
+                                "${CMAKE_CURRENT_SOURCE_DIR}/src/state/src/tree_sitter/array.h"
+                     DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/state/grammar.js"
+                     COMMAND ${TREE_SITTER_CLI_COMMAND} generate --abi ${TREE_SITTER_ABI_VERSION}
+                             --output "${CMAKE_CURRENT_SOURCE_DIR}/src/state/src"
+                             "${CMAKE_CURRENT_SOURCE_DIR}/src/state/grammar.js"
+                     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+                     COMMENT "Generating logrotate state parser.c")
   add_custom_target(generate-parser
-                    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/parser.c")
+                    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/parser.c"
+                            "${CMAKE_CURRENT_SOURCE_DIR}/src/state/src/parser.c")
 endif()
 
-add_library(tree-sitter-logrotate src/parser.c)
+add_library(tree-sitter-logrotate src/parser.c src/state/src/parser.c)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/scanner.c)
   target_sources(tree-sitter-logrotate PRIVATE src/scanner.c)
 endif()
@@ -112,9 +125,14 @@ install(TARGETS tree-sitter-logrotate
 file(GLOB QUERIES queries/*.scm)
 install(FILES ${QUERIES}
         DESTINATION "${CMAKE_INSTALL_DATADIR}/tree-sitter/queries/logrotate")
+file(GLOB STATE_QUERIES src/state/queries/*.scm)
+install(FILES ${STATE_QUERIES}
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/tree-sitter/queries/logrotate_state")
 
 if(TREE_SITTER_GENERATE_PARSER)
-  add_custom_target(ts-test ${TREE_SITTER_CLI_COMMAND} test
+  add_custom_target(ts-test
+                    COMMAND ${TREE_SITTER_CLI_COMMAND} test
+                    COMMAND ${TREE_SITTER_CLI_COMMAND} test --grammar-path src/state
                     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
                     COMMENT "tree-sitter test")
 endif()

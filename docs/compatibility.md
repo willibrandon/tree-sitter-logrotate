@@ -6,28 +6,29 @@ A release does not silently raise either value.
 
 ## Parser and platform matrix
 
-| Surface | Tested versions and platforms |
-| --- | --- |
-| Native parser | Linux x64 and arm64, macOS arm64, Windows x64 and arm64 |
-| Tree-sitter CLI | 0.26.3 and 0.26.12 |
-| Node | Node.js 24.19.0 with `tree-sitter` 0.25.1 |
-| Python | CPython 3.10 through 3.14 using ABI3 wheels where supported |
-| Rust | Rust 1.85.0 and 1.97.1 |
-| Go | Go 1.23 and 1.26.5 |
-| Java | Java 25 with JTreeSitter 0.26 |
-| Swift | Swift 6.3.3 on macOS arm64 and the reference Linux container |
-| Zig | Zig 0.16.0 on Linux, macOS, and Windows |
-| WASM | `web-tree-sitter` 0.26.12 in Node.js and a Chromium browser host |
+| Surface         | Tested versions and platforms                                    |
+| --------------- | ---------------------------------------------------------------- |
+| Native parser   | Linux x64 and arm64, macOS arm64, Windows x64 and arm64          |
+| Tree-sitter CLI | 0.26.3 and 0.26.12                                               |
+| Node            | Node.js 24.19.0 with `tree-sitter` 0.25.1                        |
+| Python          | CPython 3.10 through 3.14 using ABI3 wheels where supported      |
+| Rust            | Rust 1.85.0 and 1.97.1                                           |
+| Go              | Go 1.23 and 1.26.5                                               |
+| Java            | Java 25 with JTreeSitter 0.26                                    |
+| Swift           | Swift 6.3.3 on macOS arm64 and the reference Linux container     |
+| Zig             | Zig 0.16.0 on Linux, macOS, and Windows                          |
+| WASM            | `web-tree-sitter` 0.26.12 in Node.js and a Chromium browser host |
 
-The generated C parser is the common source for every binding. Package installation and release
+The generated C parsers are the common sources for every binding. Package installation and release
 consumer tests run without `tree-sitter generate`.
 
 ## Public tree contract
 
 Named nodes, fields, and portable query captures are compatibility surfaces. The initial public
-tree includes configuration structure, directives, arguments, path lists, script blocks,
-`script_body`, and the recovery node `unterminated_script_block`. The exact vocabulary is published
-in `src/node-types.json`.
+configuration tree includes directives, arguments, path lists, script blocks, `script_body`, and
+the recovery node `unterminated_script_block`. The state tree includes its header, version, quoted
+paths, timestamps, and `invalid_record` recovery node. The exact vocabularies are published in
+`src/node-types.json` and `src/state/src/node-types.json`.
 
 Before 1.0, every release note identifies node additions, removals, field changes, query capture
 changes, and ABI changes. Breaking tree changes are avoided unless real consumer use proves the
@@ -36,12 +37,10 @@ release.
 
 ## Syntax scope
 
-The grammar describes logrotate configuration syntax. It does not validate directive availability,
-resolve includes, apply inherited settings, inspect users or paths, or emulate an installed
-logrotate build. Unknown directives intentionally parse as ordinary directives.
-
-Logrotate state files are outside this grammar. A state header such as
-`logrotate state -- version 2` must not be treated as a configuration-file detection signal.
+The configuration grammar does not validate directive availability, resolve includes, apply
+inherited settings, inspect users or paths, or emulate an installed logrotate build. Unknown
+directives intentionally parse as ordinary directives. The separate state grammar accepts version
+1 and version 2 state files without treating them as configuration syntax.
 
 Editor integrations recognize `logrotate.conf`, files directly below a `logrotate.d` directory,
 `*.logrotate`, and `*.logrotate.conf`. A host with content detection may also recognize an
@@ -50,19 +49,25 @@ stanza. Quoted paths, escaped paths, multiple paths, leading whitespace, and a t
 valid. The detector examines at most 8,192 characters and rejects generic configuration text,
 incomplete stanzas, shell functions, shebangs, and state file headers.
 
-## Editor status
+Files resolved through an `include` directive from an open configuration root also use the
+configuration language. Relative, absolute, quoted, Windows, and directly enumerated directory
+files are covered. Closed roots, missing targets, nested directory entries, and unexpanded wildcard
+targets are rejected.
 
-Helix, Neovim, and Zed integrations follow the grammar release in later delivery phases. Until an
-editor accepts and tests a pinned grammar revision, this repository does not claim built-in support
-for that editor. The ABI and portable queries are intended integration surfaces, not proof of an
-editor integration.
+State detection recognizes `logrotate.status`, paths ending in `logrotate/status`, and otherwise
+unclassified files whose first physical line is exactly `logrotate state -- version 1` or
+`logrotate state -- version 2`. It uses the same 8,192-character bound and rejects generic or nested
+`status` paths, unsupported versions, and extra header whitespace.
 
-The planned editor matrix is:
+## Editor integration matrix
 
-| Editor | Planned targets |
-| --- | --- |
-| Neovim | stable and development builds |
-| Helix | stable and main |
-| Zed | stable and development extension hosts |
+Each integration uses a released grammar revision and the matching query files.
 
-These rows become required release gates when their integration phase begins.
+| Editor | Required targets                                                        |
+| ------ | ----------------------------------------------------------------------- |
+| Neovim | stable on Linux x64, macOS arm64, and Windows x64; development on Linux |
+| Helix  | stable and main                                                         |
+| Zed    | stable and development extension hosts                                  |
+
+Integration releases require clean installation, file recognition, highlighting, Bash injection,
+folding where supported, and indentation tests against their listed targets.

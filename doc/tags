@@ -1,0 +1,8 @@
+tree-sitter-logrotate	tree-sitter-logrotate.txt	/*tree-sitter-logrotate*
+tree-sitter-logrotate-commands	tree-sitter-logrotate.txt	/*tree-sitter-logrotate-commands*
+tree-sitter-logrotate-features	tree-sitter-logrotate.txt	/*tree-sitter-logrotate-features*
+tree-sitter-logrotate-installation	tree-sitter-logrotate.txt	/*tree-sitter-logrotate-installation*
+tree-sitter-logrotate-requirements	tree-sitter-logrotate.txt	/*tree-sitter-logrotate-requirements*
+:LogrotateInstall	tree-sitter-logrotate.txt	/*:LogrotateInstall*
+:LogrotateUninstall	tree-sitter-logrotate.txt	/*:LogrotateUninstall*
+:LogrotateUpdate	tree-sitter-logrotate.txt	/*:LogrotateUpdate*

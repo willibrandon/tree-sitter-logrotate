@@ -13,6 +13,9 @@ class Build(build):
         if path.isdir("queries"):
             dest = path.join(self.build_lib, "tree_sitter_logrotate", "queries")
             self.copy_tree("queries", dest)
+        if path.isdir("src/state/queries"):
+            dest = path.join(self.build_lib, "tree_sitter_logrotate", "queries", "state")
+            self.copy_tree("src/state/queries", dest)
         super().run()
 
 
@@ -41,6 +44,9 @@ class EggInfo(egg_info):
     def find_sources(self):
         super().find_sources()
         self.filelist.recursive_include("queries", "*.scm")
+        self.filelist.recursive_include("src/state", "*.scm")
+        self.filelist.recursive_include("src/state/src", "*.c")
+        self.filelist.recursive_include("src/state/src/tree_sitter", "*.h")
         self.filelist.include("src/tree_sitter/*.h")
         self.filelist.include("src/*.c")
 
@@ -59,6 +65,7 @@ setup(
             sources=[
                 "bindings/python/tree_sitter_logrotate/binding.c",
                 "src/parser.c",
+                "src/state/src/parser.c",
             ],
             define_macros=[
                 ("PY_SSIZE_T_CLEAN", None),

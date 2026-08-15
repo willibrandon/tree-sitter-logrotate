@@ -6,27 +6,22 @@ Target first release: 0.1.0
 
 ## Summary
 
-Create a canonical Tree-sitter grammar for logrotate configuration files and publish it from a
-repository named `tree-sitter-logrotate`.
+Create canonical Tree-sitter grammars for logrotate configuration and state files and publish them
+from the `tree-sitter-logrotate` repository.
 
-Keep the grammar independent of any editor. Integrate it with Helix and Neovim through their
-upstream repositories. Use a second repository named `zed-logrotate` for the Zed extension because
-Zed extensions have their own manifest, version, registry, and release lifecycle.
+Keep the grammars independent of any editor. Neovim and Helix use released parser artifacts,
+matching queries, and host-native configuration. The existing `zed-logrotate` repository packages
+the Zed extension.
 
 The intended repository layout is:
 
-| Repository or upstream            | Ownership             | Purpose                                                                          |
-| --------------------------------- | --------------------- | -------------------------------------------------------------------------------- |
-| `tree-sitter-logrotate`           | Maintained here       | Grammar, generated parser, bindings, portable queries, tests, WASM, and releases |
-| `zed-logrotate`                   | Maintained here       | Thin Zed language extension pinned to a released grammar revision                |
-| `helix-editor/helix`              | Upstream contribution | Language registration and Helix-specific queries                                 |
-| `nvim-treesitter/nvim-treesitter` | Upstream contribution | Parser registration and Neovim-specific queries                                  |
-| `vim/vim` and `neovim/neovim`     | Upstream contribution | Logrotate file type detection with the shared recognition contract               |
+| Repository              | Ownership       | Purpose                                                                            |
+| ----------------------- | --------------- | ---------------------------------------------------------------------------------- |
+| `tree-sitter-logrotate` | Maintained here | Grammars, generated parsers, bindings, portable queries, tests, WASM, and releases |
+| `zed-logrotate`         | Maintained here | Zed language extension pinned to a released grammar revision                       |
 
-This split keeps one authoritative syntax tree while allowing each editor to use its own query
-captures and release process. A monorepo would couple grammar releases to the Zed registry without
-reducing the upstream work required for Helix or Neovim. Separate Helix and Neovim plugin
-repositories would duplicate functionality their normal distributions already provide.
+Every integration consumes an immutable grammar revision and the query files tested with that
+revision.
 
 ## Goals
 
@@ -34,8 +29,10 @@ The grammar will:
 
 - parse logrotate configuration files incrementally and recover cleanly while a file is being
   edited;
-- preserve a stable, useful concrete syntax tree for editor queries and other tooling;
-- support Neovim, Helix, Zed, and consumers of Tree-sitter C, WASM, and generated language bindings;
+- parse version 1 and version 2 logrotate state files with a separate syntax tree;
+- preserve a stable, useful concrete syntax tree for queries and other tooling;
+- support Neovim, Helix, Zed, and consumers of Tree-sitter C, WASM, and generated language
+  bindings;
 - inject shell syntax into `firstaction`, `lastaction`, `prerotate`, `postrotate`, and `preremove`
   bodies;
 - accept future and locally patched directives without treating them as syntax errors;
@@ -94,8 +91,8 @@ review.
 Tree-sitter language ABI 15 is the primary target. As of this design:
 
 - Tree-sitter 0.26 generates ABI 15 parsers by default and can generate ABI 14 when requested;
-- current Neovim embeds a runtime that accepts ABI 15;
-- current `nvim-treesitter` development targets Tree-sitter CLI 0.26 or later;
+- current Neovim embeds a runtime that accepts ABI 15 and can load parsers directly through
+  `vim.treesitter.language.add()`;
 - the inspected Zed revision uses Tree-sitter 0.26.9;
 - current Helix uses its Tree-house parsing runtime and current Tree-sitter grammars.
 
@@ -150,6 +147,11 @@ tree-sitter-logrotate/
 │   ├── node-types.json
 │   ├── parser.c
 │   ├── scanner.c
+│   ├── state/
+│   │   ├── grammar.js
+│   │   ├── queries/
+│   │   ├── src/
+│   │   └── test/
 │   └── tree_sitter/
 │       ├── alloc.h
 │       ├── array.h
@@ -178,23 +180,22 @@ tree-sitter-logrotate/
 └── tree-sitter.json
 ```
 
-The repository should begin with the current `tree-sitter init` scaffold, then remove only files
-that are proven unnecessary. Keeping the standard generated bindings lowers integration work for
-tools outside the three initial editors. All bindings expose the same generated language and do not
-contain independent parsers.
+The repository began with the current `tree-sitter init` scaffold. Keeping the standard generated
+bindings lowers integration work for other tools. All bindings expose the same generated languages
+and do not contain independent parsers.
 
 Package and grammar identities are fixed as follows:
 
-| Surface             | Value                   |
-| ------------------- | ----------------------- |
-| Repository          | `tree-sitter-logrotate` |
-| Grammar name        | `logrotate`             |
-| Tree-sitter scope   | `source.logrotate`      |
-| C symbol            | `tree_sitter_logrotate` |
-| npm package         | `tree-sitter-logrotate` |
-| Rust crate          | `tree-sitter-logrotate` |
-| Python distribution | `tree-sitter-logrotate` |
-| Python import       | `tree_sitter_logrotate` |
+| Surface             | Configuration           | State                              |
+| ------------------- | ----------------------- | ---------------------------------- |
+| Repository          | `tree-sitter-logrotate` | `tree-sitter-logrotate`            |
+| Grammar name        | `logrotate`             | `logrotate_state`                  |
+| Tree-sitter scope   | `source.logrotate`      | `source.logrotate.state`           |
+| C symbol            | `tree_sitter_logrotate` | `tree_sitter_logrotate_state`      |
+| npm package         | `tree-sitter-logrotate` | named export from the same package |
+| Rust crate          | `tree-sitter-logrotate` | `STATE_LANGUAGE` in the same crate |
+| Python distribution | `tree-sitter-logrotate` | `state_language()` in that package |
+| Python import       | `tree_sitter_logrotate` | `tree_sitter_logrotate`            |
 
 `tree-sitter.json` must use the published Tree-sitter schema and declare the grammar name, scope,
 file types, version, license, repository links, and available bindings.
@@ -209,38 +210,40 @@ The repository stays intentionally small:
 ```text
 zed-logrotate/
 ├── languages/
-│   └── logrotate/
-│       ├── brackets.scm
+│   ├── logrotate/
+│   │   ├── brackets.scm
+│   │   ├── config.toml
+│   │   ├── highlights.scm
+│   │   ├── indents.scm
+│   │   ├── injections.scm
+│   │   ├── outline.scm
+│   │   └── textobjects.scm
+│   └── logrotate-state/
 │       ├── config.toml
-│       ├── highlights.scm
-│       ├── indents.scm
-│       ├── injections.scm
-│       ├── outline.scm
-│       └── textobjects.scm
+│       └── highlights.scm
 ├── LICENSE
 ├── README.md
 └── extension.toml
 ```
 
-`extension.toml` points `[grammars.logrotate]` at the canonical repository and an exact released Git
-revision. It must not point at a branch. The extension needs no Rust component unless a future
-feature requires a language server or another host API.
+`extension.toml` points `[grammars.logrotate]` and `[grammars.logrotate_state]` at the canonical
+repository and one exact released Git revision. It must not point at a branch. The extension needs
+no Rust component unless a future feature requires a language server or another host API.
 
 The Zed extension has its own semantic version. A grammar update changes the pinned revision,
-updates queries if needed, runs the Zed smoke tests, and increments the extension version. The Zed
-registry contribution remains a submodule entry in `zed-industries/extensions`.
+updates queries if needed, runs the Zed smoke tests, and increments the extension version. Tagged
+extension releases include the tested configuration and queries.
 
-### Repositories not created
+### Integration boundary
 
-Do not create permanent `logrotate.nvim` or `helix-logrotate` repositories for the initial project.
-Neovim and Helix users expect grammar registration and queries in `nvim-treesitter` and Helix
-itself. The grammar README can provide temporary local-install instructions until those upstream
-changes are accepted.
+Neovim and Helix setups use their native parser, query, and language-configuration locations. Zed
+uses the separately versioned extension. All three integrations pin released parser source and
+matching queries.
 
-Do not add the logrotate state format to the configuration grammar. State files have a versioned
-header and timestamp-oriented records and are machine-managed. If syntax-tree support for them is
-later justified, create `tree-sitter-logrotate-state` as a separate grammar so its nodes, file type,
-and release compatibility can evolve independently.
+The logrotate state format is a second grammar under `src/state`. It has its own nodes, query, C
+symbol, native parser, and WASM parser. Both grammars use the repository version and ship in the
+same language-binding packages and release. State syntax must never be added to the configuration
+grammar.
 
 ## Grammar model
 
@@ -308,8 +311,8 @@ Useful fields are:
 | `script_block`      | `script`     | Uninterpreted shell source                         |
 | `script_block`      | `terminator` | Closing `endscript` token                          |
 
-Anonymous punctuation nodes remain visible where editor queries need them. Braces must stay in the
-tree for matching and indentation. An optional `=` separator should be represented consistently.
+Anonymous punctuation nodes remain visible where queries need them. Braces must stay in the tree
+for matching and indentation. An optional `=` separator should be represented consistently.
 
 ### Document structure
 
@@ -335,6 +338,22 @@ The parser must recover from common editing states:
 Recovery should keep the error local. A missing terminator must not cause every following rotation
 block to become part of one opaque node when a safe boundary can be found.
 
+### State grammar
+
+The state grammar lives under `src/state` and uses the name `logrotate_state`. Its first line is
+exactly `logrotate state -- version 1` or `logrotate state -- version 2`. Each record contains one
+double-quoted path followed by a date or full timestamp. Escaped characters inside the quoted path
+remain visible as `escape_sequence` nodes.
+
+The public state tree contains `header`, `version`, `record`, `quoted_path`, `timestamp`, and the
+individual timestamp fields. A malformed record becomes `invalid_record` so a later valid record
+still parses. Corpus tests cover both supported versions, quoted spaces and escapes, date-only and
+full timestamps, blank lines, malformed records, and rejection of unsupported header versions.
+
+The state grammar has no external scanner, injection query, fold query, or indentation query. Its
+portable highlight query captures the header, version, path, escape sequences, timestamp fields,
+and malformed records.
+
 ### Comments
 
 Comment recognition must match upstream context. A `#` that is the first non-whitespace character of
@@ -355,8 +374,8 @@ unambiguous and improves highlighting. Values such as user names, group names, d
 addresses, extensions, and shell paths remain ordinary arguments unless their containing directive
 provides reliable structure.
 
-The grammar must preserve the source bytes and ranges needed by formatters and editor actions. It
-must never normalize quotes, escapes, spacing, or path separators.
+The grammar must preserve the source bytes and ranges needed by formatters and syntax-aware tools.
+It must never normalize quotes, escapes, spacing, or path separators.
 
 ### Raw script bodies
 
@@ -384,10 +403,9 @@ necessary, use Tree-sitter's allocator API. The scanner must honor the external-
 to disable scanning during error recovery and must never emit an unbounded sequence of zero-width
 tokens.
 
-The raw node is injected into the editor's Bash grammar. The actual shell used by logrotate is
-normally `/bin/sh`, but the target editors expose a mature `bash` injection and do not consistently
-offer a separate POSIX shell grammar. Tests must keep injected examples within syntax accepted by
-the selected downstream grammar.
+The raw node is injected into the host's Bash grammar. The actual shell used by logrotate is
+normally `/bin/sh`, while the target hosts expose a mature `bash` injection. Tests must keep
+injected examples within syntax accepted by that grammar.
 
 ### Includes and inherited settings
 
@@ -395,9 +413,9 @@ An include is represented syntactically as `include_directive` plus its path. Th
 does not resolve the path, enumerate directories, prevent cycles, enforce recursion depth, or apply
 inherited global settings.
 
-Those behaviors need filesystem access and semantic state and belong in an editor host, language
-server, or separate analysis library. Keeping them out of the grammar preserves deterministic,
-sandboxed parsing in native and WASM hosts.
+Those behaviors need filesystem access and semantic state and belong in a host application,
+language server, or separate analysis library. Keeping them out of the grammar preserves
+deterministic, sandboxed parsing in native and WASM hosts.
 
 ## Query design
 
@@ -409,8 +427,8 @@ The grammar repository ships a conservative portable query set:
 - `injections.scm` for shell script bodies;
 - `folds.scm` for rotation and script blocks where the host supports the standard capture.
 
-Canonical queries use nodes and predicates supported by the Tree-sitter query language itself. They
-must not contain Neovim, Helix, or Zed-only directives.
+Canonical queries use nodes and predicates supported by the Tree-sitter query language itself.
+Host-specific directives remain in the corresponding integration.
 
 The initial highlight vocabulary should prefer common captures:
 
@@ -437,52 +455,57 @@ The injection query conceptually maps:
   (#set! injection.language "bash"))
 ```
 
-The exact query shipped by an editor may use that editor's preferred capture and metadata names.
+Each integration may use its host's preferred capture and metadata names.
 
 ### Editor-specific queries
 
 Each target keeps its native query vocabulary and conventions:
 
-| Consumer | Query location                              | Expected files                                                            |
-| -------- | ------------------------------------------- | ------------------------------------------------------------------------- |
-| Neovim   | `nvim-treesitter/runtime/queries/logrotate` | highlights, injections, folds, indents, locals when meaningful            |
-| Helix    | `helix/runtime/queries/logrotate`           | highlights, injections, indents, textobjects, folds, tags when meaningful |
-| Zed      | `zed-logrotate/languages/logrotate`         | highlights, injections, brackets, indents, outline, textobjects           |
+| Consumer | Query location                       | Expected files                                                            |
+| -------- | ------------------------------------ | ------------------------------------------------------------------------- |
+| Neovim   | `queries/logrotate` on `runtimepath` | highlights, injections, folds, indents, locals when meaningful            |
+| Helix    | `runtime/queries/logrotate`          | highlights, injections, indents, textobjects, folds, tags when meaningful |
+| Zed      | `zed-logrotate/languages/*`          | highlights, injections, brackets, indents, outline, textobjects           |
 
-Downstream queries may start from the canonical queries, but they are reviewed and tested in their
-own repository. Do not use symlinks or generated copies that hide editor-specific behavior from
-upstream reviewers.
+Integration queries start from the canonical queries and add only host-specific behavior. Tests
+pin the parser and queries to the same revision.
 
 ### Indentation, folding, and matching
 
 Rotation blocks and script blocks are foldable. Braces form matching pairs. A newline after an
 opening brace increases configuration indentation, and a closing brace decreases it.
 
-The raw shell body delegates internal indentation to the injected language where the editor supports
+Neovim also matches every script opener with `endscript` through `%`. Its file-type setup defines
+`#` comments and continues a comment after an insert-mode newline. The standard omnifunc completes
+directives according to the current global, rotation-block, or script-body scope; Blink consumes the
+same source when present.
+
+The raw shell body delegates internal indentation to the injected language where the host supports
 combined indentation. The logrotate query is responsible only for the boundary between the script
 directive, body, and `endscript`.
 
-Indent queries are editor-specific because their predicate and capture semantics differ. Every
-editor integration must test a rotation block, a nested shell construct, `endscript`, and the
-closing rotation brace.
+Indent queries are host-specific because their predicate and capture semantics differ. Every
+integration must test a rotation block, a nested shell construct, `endscript`, and the closing
+rotation brace.
 
 ### Text objects and outlines
 
-A rotation block is the primary structural text object. Comments may use the editor's standard
-comment text object. Directives can be exposed as entry-level text objects when the editor has a
-clear convention for them.
+A rotation block is the primary structural text object. Comments use the host's standard comment
+text object. Directives may be exposed as entry-level text objects when the host has a clear
+convention for them.
 
 For Helix and Zed, a rotation block may appear in the symbol outline using its path list as the
 display name and a section-like symbol kind. Do not label it as a function, class, or variable.
 
 The canonical Tree-sitter `tags.scm` should be omitted unless a standard definition/reference model
-can describe rotation stanzas honestly. Editor-specific outline support does not require inventing
+can describe rotation stanzas honestly. Host-specific outline support does not require inventing
 language semantics in the portable tag query.
 
 ## File type detection
 
-File type detection must follow the shared recognition contract. The grammar should not claim
-every `.conf` or `status` file.
+File type detection must follow the shared recognition contract without claiming every `.conf`,
+`.status`, or `status` file. Explicit user file type choices take precedence over automatic
+detection.
 
 Recommended high-confidence names and paths are:
 
@@ -491,25 +514,36 @@ Recommended high-confidence names and paths are:
 - `*.logrotate`;
 - `*.logrotate.conf`.
 
-An editor that supports content detection may also recognize an otherwise unclassified file when
+An integration that supports content detection may also recognize an otherwise unclassified file when
 its first physical line is a complete log-path stanza. The line may contain one or more absolute or
 `~/` paths, including quoted or escaped paths, followed by `{`, optional whitespace, and an optional
 trailing comment. The detector must require the complete structural signal and examine no more than
 8,192 characters. Generic configuration text, incomplete stanzas, shell functions, shebangs, and
-state file headers are negative cases.
+state file headers are negative configuration cases.
 
-The logrotate state file is a different file type. Its `logrotate state -- version 1` or
-`logrotate state -- version 2` header must never select the configuration grammar.
+Configuration files resolved through an `include` directive from an open configuration root also
+select `logrotate`. This covers existing relative, absolute, and quoted files plus regular files
+directly enumerated from an included directory. Resolution uses the root's platform path rules,
+including Windows drive paths. Closing the root, a missing target, a nested directory entry, or an
+unexpanded wildcard target does not create a new association. The grammar itself still performs no
+filesystem access.
 
-Neovim currently lacks a standard logrotate file type. The integration sequence is:
+The state language is `logrotate_state`. It is recognized by these names and paths:
 
-1. Add the shared detection contract to Vim's runtime, including tests.
-2. Sync or mirror the accepted detection in Neovim according to its normal Vim runtime process.
-3. Register the `logrotate` parser and queries in `nvim-treesitter`.
+- `logrotate.status`;
+- `logrotate/status` as the final two path components.
 
-Until upstream detection is available, document a small `vim.filetype.add()` setup for users testing
-the parser locally. That temporary configuration is documentation, not a reason to maintain a
-separate Neovim plugin.
+An otherwise unclassified file also selects the state language when its first physical line is
+exactly `logrotate state -- version 1` or `logrotate state -- version 2`. The same 8,192-character
+limit applies. Unsupported versions, leading or trailing whitespace, generic `status` files, and
+nested paths such as `logrotate/nested/status` are negative cases. A state signal must never select
+the configuration grammar.
+
+The Neovim package registers both languages with `vim.treesitter.language.add()`, installs their
+matching queries on `runtimepath`, and applies the complete recognition contract through
+`vim.filetype.add()` and a bounded content detector. Its standard package layout supports native
+`vim.pack` and LazyVim through the same tagged release. Native `vim.pack` uses its stable
+`PackChanged` build-hook API; lazy.nvim detects the root `build.lua` script.
 
 Helix should use its exact file names and glob-aware file type entries. Helix does not support
 first-line file type detection, so an extensionless file uses `:set-language logrotate` or its
@@ -524,30 +558,27 @@ path-aware option preserves ordinary glob behavior while ensuring that only file
 
 ### Neovim
 
-Target the current `nvim-treesitter` architecture. Do not design against its frozen legacy branch.
+The Neovim package installs both generated parsers, registers `logrotate` and `logrotate_state`, and
+places their matching queries on `runtimepath`. It applies the shared file recognition fixture with
+`vim.filetype.add()` and a bounded first-line detector. Native Neovim installs it through
+`vim.pack`; LazyVim installs the same package through lazy.nvim. Both paths run the root `build.lua`
+hook and expose the same commands, help, health provider, completion, and editing behavior.
 
-The contribution must:
-
-- reference a tagged grammar revision;
-- list an active maintainer;
-- use committed generated parser source or current grammar metadata as required upstream;
-- keep the external scanner C99-compatible;
-- include parser and query tests;
-- verify install, highlighting, injection, folding, and indentation in a clean Neovim profile;
-- follow the upstream query linter and parser workflow requirements.
-
-Test both a standard named file and an extensionless content-detected file after core file type
-detection lands. The temporary manual setup test should remain until the minimum supported Neovim
-release includes that detection.
+Separate empty native Neovim and LazyVim profiles install a tagged repository fixture before running
+the shared integration suite. The suite verifies parser loading, every machine-readable recognition
+case, configuration and state highlighting, Bash injection, indentation, folding, script matching,
+scoped directive completion, buffer options, query loading, and a clean health report. CI covers
+current stable Neovim and the current development build. Normal-profile terminal checks exercise
+the same behavior with installed completion and editing plugins. Stable clean-profile tests run on
+Linux x64, macOS arm64, and Windows x64; the pinned development build runs on Linux x64.
 
 ### Helix
 
-The Helix contribution adds a `[[language]]` entry, a pinned `[[grammar]]` source, and
+The Helix setup adds a `[[language]]` entry, a pinned `[[grammar]]` source, and
 `runtime/queries/logrotate`. The initial integration uses grammar release 0.1.3 at commit
-`6f0297864e944728fd5922ec6f15d986df1a0719`. A later grammar release updates that pin through a
-separate Helix change after the same verification commands pass.
+`6f0297864e944728fd5922ec6f15d986df1a0719`. A grammar release updates the pin and queries together.
 
-The contribution must run:
+Verification runs:
 
 ```sh
 hx --grammar fetch
@@ -564,14 +595,15 @@ does not add one.
 
 ### Zed
 
-Develop and validate `zed-logrotate` as a local dev extension before registry submission.
-`extension.toml` pins the grammar repository by exact Git revision. `config.toml` declares the
+Develop and validate `zed-logrotate` as a local dev extension before publishing a tagged release.
+`extension.toml` pins both grammars to one exact Git revision. Each `config.toml` declares the
 language name, grammar name, path suffixes, first-line detection if used, comment syntax, bracket
 pairs, and other language settings supported by Zed.
 
 The extension must test:
 
 - highlighting in built-in light, dark, and high-contrast themes;
+- state header, path, timestamp, and invalid-record highlighting;
 - shell injection inside every supported script block;
 - bracket matching and indentation;
 - outline names for single and multiple path stanzas;
@@ -579,8 +611,7 @@ The extension must test:
 - files opened locally, remotely, and in a clean profile;
 - grammar update behavior from the previous extension release.
 
-Registry publication uses the standard Zed extension repository and submodule process. The grammar
-repository itself is not submitted as a Zed extension.
+Release verification installs the tagged extension in a clean Zed profile.
 
 ### Other consumers
 
@@ -709,15 +740,15 @@ on pinned CI hardware instead of placing arbitrary timing limits in the initial 
 
 Before each release, test:
 
-| Surface       | Required targets                                      |
-| ------------- | ----------------------------------------------------- |
+| Surface       | Required targets                                        |
+| ------------- | ------------------------------------------------------- |
 | Native parser | Linux x64 and arm64, macOS arm64, Windows x64 and arm64 |
-| Toolchain     | Pinned minimum and current Tree-sitter 0.26 patch     |
-| WASM          | Node host and browser host                            |
-| Neovim        | Current stable and current development build          |
-| Helix         | Current stable and current main                       |
-| Zed           | Current stable and current development extension host |
-| Bindings      | Every published package's supported runtime matrix    |
+| Toolchain     | Pinned minimum and current Tree-sitter 0.26 patch       |
+| WASM          | Node host and browser host                              |
+| Neovim        | Stable on Linux, macOS, and Windows; development on Linux |
+| Helix         | Current stable and current main                         |
+| Zed           | Current stable and current development extension host   |
+| Bindings      | Every published package's supported runtime matrix      |
 
 An editor smoke test must open a real logrotate file and inspect captures or syntax-tree behavior. A
 successful parser build alone is insufficient.
@@ -827,9 +858,9 @@ After 1.0:
 - accepting more valid syntax without changing established trees may be a minor release;
 - recovery, scanner, or query fixes that preserve the public tree may be a patch release.
 
-Downstream editor integrations pin exact grammar revisions. Grammar releases use signed or otherwise
-verified `vX.Y.Z` tags. Package registries, GitHub release assets, generated source, and WASM must
-all correspond to the same tag and checksum manifest.
+Editor integrations pin exact grammar revisions. Grammar releases use signed or otherwise verified
+`vX.Y.Z` tags. Package registries, GitHub release assets, generated source, and WASM must all
+correspond to the same tag and checksum manifest.
 
 The first release is `0.1.0`. Do not declare 1.0 until:
 
@@ -894,31 +925,36 @@ and the scanner passes sanitizers and the initial fuzz budget.
 Exit condition: consumers can install a tagged parser through Git, native source, WASM, and each
 published binding without regenerating it.
 
-### Phase 3: Helix
+### Phase 3: State grammar and unified release
 
-- Add language detection, grammar pin, and Helix-native queries upstream.
-- Run grammar fetch/build, doc generation, and editor smoke tests.
-- Incorporate only grammar changes that improve the canonical tree for all consumers.
+- Add the state grammar under `src/state` and expose both parsers from every binding and release.
+- Add state corpus, highlight, incremental, binding, native, WASM, and release-artifact tests.
+- Keep both grammar versions aligned in every manifest and package.
 
-Exit condition: the integration is accepted upstream or has a documented, review-ready blocker.
+Exit condition: one tagged release installs both parsers through every published binding and both
+parsers pass their complete native and WASM test matrices.
 
-### Phase 4: Vim, Neovim, and nvim-treesitter
+### Phase 4: Neovim and LazyVim
 
-- Land the shared file type detection contract in Vim and Neovim through their normal upstream
-  process.
-- Add parser registration and Neovim-native queries to `nvim-treesitter`.
-- Test clean install, real highlighting, injection, folding, and indentation.
+- Add the complete configuration, state, first-line, and open-include recognition contract to the
+  Neovim package using the shared fixture as the test source.
+- Add parser registration and native queries for both languages.
+- Test tagged installs in separate empty native Neovim and LazyVim profiles, including configuration
+  and state highlighting, Bash injection, indentation, comments, folding, script matching, scoped
+  completion, help, commands, and health checks.
+- Run the stable clean-profile suite on Linux x64, macOS arm64, and Windows x64, and run a pinned
+  development build on Linux x64.
 
-Exit condition: a supported Neovim release detects the file type and `nvim-treesitter` installs the
-tagged grammar without user parser configuration.
+Exit condition: clean native Neovim and LazyVim profiles install both parsers from one tagged
+grammar revision and pass the complete shared integration suite.
 
 ### Phase 5: Zed
 
 - Create `zed-logrotate` with no Rust code.
-- Add Zed-native queries, language configuration, screenshots, and smoke tests.
-- Pin a released grammar revision and submit the extension to the Zed registry.
+- Add both grammars, Zed-native queries, language configuration, screenshots, and smoke tests.
+- Pin a released grammar revision and publish a tagged extension release.
 
-Exit condition: the registry extension works in current stable Zed with the same core parse behavior
+Exit condition: the released extension works in current stable Zed with the same core parse behavior
 as Helix and Neovim.
 
 ### Phase 6: Stabilization
@@ -932,14 +968,14 @@ as Helix and Neovim.
 
 These questions are resolved with evidence before 0.1.0, not left as permanent ambiguity:
 
-| Decision                  | Default                 | Evidence required to change it                                      |
-| ------------------------- | ----------------------- | ------------------------------------------------------------------- |
-| Primary parser ABI        | 15                      | A supported stable editor cannot load it                            |
-| Script injection language | `bash`                  | A target supplies a better portable POSIX shell grammar name        |
-| External scanner language | C99                     | All target build systems accept another implementation equally well |
-| State file support        | Separate future grammar | Demonstrated demand and an integration plan for a second language   |
-| Canonical tags query      | Omitted                 | A semantically honest portable definition/reference model           |
-| Repository count          | Two owned repositories  | A registry or editor changes its integration model                  |
+| Decision                  | Default                | Evidence required to change it                                      |
+| ------------------------- | ---------------------- | ------------------------------------------------------------------- |
+| Primary parser ABI        | 15                     | A supported stable runtime cannot load it                           |
+| Script injection language | `bash`                 | A target supplies a better portable POSIX shell grammar name        |
+| External scanner language | C99                    | All target build systems accept another implementation equally well |
+| State file support        | `src/state` grammar    | A breaking state-format change requiring an independent lifecycle   |
+| Canonical tags query      | Omitted                | A semantically honest portable definition/reference model           |
+| Repository count          | Two owned repositories | An integration changes its distribution model                       |
 
 ## Reference material
 
@@ -952,8 +988,8 @@ These questions are resolved with evidence before 0.1.0, not left as permanent a
 - [Tree-sitter reusable workflows](https://github.com/tree-sitter/workflows)
 - [Helix language integration](https://docs.helix-editor.com/guides/adding_languages.html)
 - [Helix language injection](https://docs.helix-editor.com/guides/injection.html)
-- [nvim-treesitter](https://github.com/nvim-treesitter/nvim-treesitter)
-- [nvim-treesitter contribution guide](https://github.com/nvim-treesitter/nvim-treesitter/blob/main/CONTRIBUTING.md)
+- [Neovim Tree-sitter](https://neovim.io/doc/user/treesitter.html)
+- [Neovim file type Lua](https://neovim.io/doc/user/lua.html#vim.filetype)
 - [Zed language extensions](https://zed.dev/docs/extensions/languages)
 - [Zed extension development](https://zed.dev/docs/extensions/developing-extensions)
 - [logrotate](https://github.com/logrotate/logrotate)

@@ -1,0 +1,15 @@
+{
+  "name": "tree-sitter-logrotate",
+  "description": "Logrotate configuration and state support for Neovim",
+  "engines": {
+    "nvim": ">=0.12.0"
+  },
+  "lazy": {
+    "lazy": false,
+    "main": "tree-sitter-logrotate",
+    "opts": {},
+    "dependencies": [
+      "nvim-treesitter/nvim-treesitter"
+    ]
+  }
+}

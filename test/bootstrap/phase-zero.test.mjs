@@ -234,9 +234,12 @@ test("official scaffold exposes the expected grammar and binding surfaces", asyn
 
   const configuration = await readJson("tree-sitter.json");
   assert.equal(configuration.$schema, "https://tree-sitter.github.io/tree-sitter/assets/schemas/config.schema.json");
-  assert.equal(configuration.grammars?.length, 1);
+  assert.equal(configuration.grammars?.length, 2);
   assert.equal(configuration.grammars[0].name, "logrotate");
   assert.equal(configuration.grammars[0].scope, "source.logrotate");
+  assert.equal(configuration.grammars[1].name, "logrotate_state");
+  assert.equal(configuration.grammars[1].scope, "source.logrotate.state");
+  assert.equal(configuration.grammars[1].path, "src/state");
   assert.equal(configuration.metadata?.license, "MIT");
   assert.deepEqual(Object.keys(configuration.bindings ?? {}).sort(), [
     "c",
@@ -507,19 +510,23 @@ test("CMake installs the native parser on Unix and Windows", async () => {
   assert.match(bindingTest, /run\("cmake", \["--install", buildDirectory\]\)/u);
 });
 
-test("Node build scripts invoke the pinned local Tree-sitter CLI without a command shim", async () => {
+test("Node build scripts use verified local generation paths without a command shim", async () => {
   const runner = await readRequired("scripts/tree-sitter-cli.mjs");
-  const scripts = await Promise.all(
-    ["scripts/check-generated.mjs", "scripts/build-native.mjs", "scripts/build-wasm.mjs"].map(readRequired),
+  const directCliScripts = await Promise.all(
+    ["scripts/check-generated.mjs", "scripts/build-wasm.mjs"].map(readRequired),
   );
+  const nativeBuild = await readRequired("scripts/build-native.mjs");
 
   assert.match(runner, /node_modules\/tree-sitter-cli\/cli\.js/u);
   assert.match(runner, /spawnSync\(process\.execPath/u);
   assert.match(runner, /shell:\s*false/u);
-  for (const source of scripts) {
+  for (const source of directCliScripts) {
     assert.match(source, /runTreeSitter/u);
     assert.doesNotMatch(source, /spawnSync\(["']tree-sitter["']/u);
   }
+  assert.match(nativeBuild, /run\("cmake"/u);
+  assert.match(nativeBuild, /--target["'],\s*["']tree-sitter-logrotate/u);
+  assert.doesNotMatch(nativeBuild, /spawnSync\(["']tree-sitter["']/u);
 });
 
 test("Swift binding tests clean their isolated scratch products", async () => {
@@ -1022,13 +1029,23 @@ test("security automation covers dependencies, code, secrets, sanitizers, and fu
 });
 
 test("upstream Tree-sitter checks satisfy downstream parser requirements", async () => {
+  const packageJson = await readJson("package.json");
   const ci = await readRequired(".github/workflows/ci.yml");
   const fuzz = await readRequired(".github/workflows/fuzz.yml");
 
+  assert.equal(
+    packageScript(packageJson, "test:parser"),
+    "tree-sitter test --grammar-path . && tree-sitter test --grammar-path src/state",
+  );
   assert.match(ci, /tree-sitter\/setup-action\/cli@[0-9a-f]{40}/u);
   assert.match(ci, /tree-sitter\/parser-test-action@[0-9a-f]{40}/u);
   assert.match(ci, /tree-sitter-ref:\s*v0\.26\.12/u);
   assert.match(ci, /abi-version:\s*["']?15["']?/u);
+  assert.match(
+    ci,
+    /test-parser-cmd: tree-sitter test --grammar-path \. && tree-sitter test --grammar-path src\/state/u,
+  );
+  assert.match(ci, /tree-sitter-logrotate_state\.so["']? src\/state/u);
   assert.match(ci, /ts_query_ls\/releases\/download\/v3\.16\.0/u);
   assert.match(ci, /35859176141c3ebaac231000fd96d50a14c6bc26963f0a1662aac33f656d443d/u);
   assert.match(ci, /ts_query_ls[^\n]*check\s+--format/u);
@@ -1062,6 +1079,12 @@ test("CI declares the required cross-platform and compatibility surfaces", async
   assert.match(ci, /npm\s+run\s+check:generated/u);
   assert.match(ci, /npm\s+run\s+build:native/u);
   assert.match(ci, /npm\s+run\s+build:wasm/u);
+  assert.match(ci, /npm\s+run\s+test:neovim/u);
+  assert.match(ci, /68ea43cd0c28af25cd47731308c94fedfcfd1b0b/u);
+  assert.match(ci, /1c9002a70ebcc77ddec169d779fea6f64ccf755a/u);
+  assert.match(ci, /a06c2e4415e9bc0346c6b86d401879ffb44058f7/u);
+  assert.match(ci, /a1bcffc8095c142ad1f7a9671a4ae180333f9209/u);
+  assert.match(ci, /NVIM_TREESITTER_RUNTIME/u);
   assert.match(ci, /npm exec --yes --allow-scripts=tree-sitter-cli/u);
   assert.match(ci, /tree-sitter-cli@\$\{TREE_SITTER_VERSION\}/u);
 
@@ -1086,6 +1109,7 @@ test("CI declares the required cross-platform and compatibility surfaces", async
     "build",
     "fixtures",
     "wasm-browser",
+    "neovim",
     "tree-sitter-cli",
     "go",
     "python",

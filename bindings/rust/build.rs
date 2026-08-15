@@ -9,12 +9,16 @@ fn main() {
 
     if std::env::var("TARGET").unwrap() == "wasm32-unknown-unknown" {
         let Ok(wasm_headers) = std::env::var("DEP_TREE_SITTER_LANGUAGE_WASM_HEADERS") else {
-            panic!("Environment variable DEP_TREE_SITTER_LANGUAGE_WASM_HEADERS must be set by the language crate");
+            panic!(
+                "Environment variable DEP_TREE_SITTER_LANGUAGE_WASM_HEADERS must be set by the language crate"
+            );
         };
         let Ok(wasm_src) =
             std::env::var("DEP_TREE_SITTER_LANGUAGE_WASM_SRC").map(std::path::PathBuf::from)
         else {
-            panic!("Environment variable DEP_TREE_SITTER_LANGUAGE_WASM_SRC must be set by the language crate");
+            panic!(
+                "Environment variable DEP_TREE_SITTER_LANGUAGE_WASM_SRC must be set by the language crate"
+            );
         };
 
         c_config.include(&wasm_headers);
@@ -29,6 +33,13 @@ fn main() {
     c_config.file(&parser_path);
     println!("cargo:rerun-if-changed={}", parser_path.to_str().unwrap());
 
+    let state_parser_path = src_dir.join("state/src/parser.c");
+    c_config.file(&state_parser_path);
+    println!(
+        "cargo:rerun-if-changed={}",
+        state_parser_path.to_str().unwrap()
+    );
+
     let scanner_path = src_dir.join("scanner.c");
     if scanner_path.exists() {
         c_config.file(&scanner_path);
@@ -38,11 +49,15 @@ fn main() {
     c_config.compile("tree-sitter-logrotate");
 
     println!("cargo:rustc-check-cfg=cfg(with_highlights_query)");
-    if !"queries/highlights.scm".is_empty() && std::path::Path::new("queries/highlights.scm").exists() {
+    if !"queries/highlights.scm".is_empty()
+        && std::path::Path::new("queries/highlights.scm").exists()
+    {
         println!("cargo:rustc-cfg=with_highlights_query");
     }
     println!("cargo:rustc-check-cfg=cfg(with_injections_query)");
-    if !"queries/injections.scm".is_empty() && std::path::Path::new("queries/injections.scm").exists() {
+    if !"queries/injections.scm".is_empty()
+        && std::path::Path::new("queries/injections.scm").exists()
+    {
         println!("cargo:rustc-cfg=with_injections_query");
     }
     println!("cargo:rustc-check-cfg=cfg(with_locals_query)");

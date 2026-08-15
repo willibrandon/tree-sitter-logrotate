@@ -1,0 +1,133 @@
+==================
+Version 1
+==================
+logrotate state -- version 1
+"/var/log/application.log" 2026-8-14-12:30:45
+
+---
+
+(source_file
+  (header
+    (header_keyword)
+    (version))
+  (record
+    (quoted_path)
+    (timestamp
+      (year)
+      (month)
+      (day)
+      (hour)
+      (minute)
+      (second))))
+
+==================
+Version 2
+==================
+logrotate state -- version 2
+"/var/log/application.log" 2026-8-14-12:30:45
+
+---
+
+(source_file
+  (header
+    (header_keyword)
+    (version))
+  (record
+    (quoted_path)
+    (timestamp
+      (year)
+      (month)
+      (day)
+      (hour)
+      (minute)
+      (second))))
+
+==================
+Paths and timestamps
+==================
+logrotate state -- version 2
+"/var/log/application output.log" 2026-8-14
+"/var/log/escaped\"quote.log" 2026-8-14-12:30:45
+
+---
+
+(source_file
+  (header
+    (header_keyword)
+    (version))
+  (record
+    (quoted_path)
+    (timestamp
+      (year)
+      (month)
+      (day)))
+  (record
+    (quoted_path
+      (escape_sequence))
+    (timestamp
+      (year)
+      (month)
+      (day)
+      (hour)
+      (minute)
+      (second))))
+
+==================
+Blank lines
+==================
+logrotate state -- version 2
+
+"/var/log/application.log" 2026-8-14-12:30:45
+
+---
+
+(source_file
+  (header
+    (header_keyword)
+    (version))
+  (record
+    (quoted_path)
+    (timestamp
+      (year)
+      (month)
+      (day)
+      (hour)
+      (minute)
+      (second))))
+
+==================
+Malformed record recovers
+==================
+logrotate state -- version 2
+not a valid record
+"/var/log/application.log" 2026-8-14-12:30:45
+
+---
+
+(source_file
+  (header
+    (header_keyword)
+    (version))
+  (invalid_record)
+  (record
+    (quoted_path)
+    (timestamp
+      (year)
+      (month)
+      (day)
+      (hour)
+      (minute)
+      (second))))
+
+==================
+Invalid header
+==================
+logrotate state -- version 3
+"/var/log/application.log" 2026-8-14-12:30:45
+
+---
+
+(ERROR
+  (header_keyword)
+  (invalid_record)
+  (invalid_record))

@@ -17,6 +17,9 @@ include /etc/logrotate.d
 #   ^^^^ keyword
 #        ^ operator
 #          ^^^^ number
+    create 0640 application adm
+#   ^^^^^^ keyword
+#          ^^^^ number
     vendor_option "literal value"
 #   ^^^^^^^^^^^^^ property
 #                 ^^^^^^^^^^^^^^^ string

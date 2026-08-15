@@ -14,6 +14,20 @@
       ],
       "injection-regex": "^logrotate$",
       "class-name": "TreeSitterLogrotate"
+    },
+    {
+      "name": "logrotate_state",
+      "camelcase": "LogrotateState",
+      "title": "Logrotate State",
+      "scope": "source.logrotate.state",
+      "path": "src/state",
+      "highlights": "src/state/queries/highlights.scm",
+      "file-types": [
+        "logrotate.status"
+      ],
+      "first-line-regex": "^logrotate state -- version [12]$",
+      "injection-regex": "^logrotate[-_ ]state$",
+      "class-name": "TreeSitterLogrotateState"
     }
   ],
   "metadata": {

@@ -8,21 +8,27 @@ CLI 0.26.12 and rebuilt in CI with 0.26.3, the declared minimum.
 
 ## Tested matrix
 
-| Surface | Tested versions and platforms |
-| --- | --- |
-| Native parser | Linux x64 and arm64, macOS arm64, Windows x64 and arm64 |
-| Tree-sitter CLI | 0.26.3 and 0.26.12 |
-| Node.js | Node.js 24.19.0 with `tree-sitter` 0.25.1 |
-| Python | CPython 3.10 through 3.14 |
-| Rust | Rust 1.85.0 and 1.97.1 |
-| Go | Go 1.23 and 1.26.5 |
-| Java | Java 25 with JTreeSitter 0.26 |
-| Swift | Swift 6.3.3 on macOS arm64 and Linux |
-| Zig | Zig 0.16.0 on Linux, macOS, and Windows |
-| WebAssembly | `web-tree-sitter` 0.26.12 in Node.js and Chromium |
+| Surface         | Tested versions and platforms                           |
+| --------------- | ------------------------------------------------------- |
+| Native parser   | Linux x64 and arm64, macOS arm64, Windows x64 and arm64 |
+| Tree-sitter CLI | 0.26.3 and 0.26.12                                      |
+| Node.js         | Node.js 24.19.0 with `tree-sitter` 0.25.1               |
+| Python          | CPython 3.10 through 3.14                               |
+| Rust            | Rust 1.85.0 and 1.97.1                                  |
+| Go              | Go 1.23 and 1.26.5                                      |
+| Java            | Java 25 with JTreeSitter 0.26                           |
+| Swift           | Swift 6.3.3 on macOS arm64 and Linux                    |
+| Zig             | Zig 0.16.0 on Linux, macOS, and Windows                 |
+| WebAssembly     | `web-tree-sitter` 0.26.12 in Node.js and Chromium       |
+| Neovim package  | Neovim 0.12.4 on Linux x64, macOS arm64, and Windows x64 |
+| Neovim main     | Pinned development revision on Linux x64                |
 
 Package installation and release consumer tests build from committed `src/parser.c` and
 `src/scanner.c`. Consumers do not need `tree-sitter generate`.
+
+The Neovim matrix installs the tagged package into separate empty native Neovim and LazyVim
+profiles on each stable platform. The development entry runs the same profiles and the direct
+runtime suite.
 
 ## ABI compatibility
 
@@ -57,6 +63,6 @@ Each release aligns package versions across all binding manifests. GitHub releas
 source archives, native packages, the WASM parser, checksums, CycloneDX SBOMs, signatures where the
 registry requires them, and GitHub provenance attestations.
 
-Use an immutable release tag or commit for editor integration. The [GitHub release
+Use an immutable release tag or commit for integrations. The [GitHub release
 page](https://github.com/willibrandon/tree-sitter-logrotate/releases) is the source for checksums and
 attested downloadable artifacts.

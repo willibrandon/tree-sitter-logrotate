@@ -42,6 +42,23 @@ public final class TreeSitterLogrotate {
         return call(lookup, "tree_sitter_logrotate");
     }
 
+    /**
+     * Get the tree-sitter language for logrotate state files.
+     */
+    public static MemorySegment stateLanguage() {
+        return stateLanguage(INSTANCE.findLibrary());
+    }
+
+    /**
+     * Get the tree-sitter language for logrotate state files.
+     *
+     * <strong>The {@linkplain Arena} used in the {@code lookup}
+     * must not be closed while the language is being used.</strong>
+     */
+    public static MemorySegment stateLanguage(SymbolLookup lookup) {
+        return call(lookup, "tree_sitter_logrotate_state");
+    }
+
     private synchronized SymbolLookup findLibrary() {
         if (lookup != null)
             return lookup;

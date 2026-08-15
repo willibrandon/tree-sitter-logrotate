@@ -1,10 +1,9 @@
 package tree_sitter_logrotate
 
 // #cgo CFLAGS: -std=c11 -fPIC
-// #include "../../src/parser.c"
-// #if __has_include("../../src/scanner.c")
-// #include "../../src/scanner.c"
-// #endif
+// typedef struct TSLanguage TSLanguage;
+// TSLanguage *tree_sitter_logrotate(void);
+// TSLanguage *tree_sitter_logrotate_state(void);
 import "C"
 
 import "unsafe"
@@ -12,4 +11,9 @@ import "unsafe"
 // Get the tree-sitter Language for this grammar.
 func Language() unsafe.Pointer {
 	return unsafe.Pointer(C.tree_sitter_logrotate())
+}
+
+// StateLanguage returns the tree-sitter language for logrotate state files.
+func StateLanguage() unsafe.Pointer {
+	return unsafe.Pointer(C.tree_sitter_logrotate_state())
 }

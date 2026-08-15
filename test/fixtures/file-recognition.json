@@ -1,43 +1,175 @@
 {
-  "fileNames": {
-    "accepted": [
-      "/etc/logrotate.conf",
-      "C:/ProgramData/logrotate/logrotate.conf",
-      "/etc/logrotate.d/application",
-      "C:/ProgramData/logrotate/logrotate.d/application",
-      "/tmp/application.logrotate",
-      "/tmp/application.logrotate.conf"
-    ],
-    "rejected": [
-      "/tmp/application.conf",
-      "/etc/logrotate.d/nested/application",
-      "C:/ProgramData/logrotate/logrotate.d/nested/application",
-      "/var/lib/logrotate/status"
-    ]
-  },
-  "firstLine": {
-    "pattern": "^\\s*(?:\"(?:[^\"\\\\]|\\\\.)+\"|'(?:[^'\\\\]|\\\\.)+'|(?:/|~/)(?:[^\\s{}#\\\\]|\\\\.)+)(?:\\s+(?:\"(?:[^\"\\\\]|\\\\.)+\"|'(?:[^'\\\\]|\\\\.)+'|(?:/|~/)(?:[^\\s{}#\\\\]|\\\\.)+))*\\s*\\{\\s*(?:#.*)?$",
-    "maximumLength": 8192,
-    "accepted": [
-      "/var/log/application.log {",
-      "  ~/logs/application.log { # project policy",
-      "\"/var/log/application output.log\" /var/log/second.log {",
-      "/var/log/application\\ output.log {"
-    ],
-    "rejected": [
-      "application.conf",
-      "/var/log/application.log",
-      "function deploy() {",
-      "#!/usr/bin/env bash",
-      "logrotate state -- version 1",
-      "logrotate state -- version 2"
-    ],
-    "boundary": {
-      "prefix": "/",
-      "repeat": "\\!",
-      "count": 4094,
-      "acceptedSuffix": "x {",
-      "rejectedSuffix": "xx {"
+  "configuration": {
+    "language": "logrotate",
+    "fileNames": {
+      "accepted": [
+        "/etc/logrotate.conf",
+        "C:/ProgramData/logrotate/logrotate.conf",
+        "/etc/logrotate.d/application",
+        "C:/ProgramData/logrotate/logrotate.d/application",
+        "/tmp/application.logrotate",
+        "/tmp/application.logrotate.conf"
+      ],
+      "rejected": [
+        "/tmp/application.conf",
+        "/etc/logrotate.d/nested/application",
+        "C:/ProgramData/logrotate/logrotate.d/nested/application",
+        "/var/lib/logrotate.status",
+        "/var/lib/logrotate/status"
+      ]
+    },
+    "firstLine": {
+      "pattern": "^\\s*(?:\"(?:[^\"\\\\]|\\\\.)+\"|'(?:[^'\\\\]|\\\\.)+'|(?:/|~/)(?:[^\\s{}#\\\\]|\\\\.)+)(?:\\s+(?:\"(?:[^\"\\\\]|\\\\.)+\"|'(?:[^'\\\\]|\\\\.)+'|(?:/|~/)(?:[^\\s{}#\\\\]|\\\\.)+))*\\s*\\{\\s*(?:#.*)?$",
+      "maximumLength": 8192,
+      "accepted": [
+        "/var/log/application.log {",
+        "  ~/logs/application.log { # project policy",
+        "\"/var/log/application output.log\" /var/log/second.log {",
+        "/var/log/application\\ output.log {"
+      ],
+      "rejected": [
+        "application.conf",
+        "/var/log/application.log",
+        "function deploy() {",
+        "#!/usr/bin/env bash",
+        "logrotate state -- version 1",
+        "logrotate state -- version 2"
+      ],
+      "boundary": {
+        "prefix": "/",
+        "repeat": "\\!",
+        "count": 4094,
+        "acceptedSuffix": "x {",
+        "rejectedSuffix": "xx {"
+      }
     }
+  },
+  "state": {
+    "language": "logrotate_state",
+    "fileNames": {
+      "accepted": [
+        "/var/lib/logrotate.status",
+        "C:/ProgramData/logrotate/logrotate.status",
+        "/var/lib/logrotate/status",
+        "C:/ProgramData/logrotate/status"
+      ],
+      "rejected": [
+        "/tmp/status",
+        "/var/lib/logrotate/nested/status",
+        "/var/lib/application.status",
+        "/etc/logrotate.d/status"
+      ]
+    },
+    "firstLine": {
+      "pattern": "^logrotate state -- version [12]$",
+      "maximumLength": 8192,
+      "accepted": [
+        "logrotate state -- version 1",
+        "logrotate state -- version 2"
+      ],
+      "rejected": [
+        "logrotate state -- version 0",
+        "logrotate state -- version 3",
+        " logrotate state -- version 2",
+        "logrotate state -- version 2 ",
+        "logrotate state -- version 20"
+      ]
+    }
+  },
+  "includes": {
+    "rootMustBeOpen": true,
+    "accepted": [
+      {
+        "name": "relative file",
+        "root": "/workspace/logrotate.conf",
+        "directive": "include application.conf",
+        "targetType": "file",
+        "files": [
+          "/workspace/application.conf"
+        ]
+      },
+      {
+        "name": "absolute file",
+        "root": "/etc/logrotate.conf",
+        "directive": "include /opt/logrotate/application",
+        "targetType": "file",
+        "files": [
+          "/opt/logrotate/application"
+        ]
+      },
+      {
+        "name": "quoted file",
+        "root": "/workspace/logrotate.conf",
+        "directive": "include \"parts/application config\"",
+        "targetType": "file",
+        "files": [
+          "/workspace/parts/application config"
+        ]
+      },
+      {
+        "name": "directory",
+        "root": "/workspace/logrotate.conf",
+        "directive": "include parts",
+        "targetType": "directory",
+        "files": [
+          "/workspace/parts/10-application",
+          "/workspace/parts/20-database"
+        ]
+      },
+      {
+        "name": "Windows relative file",
+        "root": "C:/ProgramData/logrotate/logrotate.conf",
+        "directive": "include parts/application.conf",
+        "targetType": "file",
+        "files": [
+          "C:/ProgramData/logrotate/parts/application.conf"
+        ]
+      },
+      {
+        "name": "Windows absolute file",
+        "root": "C:/ProgramData/logrotate/logrotate.conf",
+        "directive": "include D:/logrotate/application.conf",
+        "targetType": "file",
+        "files": [
+          "D:/logrotate/application.conf"
+        ]
+      }
+    ],
+    "rejected": [
+      {
+        "name": "closed root",
+        "root": "/workspace/logrotate.conf",
+        "rootOpen": false,
+        "directive": "include application.conf",
+        "files": [
+          "/workspace/application.conf"
+        ]
+      },
+      {
+        "name": "missing target",
+        "root": "/workspace/logrotate.conf",
+        "rootOpen": true,
+        "directive": "include missing.conf",
+        "files": []
+      },
+      {
+        "name": "nested directory entry",
+        "root": "/workspace/logrotate.conf",
+        "rootOpen": true,
+        "directive": "include parts",
+        "files": [
+          "/workspace/parts/nested/application"
+        ]
+      },
+      {
+        "name": "wildcard target",
+        "root": "/workspace/logrotate.conf",
+        "rootOpen": true,
+        "directive": "include parts/*.conf",
+        "files": [
+          "/workspace/parts/application.conf"
+        ]
+      }
+    ]
   }
 }

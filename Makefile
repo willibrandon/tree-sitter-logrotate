@@ -18,8 +18,9 @@ PCLIBDIR ?= $(LIBDIR)/pkgconfig
 
 # source/object files
 PARSER := $(SRC_DIR)/parser.c
+STATE_PARSER := $(SRC_DIR)/state/src/parser.c
 EXTRAS := $(filter-out $(PARSER),$(wildcard $(SRC_DIR)/*.c))
-OBJS := $(patsubst %.c,%.o,$(PARSER) $(EXTRAS))
+OBJS := $(patsubst %.c,%.o,$(PARSER) $(STATE_PARSER) $(EXTRAS))
 
 # flags
 ARFLAGS ?= rcs
@@ -79,8 +80,11 @@ $(SRC_DIR)/grammar.json: grammar.js
 $(PARSER): $(SRC_DIR)/grammar.json
 	$(TS) generate $^
 
+$(STATE_PARSER): $(SRC_DIR)/state/grammar.js
+	$(TS) generate --abi 15 --output $(SRC_DIR)/state/src $^
+
 install: all
-	install -d '$(DESTDIR)$(DATADIR)'/tree-sitter/queries/logrotate '$(DESTDIR)$(INCLUDEDIR)'/tree_sitter '$(DESTDIR)$(PCLIBDIR)' '$(DESTDIR)$(LIBDIR)'
+	install -d '$(DESTDIR)$(DATADIR)'/tree-sitter/queries/logrotate '$(DESTDIR)$(DATADIR)'/tree-sitter/queries/logrotate_state '$(DESTDIR)$(INCLUDEDIR)'/tree_sitter '$(DESTDIR)$(PCLIBDIR)' '$(DESTDIR)$(LIBDIR)'
 	install -m644 bindings/c/tree_sitter/$(LANGUAGE_NAME).h '$(DESTDIR)$(INCLUDEDIR)'/tree_sitter/$(LANGUAGE_NAME).h
 	install -m644 $(LANGUAGE_NAME).pc '$(DESTDIR)$(PCLIBDIR)'/$(LANGUAGE_NAME).pc
 	install -m644 lib$(LANGUAGE_NAME).a '$(DESTDIR)$(LIBDIR)'/lib$(LANGUAGE_NAME).a
@@ -97,6 +101,9 @@ endif
 ifneq ($(wildcard queries/*.scm),)
 	install -m644 queries/*.scm '$(DESTDIR)$(DATADIR)'/tree-sitter/queries/logrotate
 endif
+ifneq ($(wildcard src/state/queries/*.scm),)
+	install -m644 src/state/queries/*.scm '$(DESTDIR)$(DATADIR)'/tree-sitter/queries/logrotate_state
+endif
 
 uninstall:
 	$(RM) '$(DESTDIR)$(LIBDIR)'/lib$(LANGUAGE_NAME).a \
@@ -106,6 +113,7 @@ uninstall:
 		'$(DESTDIR)$(INCLUDEDIR)'/tree_sitter/$(LANGUAGE_NAME).h \
 		'$(DESTDIR)$(PCLIBDIR)'/$(LANGUAGE_NAME).pc
 	$(RM) -r '$(DESTDIR)$(DATADIR)'/tree-sitter/queries/logrotate
+	$(RM) -r '$(DESTDIR)$(DATADIR)'/tree-sitter/queries/logrotate_state
 
 clean:
 	$(RM) $(OBJS) $(LANGUAGE_NAME).pc lib$(LANGUAGE_NAME).a lib$(LANGUAGE_NAME).$(SOEXT) lib$(LANGUAGE_NAME).dll.a

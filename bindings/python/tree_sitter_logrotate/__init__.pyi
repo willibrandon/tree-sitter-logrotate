@@ -13,5 +13,11 @@ LOCALS_QUERY: Final[str] | None
 TAGS_QUERY: Final[str] | None
 """The symbol tagging query for this grammar."""
 
+STATE_HIGHLIGHTS_QUERY: Final[str] | None
+"""The syntax highlighting query for logrotate state files."""
+
 def language() -> CapsuleType:
     """The tree-sitter language function for this grammar."""
+
+def state_language() -> CapsuleType:
+    """The tree-sitter language function for logrotate state files."""

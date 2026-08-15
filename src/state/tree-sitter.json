@@ -1,0 +1,42 @@
+{
+  "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/config.schema.json",
+  "grammars": [
+    {
+      "name": "logrotate_state",
+      "camelcase": "LogrotateState",
+      "title": "Logrotate State",
+      "scope": "source.logrotate.state",
+      "highlights": "queries/highlights.scm",
+      "file-types": [
+        "logrotate.status"
+      ],
+      "first-line-regex": "^logrotate state -- version [12]$",
+      "injection-regex": "^logrotate[-_ ]state$",
+      "class-name": "TreeSitterLogrotateState"
+    }
+  ],
+  "metadata": {
+    "version": "0.1.3",
+    "license": "MIT",
+    "description": "Logrotate state grammar for Tree-sitter",
+    "authors": [
+      {
+        "name": "Brandon Williams",
+        "url": "https://github.com/willibrandon"
+      }
+    ],
+    "links": {
+      "repository": "https://github.com/willibrandon/tree-sitter-logrotate"
+    }
+  },
+  "bindings": {
+    "c": false,
+    "go": false,
+    "java": false,
+    "node": false,
+    "python": false,
+    "rust": false,
+    "swift": false,
+    "zig": false
+  }
+}
