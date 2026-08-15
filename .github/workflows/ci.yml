@@ -93,9 +93,12 @@ jobs:
       - name: Install dependencies and Chromium
         run: |
           npm run ci:install
+          npm run docs:install
           npx playwright install --with-deps chromium
-      - name: Test the browser WASM package
-        run: npm run test:wasm
+      - name: Test browser WASM and the documentation playground
+        run: |
+          npm run test:wasm
+          npm run test:docs:playground
 
   neovim:
     name: Neovim ${{ matrix.channel }}

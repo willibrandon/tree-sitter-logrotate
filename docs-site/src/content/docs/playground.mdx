@@ -1,0 +1,26 @@
+---
+title: Playground
+description: Parse and highlight logrotate configuration and state text in the browser.
+tableOfContents: false
+---
+
+import Playground from "../../components/Playground.astro";
+
+The playground runs the released configuration and state parsers in your browser. Edit an example
+or paste your own text to see its highlights and concrete syntax tree update immediately.
+
+<Playground />
+
+## Read the result
+
+The source pane uses CodeMirror for editing, history, selection, bracket closing, line numbers,
+directive completion, and indentation through rotation, script, and common shell blocks. It uses the
+portable highlight query shipped with the selected parser. Shell commands inside script blocks use
+the shipped Bash injection and its highlight query. The syntax tree shows every named and anonymous
+node, its field name when one exists, and its source range. Parse recovery nodes and invalid state
+records are marked as issues.
+
+## Parser scope
+
+The result describes syntax. Includes remain paths in the tree, script bodies remain text, and all
+parsing happens locally in the browser. The playground does not read files or run logrotate.

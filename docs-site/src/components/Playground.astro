@@ -1,0 +1,1362 @@
+---
+import documentationManifest from "../../package.json";
+
+const parserVersion = documentationManifest.dependencies["tree-sitter-logrotate"];
+---
+
+<section class="playground not-content" data-logrotate-playground data-status="loading" aria-labelledby="playground-heading">
+  <div class="playground-header">
+    <div>
+      <h2 id="playground-heading">Try the parser</h2>
+      <p>Using tree-sitter-logrotate {parserVersion}</p>
+    </div>
+    <span class="runtime-status" data-runtime-status role="status" aria-live="polite">
+      Loading parser…
+    </span>
+  </div>
+
+  <div class="playground-toolbar" aria-label="Playground controls">
+    <div class="mode-switch" role="group" aria-label="Parser">
+      <button type="button" data-mode="configuration" aria-pressed="true">Configuration</button>
+      <button type="button" data-mode="state" aria-pressed="false">State</button>
+    </div>
+
+    <label class="example-picker">
+      <span>Example</span>
+      <select data-example aria-label="Example"></select>
+    </label>
+
+    <div class="toolbar-actions">
+      <button type="button" class="secondary-button" data-reset>Reset</button>
+      <button type="button" class="secondary-button" data-copy-tree>Copy tree</button>
+    </div>
+  </div>
+
+  <div class="workspace">
+    <section class="source-panel" aria-labelledby="source-heading">
+      <div class="panel-heading">
+        <h3 id="source-heading">Source</h3>
+        <span data-cursor-position>Line 1, column 1</span>
+      </div>
+      <div class="editor-shell">
+        <div class="source-editor" data-editor></div>
+        <output data-source-value hidden></output>
+      </div>
+    </section>
+
+    <section class="tree-panel" aria-labelledby="tree-heading">
+      <div class="panel-heading">
+        <h3 id="tree-heading">Syntax tree</h3>
+        <span data-node-count>0 nodes</span>
+      </div>
+      <pre class="syntax-tree" data-tree tabindex="0" aria-label="Concrete syntax tree"></pre>
+    </section>
+  </div>
+
+  <div class="result-bar">
+    <span class="result-summary" data-result-summary role="status" aria-live="polite">
+      Preparing the browser parser…
+    </span>
+    <span data-capture-count></span>
+  </div>
+
+  <div class="playground-error" data-playground-error role="alert" hidden></div>
+</section>
+
+<script>
+  import type { Completion, CompletionContext } from "@codemirror/autocomplete";
+  import { indentWithTab } from "@codemirror/commands";
+  import { indentService, indentUnit, type IndentContext } from "@codemirror/language";
+  import {
+    countColumn,
+    EditorState,
+    StateEffect,
+    StateField,
+    type Range,
+  } from "@codemirror/state";
+  import {
+    Decoration,
+    EditorView,
+    keymap,
+    type DecorationSet,
+  } from "@codemirror/view";
+  import { basicSetup } from "codemirror";
+  import type {
+    Language,
+    Node as SyntaxNode,
+    Parser as SyntaxParser,
+    Query,
+    QueryCapture,
+    Tree,
+  } from "web-tree-sitter";
+  import webTreeSitterModuleUrl from "web-tree-sitter?url";
+  import runtimeWasmUrl from "web-tree-sitter/web-tree-sitter.wasm?url";
+  import bashWasmUrl from "tree-sitter-bash/tree-sitter-bash.wasm?url";
+  import bashHighlights from "tree-sitter-bash/queries/highlights.scm?raw";
+  import configurationWasmUrl from "tree-sitter-logrotate/tree-sitter-logrotate.wasm?url";
+  import stateWasmUrl from "tree-sitter-logrotate/tree-sitter-logrotate-state.wasm?url";
+  import configurationHighlights from "tree-sitter-logrotate/queries/highlights.scm?raw";
+  import configurationInjections from "tree-sitter-logrotate/queries/injections.scm?raw";
+  import stateHighlights from "tree-sitter-logrotate/queries/logrotate_state/highlights.scm?raw";
+
+  type Mode = "configuration" | "state";
+
+  interface Example {
+    label: string;
+    source: string;
+  }
+
+  interface ParserResources {
+    createParser: () => SyntaxParser;
+    languages: Record<Mode, Language>;
+    queries: Record<Mode, Query>;
+    bash: {
+      language: Language;
+      query: Query;
+    };
+    configurationInjections: Query;
+  }
+
+  interface HighlightRange {
+    end: number;
+    name: string;
+    start: number;
+  }
+
+  const setHighlights = StateEffect.define<DecorationSet>();
+  const highlightField = StateField.define<DecorationSet>({
+    create: () => Decoration.none,
+    update: (highlights, transaction) => {
+      let next = highlights.map(transaction.changes);
+      for (const effect of transaction.effects) {
+        if (effect.is(setHighlights)) next = effect.value;
+      }
+      return next;
+    },
+    provide: (field) => EditorView.decorations.from(field),
+  });
+
+  const examples: Record<Mode, Example[]> = {
+    configuration: [
+      {
+        label: "Application rotation",
+        source: `/var/log/application/*.log {
+  daily
+  rotate 14
+  missingok
+  notifempty
+  compress
+  delaycompress
+  create 0640 application adm
+  sharedscripts
+
+  postrotate
+    systemctl reload application.service >/dev/null 2>&1 || true
+  endscript
+}
+`,
+      },
+      {
+        label: "Multiple and quoted paths",
+        source: `"/var/log/Customer Portal/access.log" /var/log/api/*.log {
+  size 100M
+  rotate 5
+  dateext
+  dateformat -%Y%m%d-%s
+  copytruncate
+}
+`,
+      },
+      {
+        label: "Globals and includes",
+        source: `weekly
+rotate 4
+create
+dateext
+include /etc/logrotate.d
+include "/opt/application/logrotate.conf"
+`,
+      },
+      {
+        label: "Incomplete script block",
+        source: `/var/log/application.log {
+  rotate 7
+  postrotate
+    systemctl reload application.service
+`,
+      },
+    ],
+    state: [
+      {
+        label: "Version 2 state",
+        source: `logrotate state -- version 2
+"/var/log/application.log" 2026-8-14-12:30:45
+"/var/log/nginx/access.log" 2026-8-14-0:0:0
+`,
+      },
+      {
+        label: "Version 1 state",
+        source: `logrotate state -- version 1
+"/var/log/messages" 2026-8-13
+"/var/log/secure" 2026-8-12
+`,
+      },
+      {
+        label: "Escaped paths",
+        source: `logrotate state -- version 2
+"/var/log/customer\\ portal/access.log" 2026-8-14-23:59:59
+"/var/log/quoted\\\"name.log" 2026-8-14-1:2:3
+`,
+      },
+      {
+        label: "Malformed record",
+        source: `logrotate state -- version 2
+"/var/log/application.log" yesterday
+`,
+      },
+    ],
+  };
+
+  let resourcesPromise: Promise<ParserResources> | undefined;
+
+  const loadResources = (): Promise<ParserResources> => {
+    resourcesPromise ??= (async () => {
+      const { Language, Parser, Query } = await import(/* @vite-ignore */ webTreeSitterModuleUrl);
+      await Parser.init({ locateFile: () => runtimeWasmUrl });
+      const [bash, configuration, state] = await Promise.all([
+        Language.load(bashWasmUrl),
+        Language.load(configurationWasmUrl),
+        Language.load(stateWasmUrl),
+      ]);
+      return {
+        createParser: () => new Parser(),
+        languages: { configuration, state },
+        queries: {
+          configuration: new Query(configuration, configurationHighlights),
+          state: new Query(state, stateHighlights),
+        },
+        bash: {
+          language: bash,
+          query: new Query(bash, bashHighlights),
+        },
+        configurationInjections: new Query(configuration, configurationInjections),
+      };
+    })();
+    return resourcesPromise;
+  };
+
+  const required = <T extends Element>(root: Element, selector: string): T => {
+    const element = root.querySelector<T>(selector);
+    if (element === null) throw new Error(`Playground element not found: ${selector}`);
+    return element;
+  };
+
+  const captureClass = (name: string) => `capture-${name.replaceAll(".", "-")}`;
+
+  const buildHighlightDecorations = (
+    source: string,
+    captures: HighlightRange[],
+  ): DecorationSet => {
+    const ranges = captures
+      .map((capture, order) => ({
+        className: captureClass(capture.name),
+        end: capture.end,
+        name: capture.name,
+        order,
+        start: capture.start,
+      }))
+      .filter(({ end, start }) => end > start);
+    const boundaries = [...new Set([0, source.length, ...ranges.flatMap(({ start, end }) => [start, end])])]
+      .sort((left, right) => left - right);
+    const sortedRanges = [...ranges].sort((left, right) => left.start - right.start);
+    const decorations: Range<Decoration>[] = [];
+    const activeRanges = new Set<(typeof ranges)[number]>();
+    let nextRange = 0;
+
+    for (let index = 0; index < boundaries.length - 1; index += 1) {
+      const start = boundaries[index];
+      const end = boundaries[index + 1];
+      for (const range of activeRanges) {
+        if (range.end <= start) activeRanges.delete(range);
+      }
+      while (nextRange < sortedRanges.length && sortedRanges[nextRange].start <= start) {
+        activeRanges.add(sortedRanges[nextRange]);
+        nextRange += 1;
+      }
+      const candidates = [...activeRanges]
+        .filter((range) => range.end >= end)
+        .sort((left, right) => {
+          const sizeDifference = (left.end - left.start) - (right.end - right.start);
+          return sizeDifference === 0 ? right.order - left.order : sizeDifference;
+        });
+      const text = source.slice(start, end);
+      if (candidates.length > 0 && text.length > 0) {
+        decorations.push(Decoration.mark({
+          attributes: { "data-capture": candidates[0].name },
+          class: candidates[0].className,
+        }).range(start, end));
+      }
+    }
+    return Decoration.set(decorations, true);
+  };
+
+  const scriptDirectives = new Set([
+    "firstaction",
+    "lastaction",
+    "postrotate",
+    "preremove",
+    "prerotate",
+  ]);
+
+  const completionGroups = [
+    { detail: "frequency", words: ["hourly", "minutes", "daily", "weekly", "monthly", "yearly"] },
+    { detail: "retention", words: ["size", "minsize", "maxsize", "minage", "maxage", "rotate", "start"] },
+    { detail: "compression", words: ["compress", "nocompress", "delaycompress", "nodelaycompress", "compresscmd", "uncompresscmd", "compressext", "compressoptions"] },
+    { detail: "copy", words: ["copy", "nocopy", "copytruncate", "nocopytruncate", "renamecopy", "norenamecopy", "allowhardlink", "noallowhardlink"] },
+    { detail: "files", words: ["create", "nocreate", "createolddir", "nocreateolddir", "olddir", "noolddir", "su"] },
+    { detail: "filenames", words: ["dateext", "nodateext", "dateformat", "dateyesterday", "nodateyesterday", "datehourago", "nodatehourago", "extension", "addextension"] },
+    { detail: "selection", words: ["missingok", "nomissingok", "ifempty", "notifempty", "ignoreduplicates"] },
+    { detail: "mail", words: ["mail", "nomail", "mailfirst", "maillast"] },
+    { detail: "removal", words: ["shred", "noshred", "shredcycles"] },
+    { detail: "scripts", words: ["firstaction", "lastaction", "prerotate", "postrotate", "preremove", "sharedscripts", "nosharedscripts"] },
+    { detail: "inclusion", words: ["include", "tabooext", "taboopat"] },
+    { detail: "compatibility", words: ["errors"] },
+  ] as const;
+
+  const globalOnlyDirectives = new Set<string>(["include", "tabooext", "taboopat"]);
+  const blockOnlyDirectives = new Set<string>(scriptDirectives);
+  const directiveCompletions: Completion[] = completionGroups.flatMap(({ detail, words }) =>
+    words.map((label) => ({
+      detail,
+      label,
+      type: "keyword",
+    })),
+  ).sort((left, right) => left.label.localeCompare(right.label));
+  const endscriptCompletion: Completion = {
+    detail: "scripts",
+    info: "Terminate the current logrotate shell script block.",
+    label: "endscript",
+    type: "keyword",
+  };
+
+  const leadingColumns = (line: string, tabSize: number) =>
+    countColumn(line.match(/^[\t ]*/u)?.[0] ?? "", tabSize);
+
+  const lineKeyword = (line: string) => {
+    const match = line.match(/^\s*([a-z]+)\s*(?:#.*)?$/iu);
+    return match?.[1].toLowerCase();
+  };
+
+  const quotedPathPattern = String.raw`(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')`;
+  const unquotedPathPattern = String.raw`(?:/|~)(?:[^\s{}\\]|\\.)*`;
+  const pathPattern = String.raw`(?:${quotedPathPattern}|${unquotedPathPattern})`;
+  const pathListPattern = String.raw`${pathPattern}(?:[\t ]+${pathPattern})*`;
+  const stanzaHeaderPattern = new RegExp(
+    String.raw`^[\t ]*${pathListPattern}[\t ]*\{[\t ]*(?:#.*)?\r?$`,
+    "u",
+  );
+  const pathListLinePattern = new RegExp(String.raw`^[\t ]*${pathListPattern}[\t ]*\r?$`, "u");
+
+  const isRecoveryStanzaHeader = (line: string) => {
+    if (line[0] !== "/" && line[0] !== "~") return false;
+    let escaped = false;
+    let quote: "'" | "\"" | null = null;
+    for (let index = 0; index < line.length; index += 1) {
+      const character = line[index];
+      if (escaped) {
+        escaped = false;
+      } else if (character === "\\") {
+        escaped = true;
+      } else if (quote !== null) {
+        if (character === quote) quote = null;
+      } else if (character === "'" || character === "\"") {
+        quote = character;
+      } else if (character === "{") {
+        return /^[\t ]*\r?$/u.test(line.slice(index + 1));
+      }
+    }
+    return false;
+  };
+
+  interface ConfigurationContextState {
+    activeScript: { bodyStart: number; indent: number } | null;
+    inRotationBlock: boolean;
+  }
+
+  const scanConfigurationContext = (
+    source: string,
+    position: number,
+    tabSize: number,
+  ): ConfigurationContextState => {
+    const lines = source.slice(0, position).split("\n");
+    let activeScript: ConfigurationContextState["activeScript"] = null;
+    let inRotationBlock = false;
+    let pendingPathList = false;
+    let previousLine: string | null = null;
+    let offset = 0;
+    for (const line of lines.slice(0, -1)) {
+      const keyword = lineKeyword(line);
+      let consumed = false;
+
+      if (activeScript !== null) {
+        if (keyword === "endscript") {
+          activeScript = null;
+        } else if (
+          previousLine !== null
+          && /^\}[\t ]*\r?$/u.test(previousLine)
+          && isRecoveryStanzaHeader(line)
+        ) {
+          activeScript = null;
+          inRotationBlock = true;
+          pendingPathList = false;
+        }
+        consumed = true;
+      }
+
+      if (!consumed && inRotationBlock) {
+        if (/^[\t ]*\}[\t ]*(?:#.*)?\r?$/u.test(line)) {
+          inRotationBlock = false;
+        } else if (keyword !== undefined && scriptDirectives.has(keyword)) {
+          activeScript = {
+            bodyStart: offset + line.length + 1,
+            indent: leadingColumns(line, tabSize),
+          };
+        }
+        pendingPathList = false;
+      } else if (!consumed) {
+        if (stanzaHeaderPattern.test(line)) {
+          inRotationBlock = true;
+          pendingPathList = false;
+        } else if (pendingPathList && /^[\t ]*\{[\t ]*(?:#.*)?\r?$/u.test(line)) {
+          inRotationBlock = true;
+          pendingPathList = false;
+        } else if (pathListLinePattern.test(line)) {
+          pendingPathList = true;
+        } else if (!pendingPathList || !/^[\t ]*(?:#.*)?\r?$/u.test(line)) {
+          pendingPathList = false;
+        }
+      }
+
+      previousLine = line;
+      offset += line.length + 1;
+    }
+    return { activeScript, inRotationBlock };
+  };
+
+  type ShellFrame = "case" | "case-item" | "group" | "if" | "loop" | "subshell";
+
+  const shellCode = (line: string) => {
+    let code = "";
+    let quote: "'" | "\"" | "`" | null = null;
+    let escaped = false;
+    for (let index = 0; index < line.length; index += 1) {
+      const character = line[index];
+      if (escaped) {
+        code += " ";
+        escaped = false;
+      } else if (character === "\\") {
+        code += " ";
+        escaped = true;
+      } else if (quote !== null) {
+        code += " ";
+        if (character === quote) quote = null;
+      } else if (character === "'" || character === "\"" || character === "`") {
+        code += " ";
+        quote = character;
+      } else if (character === "#" && (index === 0 || /\s/u.test(line[index - 1]))) {
+        break;
+      } else {
+        code += character;
+      }
+    }
+    return code.trim();
+  };
+
+  const popShellFrame = (frames: ShellFrame[], accepted: ShellFrame[]) => {
+    for (let index = frames.length - 1; index >= 0; index -= 1) {
+      if (accepted.includes(frames[index])) {
+        frames.splice(index, 1);
+        return;
+      }
+    }
+  };
+
+  const updateShellFrames = (frames: ShellFrame[], line: string) => {
+    const code = shellCode(line);
+    if (code.length === 0) return;
+    if (/^fi\b/u.test(code)) popShellFrame(frames, ["if"]);
+    else if (/^done\b/u.test(code)) popShellFrame(frames, ["loop"]);
+    else if (/^esac\b/u.test(code)) {
+      popShellFrame(frames, ["case-item"]);
+      popShellFrame(frames, ["case"]);
+    } else if (/^;;/u.test(code)) {
+      popShellFrame(frames, ["case-item"]);
+    } else if (/^\}/u.test(code)) {
+      popShellFrame(frames, ["group"]);
+    } else if (/^\)/u.test(code)) {
+      popShellFrame(frames, ["subshell"]);
+    }
+
+    if (/(?:^|[;&|]\s*)if\b/u.test(code) && !/\bfi\s*$/u.test(code)) {
+      frames.push("if");
+    }
+    if (/(?:^|[;&|]\s*)(?:for|select|until|while)\b/u.test(code) && !/\bdone\s*$/u.test(code)) {
+      frames.push("loop");
+    }
+    if (/^case\b[\s\S]*\bin\s*$/u.test(code) && !/\besac\s*$/u.test(code)) {
+      frames.push("case");
+    } else if (
+      frames.at(-1) === "case"
+      && /\)\s*$/u.test(code)
+      && !/^(?:function\s+)?[A-Za-z_][A-Za-z0-9_]*\s*\(\s*\)\s*\{/u.test(code)
+    ) {
+      frames.push("case-item");
+    }
+    if (/\{\s*$/u.test(code)) frames.push("group");
+    if (/^(?:\$)?\(\s*$/u.test(code)) frames.push("subshell");
+  };
+
+  const bashIndent = (sourceBeforeLine: string, currentLine: string, indentUnit: number) => {
+    const frames: ShellFrame[] = [];
+    for (const line of sourceBeforeLine.split("\n")) updateShellFrames(frames, line);
+    const current = shellCode(currentLine);
+    let levels = frames.length;
+    if (/^(?:then|do|elif\b.*|else|fi|done|esac|\}|\)|;;)\s*$/u.test(current)) {
+      levels = Math.max(0, levels - 1);
+    }
+    return levels * indentUnit;
+  };
+
+  type CompletionScope = "block" | "global" | "script";
+
+  const completionScopeAt = (
+    source: string,
+    position: number,
+    tabSize: number,
+  ): CompletionScope => {
+    const context = scanConfigurationContext(source, position, tabSize);
+    if (context.activeScript !== null) return "script";
+    return context.inRotationBlock ? "block" : "global";
+  };
+
+  const logrotateCompletionSource = (currentMode: () => Mode) =>
+    (context: CompletionContext) => {
+      if (currentMode() !== "configuration") return null;
+
+      const line = context.state.doc.lineAt(context.pos);
+      const word = context.matchBefore(/[A-Za-z][A-Za-z0-9_-]*$/u);
+      if (word === null && !context.explicit) return null;
+      const from = word?.from ?? context.pos;
+      if (!/^\s*$/u.test(context.state.sliceDoc(line.from, from))) return null;
+
+      const scope = completionScopeAt(
+        context.state.doc.toString(),
+        line.from,
+        context.state.tabSize,
+      );
+      const applicable = scope === "script"
+        ? [endscriptCompletion]
+        : directiveCompletions.filter(({ label }) => scope === "global"
+          ? !blockOnlyDirectives.has(label)
+          : !globalOnlyDirectives.has(label));
+      const prefix = word?.text.toLowerCase() ?? "";
+      const options = applicable.filter(({ label }) => label.startsWith(prefix));
+
+      return {
+        filter: false,
+        from,
+        options,
+        validFor: new RegExp(`^${prefix}$`, "iu"),
+      };
+    };
+
+  const configurationIndent = (
+    context: IndentContext,
+    position: number,
+  ) => {
+    let source = context.state.doc.toString();
+    if (context.simulatedBreak === position) {
+      const isDoubleBreak = context.lineAt(position, -1).text.length === 0
+        && context.lineAt(position, 1).text.length === 0;
+      const breakCount = isDoubleBreak ? 2 : 1;
+      source = `${source.slice(0, position)}${"\n".repeat(breakCount)}${source.slice(position)}`;
+      position += 1;
+    }
+    const lineStart = source.lastIndexOf("\n", Math.max(0, position - 1)) + 1;
+    const nextBreak = source.indexOf("\n", lineStart);
+    const currentLine = source.slice(lineStart, nextBreak === -1 ? source.length : nextBreak);
+    const state = scanConfigurationContext(source, lineStart, context.state.tabSize);
+    if (state.activeScript !== null) {
+      if (lineKeyword(currentLine) === "endscript") return state.activeScript.indent;
+      const shellBeforeLine = source.slice(state.activeScript.bodyStart, lineStart);
+      return state.activeScript.indent
+        + context.unit
+        + bashIndent(shellBeforeLine, currentLine, context.unit);
+    }
+    if (/^\s*\}/u.test(currentLine)) return 0;
+    return state.inRotationBlock ? context.unit : 0;
+  };
+
+  const rangesFromCaptures = (captures: QueryCapture[], offset = 0): HighlightRange[] =>
+    captures.map((capture) => ({
+      end: offset + capture.node.endIndex,
+      name: capture.name,
+      start: offset + capture.node.startIndex,
+    }));
+
+  const injectedBashRanges = (
+    resources: ParserResources,
+    parser: SyntaxParser,
+    rootNode: SyntaxNode,
+    source: string,
+  ): HighlightRange[] => {
+    const ranges: HighlightRange[] = [];
+    parser.setLanguage(resources.bash.language);
+
+    for (const match of resources.configurationInjections.matches(rootNode)) {
+      if (match.setProperties?.["injection.language"] !== "bash") continue;
+      for (const capture of match.captures) {
+        if (capture.name !== "injection.content") continue;
+        const start = capture.node.startIndex;
+        const injectedTree = parser.parse(source.slice(start, capture.node.endIndex));
+        if (injectedTree === null) {
+          throw new Error("The Bash parser did not return a syntax tree.");
+        }
+        ranges.push(...rangesFromCaptures(resources.bash.query.captures(injectedTree.rootNode), start));
+        injectedTree.delete();
+      }
+    }
+
+    return ranges;
+  };
+
+  const formatPoint = ({ row, column }: { row: number; column: number }) =>
+    `${String(row + 1)}:${String(column + 1)}`;
+
+  const renderTree = (output: HTMLElement, rootNode: SyntaxNode) => {
+    const fragment = document.createDocumentFragment();
+    let nodeCount = 0;
+    const maximumNodes = 2_000;
+
+    const appendNode = (node: SyntaxNode, depth: number, fieldName: string | null) => {
+      if (nodeCount >= maximumNodes) return;
+      nodeCount += 1;
+      const line = document.createElement("span");
+      line.className = "tree-line";
+      if (node.isError || node.isMissing || node.type === "invalid_record") {
+        line.classList.add("tree-issue");
+      } else if (!node.isNamed) {
+        line.classList.add("tree-anonymous");
+      }
+      line.append("  ".repeat(depth));
+      if (fieldName !== null) {
+        const field = document.createElement("span");
+        field.className = "tree-field";
+        field.textContent = `${fieldName}: `;
+        line.append(field);
+      }
+      const type = document.createElement("span");
+      type.className = "tree-type";
+      type.textContent = node.isMissing
+        ? `MISSING ${node.type}`
+        : node.isNamed
+          ? node.type
+          : JSON.stringify(node.type);
+      const range = document.createElement("span");
+      range.className = "tree-range";
+      range.textContent = ` [${formatPoint(node.startPosition)}–${formatPoint(node.endPosition)}]`;
+      line.append(type);
+      if (node.isNamed && node.childCount === 0 && node.text.length > 0) {
+        const value = document.createElement("span");
+        value.className = "tree-value";
+        const text = node.text.length > 80 ? `${node.text.slice(0, 77)}…` : node.text;
+        value.textContent = ` ${JSON.stringify(text)}`;
+        line.append(value);
+      }
+      line.append(range, "\n");
+      fragment.append(line);
+
+      for (let index = 0; index < node.childCount && nodeCount < maximumNodes; index += 1) {
+        const child = node.child(index);
+        if (child !== null) appendNode(child, depth + 1, node.fieldNameForChild(index));
+      }
+    };
+
+    appendNode(rootNode, 0, null);
+    if (nodeCount >= maximumNodes) fragment.append("… tree output truncated at 2,000 nodes\n");
+    output.replaceChildren(fragment);
+    return nodeCount;
+  };
+
+  const collectIssues = (rootNode: SyntaxNode) => {
+    const issues: SyntaxNode[] = [];
+    const visit = (node: SyntaxNode) => {
+      if (node.isError || node.isMissing || node.type === "invalid_record") issues.push(node);
+      for (const child of node.children) visit(child);
+    };
+    visit(rootNode);
+    return issues;
+  };
+
+  const countNamedNodes = (rootNode: SyntaxNode) => {
+    let count = 0;
+    const visit = (node: SyntaxNode) => {
+      if (node.isNamed) count += 1;
+      for (const child of node.namedChildren) visit(child);
+    };
+    visit(rootNode);
+    return count;
+  };
+
+  const initialize = async (root: HTMLElement) => {
+    if (root.dataset.initialized === "true") return;
+    root.dataset.initialized = "true";
+
+    const editorHost = required<HTMLElement>(root, "[data-editor]");
+    const sourceValue = required<HTMLOutputElement>(root, "[data-source-value]");
+    const treeOutput = required<HTMLElement>(root, "[data-tree]");
+    const examplePicker = required<HTMLSelectElement>(root, "[data-example]");
+    const runtimeStatus = required<HTMLElement>(root, "[data-runtime-status]");
+    const resultSummary = required<HTMLElement>(root, "[data-result-summary]");
+    const nodeCount = required<HTMLElement>(root, "[data-node-count]");
+    const captureCount = required<HTMLElement>(root, "[data-capture-count]");
+    const cursorPosition = required<HTMLElement>(root, "[data-cursor-position]");
+    const errorOutput = required<HTMLElement>(root, "[data-playground-error]");
+    const reset = required<HTMLButtonElement>(root, "[data-reset]");
+    const copyTree = required<HTMLButtonElement>(root, "[data-copy-tree]");
+    const modeButtons = [...root.querySelectorAll<HTMLButtonElement>("[data-mode]")];
+    let mode: Mode = "configuration";
+    let tree: Tree | null = null;
+    let parseTimer: number | undefined;
+
+    try {
+      const resources = await loadResources();
+      const parser = resources.createParser();
+      const injectionParser = resources.createParser();
+      const completionSource = logrotateCompletionSource(() => mode);
+      let editor: EditorView;
+
+      const updateCursorPosition = () => {
+        const head = editor.state.selection.main.head;
+        const line = editor.state.doc.lineAt(head);
+        cursorPosition.textContent = `Line ${String(line.number)}, column ${String(head - line.from + 1)}`;
+      };
+
+      const parse = () => {
+        if (parseTimer !== undefined) {
+          window.clearTimeout(parseTimer);
+          parseTimer = undefined;
+        }
+        const source = editor.state.doc.toString();
+        sourceValue.textContent = source;
+        parser.setLanguage(resources.languages[mode]);
+        const nextTree = parser.parse(source);
+        if (nextTree === null) throw new Error("The browser parser did not return a syntax tree.");
+        tree?.delete();
+        tree = nextTree;
+        const captures = rangesFromCaptures(resources.queries[mode].captures(tree.rootNode));
+        if (mode === "configuration") {
+          captures.push(...injectedBashRanges(resources, injectionParser, tree.rootNode, source));
+        }
+        const issues = collectIssues(tree.rootNode);
+        const totalNodes = renderTree(treeOutput, tree.rootNode);
+        const namedNodes = countNamedNodes(tree.rootNode);
+        editor.dispatch({
+          effects: setHighlights.of(buildHighlightDecorations(source, captures)),
+        });
+        nodeCount.textContent = `${String(totalNodes)} nodes`;
+        captureCount.textContent = `${String(captures.length)} query captures · ${String(namedNodes)} named nodes`;
+        resultSummary.textContent = issues.length === 0
+          ? "Parsed without syntax issues"
+          : `${String(issues.length)} ${issues.length === 1 ? "parse issue" : "parse issues"}`;
+        root.dataset.result = issues.length === 0 ? "valid" : "issues";
+      };
+
+      const scheduleParse = () => {
+        if (parseTimer !== undefined) window.clearTimeout(parseTimer);
+        parseTimer = window.setTimeout(parse, 60);
+      };
+
+      editor = new EditorView({
+        parent: editorHost,
+        state: EditorState.create({
+          doc: examples.configuration[0].source,
+          extensions: [
+            basicSetup,
+            highlightField,
+            indentUnit.of("  "),
+            indentService.of((context, position) => mode === "state"
+              ? 0
+              : configurationIndent(context, position)),
+            EditorState.tabSize.of(2),
+            EditorState.languageData.of(() => [{
+              autocomplete: completionSource,
+              closeBrackets: { brackets: ["(", "[", "{", "'", "\"", "`"] },
+              commentTokens: { line: "#" },
+              indentOnInput: /^\s*(?:then|do|elif\b.*|else|fi|done|esac|endscript|\}|\)|;;)\s*$/u,
+            }]),
+            keymap.of([indentWithTab]),
+            EditorView.contentAttributes.of({
+              "aria-label": "Logrotate source",
+              autocapitalize: "off",
+              autocomplete: "off",
+              spellcheck: "false",
+            }),
+            EditorView.updateListener.of((update) => {
+              if (update.docChanged) {
+                sourceValue.textContent = update.state.doc.toString();
+                scheduleParse();
+              }
+              if (update.docChanged || update.selectionSet) updateCursorPosition();
+            }),
+          ],
+        }),
+      });
+
+      const populateExamples = () => {
+        examplePicker.replaceChildren(
+          ...examples[mode].map(({ label }, index) => {
+            const option = document.createElement("option");
+            option.value = String(index);
+            option.textContent = label;
+            return option;
+          }),
+        );
+      };
+
+      const loadExample = () => {
+        const index = Number.parseInt(examplePicker.value, 10);
+        const source = examples[mode][Number.isNaN(index) ? 0 : index].source;
+        if (parseTimer !== undefined) window.clearTimeout(parseTimer);
+        editor.dispatch({
+          changes: { from: 0, to: editor.state.doc.length, insert: source },
+          selection: { anchor: 0 },
+          scrollIntoView: true,
+        });
+        updateCursorPosition();
+        parse();
+      };
+
+      const setMode = (nextMode: Mode) => {
+        mode = nextMode;
+        for (const button of modeButtons) {
+          button.setAttribute("aria-pressed", String(button.dataset.mode === mode));
+        }
+        populateExamples();
+        examplePicker.value = "0";
+        loadExample();
+      };
+
+      for (const button of modeButtons) {
+        button.addEventListener("click", () => setMode(button.dataset.mode as Mode));
+      }
+      examplePicker.addEventListener("change", loadExample);
+      reset.addEventListener("click", loadExample);
+      copyTree.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(treeOutput.textContent ?? "");
+          copyTree.textContent = "Copied";
+        } catch {
+          copyTree.textContent = "Copy failed";
+        }
+        window.setTimeout(() => { copyTree.textContent = "Copy tree"; }, 1_200);
+      });
+
+      populateExamples();
+      loadExample();
+      runtimeStatus.textContent = "Browser parser ready";
+      root.dataset.status = "ready";
+    } catch (error) {
+      root.dataset.status = "failed";
+      runtimeStatus.textContent = "Parser failed to load";
+      errorOutput.hidden = false;
+      errorOutput.textContent = error instanceof Error ? error.message : String(error);
+    }
+  };
+
+  const initializePlaygrounds = () => {
+    for (const root of document.querySelectorAll<HTMLElement>("[data-logrotate-playground]")) {
+      void initialize(root);
+    }
+  };
+
+  initializePlaygrounds();
+  document.addEventListener("astro:page-load", initializePlaygrounds);
+</script>
+
+<style>
+  :global(:root:has([data-logrotate-playground])) {
+    --sl-content-width: 84rem;
+  }
+
+  :global(:root:has([data-logrotate-playground]) .sl-markdown-content > p) {
+    max-width: 62rem;
+  }
+
+  .playground {
+    --workbench-background: #f7f9f8;
+    --chrome-background: #edf2ef;
+    --panel-background: #ffffff;
+    --tree-background: #f6f8f7;
+    --gutter-background: #f1f4f2;
+    --editor-border: #c9d3cc;
+    --editor-foreground: #17211a;
+    --editor-muted: #607066;
+    --issue: #b42318;
+    --issue-background: #fff0ed;
+    --keyword: #7c3aed;
+    --property: #0969a8;
+    --path: #087a48;
+    --string: #9a4a00;
+    --number: #b54708;
+    --comment: #68756d;
+    --parameter: #005fb8;
+    --operator: #a23574;
+    margin-block: 1.5rem 2rem;
+    overflow: hidden;
+    border: 1px solid var(--editor-border);
+    border-radius: 0.75rem;
+    background: var(--workbench-background);
+    box-shadow: 0 1rem 3rem rgb(18 44 27 / 10%);
+    color: var(--editor-foreground);
+  }
+
+  :global(:root[data-theme="dark"]) .playground {
+    --workbench-background: #111613;
+    --chrome-background: #171e1a;
+    --panel-background: #0b100d;
+    --tree-background: #0e1410;
+    --gutter-background: #121814;
+    --editor-border: #2d3932;
+    --editor-foreground: #e2ebe4;
+    --editor-muted: #9caf9f;
+    --issue: #ff8a7a;
+    --issue-background: #351b19;
+    --keyword: #c6a0f6;
+    --property: #8aadf4;
+    --path: #8bd5ca;
+    --string: #f5a97f;
+    --number: #eed49f;
+    --comment: #939ab7;
+    --parameter: #91d7e3;
+    --operator: #f5bde6;
+    box-shadow: 0 0.75rem 2.5rem rgb(0 0 0 / 22%);
+  }
+
+  .playground-header,
+  .playground-toolbar,
+  .panel-heading,
+  .result-bar {
+    display: flex;
+    align-items: center;
+  }
+
+  .playground-header {
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.95rem 1.1rem 0.9rem;
+    border-bottom: 1px solid var(--editor-border);
+    background: var(--workbench-background);
+  }
+
+  .playground-header h2,
+  .panel-heading h3,
+  .playground-header p {
+    margin: 0;
+  }
+
+  .playground-header h2 {
+    font-size: 1.05rem;
+  }
+
+  .playground-header p,
+  .runtime-status,
+  .panel-heading span,
+  .result-bar {
+    color: var(--editor-muted);
+    font-size: 0.78rem;
+  }
+
+  .playground-header p {
+    margin-top: 0.15rem;
+  }
+
+  .runtime-status {
+    flex: none;
+    padding: 0.32rem 0.55rem;
+    border: 1px solid var(--editor-border);
+    border-radius: 999px;
+    background: var(--panel-background);
+  }
+
+  .runtime-status::before {
+    display: inline-block;
+    width: 0.55rem;
+    height: 0.55rem;
+    margin-right: 0.4rem;
+    border-radius: 50%;
+    background: #d97706;
+    content: "";
+  }
+
+  .playground[data-status="ready"] .runtime-status::before {
+    background: #168549;
+  }
+
+  .playground[data-status="failed"] .runtime-status::before {
+    background: var(--issue);
+  }
+
+  .playground-toolbar {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 0.7rem 1.1rem;
+    border-bottom: 1px solid var(--editor-border);
+    background: var(--chrome-background);
+  }
+
+  .mode-switch {
+    display: flex;
+    padding: 0.2rem;
+    border: 1px solid var(--editor-border);
+    border-radius: 0.55rem;
+    background: var(--panel-background);
+  }
+
+  button,
+  select {
+    border: 1px solid transparent;
+    border-radius: 0.4rem;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  .mode-switch button {
+    padding: 0.35rem 0.65rem;
+    color: var(--editor-muted);
+    font-size: 0.8rem;
+    font-weight: 650;
+  }
+
+  .mode-switch button[aria-pressed="true"] {
+    background: var(--sl-color-accent);
+    color: white;
+  }
+
+  :global(:root[data-theme="dark"]) .mode-switch button[aria-pressed="true"] {
+    color: #0d1a11;
+  }
+
+  .example-picker {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--editor-muted);
+    font-size: 0.8rem;
+  }
+
+  .example-picker select,
+  .secondary-button {
+    border-color: var(--editor-border);
+    background: var(--panel-background);
+  }
+
+  .example-picker select {
+    min-width: 12rem;
+    padding: 0.38rem 1.8rem 0.38rem 0.55rem;
+  }
+
+  .toolbar-actions {
+    display: flex;
+    gap: 0.45rem;
+    margin-left: auto;
+  }
+
+  .secondary-button {
+    padding: 0.38rem 0.62rem;
+    font-size: 0.8rem;
+  }
+
+  button:hover,
+  select:hover {
+    border-color: var(--sl-color-accent);
+  }
+
+  button:focus-visible,
+  select:focus-visible,
+  .syntax-tree:focus-visible {
+    outline: 2px solid var(--sl-color-accent);
+    outline-offset: 2px;
+  }
+
+  .workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    height: 38rem;
+  }
+
+  .source-panel,
+  .tree-panel {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .source-panel {
+    border-right: 1px solid var(--editor-border);
+  }
+
+  .panel-heading {
+    justify-content: space-between;
+    min-height: 2.4rem;
+    padding: 0.45rem 0.8rem;
+    border-bottom: 1px solid var(--editor-border);
+    background: var(--chrome-background);
+  }
+
+  .panel-heading h3 {
+    font-size: 0.8rem;
+    letter-spacing: 0.025em;
+    text-transform: uppercase;
+  }
+
+  .editor-shell {
+    position: relative;
+    min-height: 0;
+    overflow: hidden;
+    background: var(--panel-background);
+  }
+
+  .syntax-tree {
+    box-sizing: border-box;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    font-family: var(--__sl-font-mono, ui-monospace, monospace);
+    font-size: 0.82rem;
+    font-variant-ligatures: none;
+    line-height: 1.58;
+    tab-size: 2;
+  }
+
+  .source-editor,
+  :global(.source-editor .cm-editor) {
+    height: 100%;
+    min-height: 0;
+  }
+
+  :global(.source-editor .cm-editor) {
+    background: var(--panel-background);
+    color: var(--editor-foreground);
+    font-family: var(--__sl-font-mono, ui-monospace, monospace);
+    font-size: 0.82rem;
+    font-variant-ligatures: none;
+    line-height: 1.58;
+  }
+
+  :global(.source-editor .cm-editor.cm-focused) {
+    outline: 0;
+  }
+
+  .editor-shell:focus-within {
+    box-shadow: inset 0 0 0 2px var(--sl-color-accent);
+  }
+
+  :global(.source-editor .cm-scroller) {
+    overflow: auto;
+    scrollbar-color: var(--editor-muted) var(--panel-background);
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+  }
+
+  :global(.source-editor .cm-content) {
+    padding: 0.85rem 0;
+    caret-color: var(--editor-foreground);
+    tab-size: 2;
+  }
+
+  :global(.source-editor .cm-line) {
+    padding-inline: 1rem;
+  }
+
+  :global(.source-editor .cm-gutters) {
+    border-right: 1px solid var(--editor-border);
+    background: var(--gutter-background);
+    color: var(--editor-muted);
+  }
+
+  :global(.source-editor .cm-lineNumbers .cm-gutterElement) {
+    min-width: 3.4rem;
+    padding: 0 0.65rem;
+  }
+
+  :global(.source-editor .cm-activeLine),
+  :global(.source-editor .cm-activeLineGutter) {
+    background: color-mix(in srgb, var(--sl-color-accent) 8%, transparent);
+  }
+
+  :global(.source-editor .cm-selectionBackground),
+  :global(.source-editor.cm-focused .cm-selectionBackground),
+  :global(.source-editor .cm-content ::selection) {
+    background: color-mix(in srgb, var(--sl-color-accent) 35%, transparent);
+  }
+
+  :global(.source-editor .cm-cursor) {
+    border-left-color: var(--editor-foreground);
+  }
+
+  :global(.source-editor .cm-panels),
+  :global(.source-editor .cm-tooltip) {
+    border-color: var(--editor-border);
+    background: var(--chrome-background);
+    color: var(--editor-foreground);
+  }
+
+  .syntax-tree {
+    overflow: auto;
+    min-height: 0;
+    max-height: none;
+    padding: 0.85rem 1rem;
+    background: var(--tree-background);
+    color: var(--editor-foreground);
+    scrollbar-color: var(--editor-muted) var(--tree-background);
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    white-space: pre;
+  }
+
+  .syntax-tree::-webkit-scrollbar {
+    width: 0.7rem;
+    height: 0.7rem;
+  }
+
+  .syntax-tree::-webkit-scrollbar-track {
+    background: var(--tree-background);
+  }
+
+  .syntax-tree::-webkit-scrollbar-thumb {
+    border: 0.18rem solid var(--tree-background);
+    border-radius: 999px;
+    background: var(--editor-muted);
+  }
+
+  :global(.capture-comment) { color: var(--comment); font-style: italic; }
+  :global(.capture-keyword) { color: var(--keyword); font-weight: 650; }
+  :global(.capture-property) { color: var(--property); }
+  :global(.capture-string-special-path) { color: var(--path); }
+  :global(.capture-string) { color: var(--string); }
+  :global(.capture-string-escape) { color: var(--operator); font-weight: 650; }
+  :global(.capture-number) { color: var(--number); }
+  :global(.capture-constant) { color: var(--number); }
+  :global(.capture-function) { color: var(--parameter); }
+  :global(.capture-embedded) { color: var(--keyword); }
+  :global(.capture-variable-parameter) { color: var(--parameter); }
+  :global(.capture-operator) { color: var(--operator); }
+  :global(.capture-punctuation-bracket) { color: var(--editor-muted); font-weight: 700; }
+  :global(.capture-error) { background: var(--issue-background); color: var(--issue); text-decoration: underline wavy; }
+
+  :global(.tree-line) { display: inline; }
+  :global(.tree-field) { color: var(--property); }
+  :global(.tree-type) { color: var(--path); }
+  :global(.tree-value) { color: var(--string); }
+  :global(.tree-range) { color: var(--editor-muted); }
+  :global(.tree-anonymous .tree-type) { color: var(--string); }
+  :global(.tree-issue) { background: var(--issue-background); }
+  :global(.tree-issue .tree-type) { color: var(--issue); font-weight: 700; }
+
+  .result-bar {
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 2.5rem;
+    padding: 0.45rem 1rem;
+    border-top: 1px solid var(--editor-border);
+    background: var(--chrome-background);
+  }
+
+  .result-summary::before {
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    margin-right: 0.4rem;
+    border-radius: 50%;
+    background: var(--editor-muted);
+    content: "";
+  }
+
+  .playground[data-result="valid"] .result-summary::before { background: #168549; }
+  .playground[data-result="issues"] .result-summary { color: var(--issue); }
+  .playground[data-result="issues"] .result-summary::before { background: var(--issue); }
+
+  .playground-error {
+    margin: 0 1rem 1rem;
+    padding: 0.8rem;
+    border: 1px solid var(--issue);
+    border-radius: 0.45rem;
+    background: var(--issue-background);
+    color: var(--issue);
+  }
+
+  @media (max-width: 64rem) {
+    .workspace {
+      height: auto;
+      grid-template-columns: 1fr;
+    }
+
+    .source-panel {
+      border-right: 0;
+      border-bottom: 1px solid var(--editor-border);
+    }
+
+    .editor-shell,
+    .syntax-tree {
+      height: 22rem;
+      min-height: 22rem;
+    }
+
+    .syntax-tree {
+      max-height: 28rem;
+    }
+  }
+
+  @media (max-width: 35rem) {
+    .playground-header,
+    .result-bar {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .example-picker {
+      align-items: flex-start;
+      flex-direction: column;
+      width: 100%;
+    }
+
+    .example-picker select,
+    .toolbar-actions {
+      width: 100%;
+    }
+
+    .toolbar-actions {
+      margin-left: 0;
+    }
+
+    .toolbar-actions button {
+      flex: 1;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { scroll-behavior: auto; }
+  }
+
+  @media (forced-colors: active) {
+    .editor-shell:focus-within { outline: 2px solid Highlight; }
+  }
+</style>

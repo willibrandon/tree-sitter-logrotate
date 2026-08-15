@@ -26,6 +26,7 @@ npm run docs:dev
 Open `http://localhost:4323/tree-sitter-logrotate/`. Port 4323 lets this site run beside the
 vscode-logrotate documentation site. The `/tree-sitter-logrotate/` path is required because it
 matches the GitHub Pages deployment. A request to `http://localhost:4323/` returns 404 by design.
+The interactive parser is at `http://localhost:4323/tree-sitter-logrotate/playground/`.
 
 Astro binds to `localhost` by default. WSL normally forwards that listener to Windows, so the same
 URL works in a Windows browser.
@@ -60,6 +61,7 @@ Run the content and type checks, then build the static site:
 ```sh
 npm run docs:check
 npm run docs:build
+npm run test:docs:playground
 ```
 
 Building the site does not start a server. To inspect the generated production output, run:
