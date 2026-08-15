@@ -16,19 +16,19 @@ autoexamples = false
 
 build = "bindings/rust/build.rs"
 include = [
-  "bindings/rust/*",
+  "/bindings/rust/*",
   "/grammar.js",
-  "queries/*",
-  "src/*.c",
-  "src/*.json",
-  "src/tree_sitter/*.h",
-  "src/state/grammar.js",
-  "src/state/tree-sitter.json",
-  "src/state/queries/*.scm",
-  "src/state/src/*.c",
-  "src/state/src/*.json",
-  "src/state/src/tree_sitter/*.h",
-  "tree-sitter.json",
+  "/queries/*",
+  "/src/*.c",
+  "/src/*.json",
+  "/src/tree_sitter/*.h",
+  "/src/state/grammar.js",
+  "/src/state/tree-sitter.json",
+  "/src/state/queries/*.scm",
+  "/src/state/src/*.c",
+  "/src/state/src/*.json",
+  "/src/state/src/tree_sitter/*.h",
+  "/tree-sitter.json",
   "/LICENSE",
 ]
 

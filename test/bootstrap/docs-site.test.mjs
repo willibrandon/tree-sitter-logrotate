@@ -22,6 +22,29 @@ const markdownSection = (source, heading, level) => {
   return next === -1 ? rest : rest.slice(0, next);
 };
 
+const assertFrontmatter = (source, name) => {
+  const lines = source.split("\n");
+  assert.equal(lines[0], "---", `${name} must start with frontmatter`);
+  const closing = lines.indexOf("---", 1);
+  assert.ok(closing >= 3, `${name} must close its frontmatter after metadata`);
+
+  const metadata = new Map();
+  for (const line of lines.slice(1, closing)) {
+    const separator = line.indexOf(":");
+    assert.ok(separator > 0, `${name} has invalid frontmatter: ${line}`);
+    const key = line.slice(0, separator);
+    const value = line.slice(separator + 1).trim();
+    assert.match(key, /^[A-Za-z]\w*$/u, `${name} has invalid frontmatter key: ${key}`);
+    assert.notEqual(value, "", `${name} has an empty ${key} value`);
+    assert.equal(metadata.has(key), false, `${name} repeats the ${key} key`);
+    metadata.set(key, value);
+  }
+
+  assert.equal(metadata.has("title"), true, `${name} needs a title`);
+  assert.equal(metadata.has("description"), true, `${name} needs a description`);
+  assert.equal(lines[closing + 1], "", `${name} needs a blank line after frontmatter`);
+};
+
 test("documentation toolchain is exact and reproducible", async () => {
   const manifest = JSON.parse(await readDocs("package.json"));
   const lock = JSON.parse(await readDocs("package-lock.json"));
@@ -90,11 +113,7 @@ test("site pages are concise, navigable, and free of placeholder claims", async 
 
   for (const name of names) {
     const source = await readFile(join(directory, name), "utf8");
-    assert.match(
-      source,
-      /^---\ntitle:\s*.+\ndescription:\s*.+\n(?:[A-Za-z][\w]*:\s*.+\n)*---\n/u,
-      name,
-    );
+    assertFrontmatter(source, name);
     assert.ok(
       (source.match(/^##\s+/gmu) ?? []).length >= 2,
       name + " needs useful page sections",

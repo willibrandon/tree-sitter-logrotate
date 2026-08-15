@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { createServer } from "node:http";
-import { readFile, stat } from "node:fs/promises";
+import { open } from "node:fs/promises";
 import { extname, resolve, sep } from "node:path";
 
 import { chromium } from "@playwright/test";
@@ -42,15 +42,20 @@ const server = createServer(async (request, response) => {
       response.writeHead(403).end();
       return;
     }
-    if (!(await stat(requestedPath)).isFile()) {
-      response.writeHead(404).end();
-      return;
+    const file = await open(requestedPath, "r");
+    try {
+      if (!(await file.stat()).isFile()) {
+        response.writeHead(404).end();
+        return;
+      }
+      response.writeHead(200, {
+        "cache-control": "no-store",
+        "content-type": contentTypes.get(extname(requestedPath)) ?? "application/octet-stream",
+      });
+      response.end(await file.readFile());
+    } finally {
+      await file.close();
     }
-    response.writeHead(200, {
-      "cache-control": "no-store",
-      "content-type": contentTypes.get(extname(requestedPath)) ?? "application/octet-stream",
-    });
-    response.end(await readFile(requestedPath));
   } catch (error) {
     if (error?.code === "ENOENT") {
       response.writeHead(404).end();
