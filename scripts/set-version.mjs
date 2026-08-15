@@ -11,10 +11,10 @@ const updateJson = async (path, update) => {
   update(value);
   await writeFile(path, `${JSON.stringify(value, null, 2)}\n`);
 };
-const replace = async (path, expression, replacement) => {
+const replace = async (path, expression, replacement, { allowUnchanged = false } = {}) => {
   const source = await readFile(path, "utf8");
   const updated = source.replace(expression, replacement);
-  if (updated === source) throw new Error(`Could not update ${path}.`);
+  if (updated === source && !allowUnchanged) throw new Error(`Could not update ${path}.`);
   await writeFile(path, updated);
 };
 
@@ -40,7 +40,12 @@ await replace(
   "$1" + version + "$2",
 );
 for (const path of ["README.md", "docs-site/src/content/docs/editors.md"]) {
-  await replace(path, /(vim\.version\.range\(")[^"]+("\))/u, "$1" + releaseLine + "$2");
+  await replace(
+    path,
+    /(vim\.version\.range\(")[^"]+("\))/u,
+    "$1" + releaseLine + "$2",
+    { allowUnchanged: true },
+  );
 }
 await replace("CMakeLists.txt", /(project\(tree-sitter-logrotate[\s\S]*?VERSION\s+")[^"]+("\s*)/u, `$1${version}$2`);
 await replace("Makefile", /(^VERSION\s*:=\s*)[^\s]+$/mu, `$1${version}`);

@@ -355,7 +355,10 @@ test("all package and binding manifests share one version", async () => {
 
 test("release versioning updates every version-bearing manifest", async (context) => {
   const directory = await mkdtemp(join(tmpdir(), "tree-sitter-logrotate-version-"));
-  const nextVersion = "9.8.7";
+  const currentVersion = (await readJson("package.json")).version;
+  const [major, minor, patch] = currentVersion.split(".").map(Number);
+  const nextVersion = `${String(major)}.${String(minor)}.${String(patch + 1)}`;
+  const releaseLine = `${String(major)}.${String(minor)}`;
   const paths = [
     "package.json",
     "package-lock.json",
@@ -428,8 +431,8 @@ test("release versioning updates every version-bearing manifest", async (context
     )?.[1],
     nextVersion,
   );
-  assert.equal(readme.match(/vim\.version\.range\("([^"]+)"\)/u)?.[1], "9.8");
-  assert.equal(editorDocumentation.match(/vim\.version\.range\("([^"]+)"\)/u)?.[1], "9.8");
+  assert.equal(readme.match(/vim\.version\.range\("([^"]+)"\)/u)?.[1], releaseLine);
+  assert.equal(editorDocumentation.match(/vim\.version\.range\("([^"]+)"\)/u)?.[1], releaseLine);
 });
 
 test("generation commands are explicit, ABI 15, isolated, and drift detecting", async () => {

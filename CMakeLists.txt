@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.13)
 
 project(tree-sitter-logrotate
-        VERSION "0.2.0"
+        VERSION "0.2.1"
         DESCRIPTION "Logrotate configuration and state grammars for Tree-sitter"
         HOMEPAGE_URL "https://willibrandon.github.io/tree-sitter-logrotate/"
         LANGUAGES C)

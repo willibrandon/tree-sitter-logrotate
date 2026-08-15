@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.1
+
+The documentation site now includes an interactive playground for configuration and state files.
+It uses the released WASM parsers and portable highlighting queries, and provides scoped
+completion, indentation, syntax-tree inspection, copy controls, responsive layouts, and light and
+dark themes. Browser tests cover editing, recovered script blocks, tab-indented input, state files,
+highlighting, completion, and narrow screens.
+
+Rust source packages now anchor every included path to the repository root so nested dependencies
+cannot enter the crate. The configuration and state grammars, public nodes and fields, query
+captures, language ABI 15, and minimum Tree-sitter CLI 0.26.3 remain unchanged.
+
 ## 0.2.0
 
 This release adds a separate `logrotate_state` grammar for logrotate version 1 and version 2 state

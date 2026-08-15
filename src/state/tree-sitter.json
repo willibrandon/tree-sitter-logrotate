@@ -16,7 +16,7 @@
     }
   ],
   "metadata": {
-    "version": "0.2.0",
+    "version": "0.2.1",
     "license": "MIT",
     "description": "Logrotate state grammar for Tree-sitter",
     "authors": [
