@@ -2,10 +2,16 @@ import sitemap from "@astrojs/sitemap";
 import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
 import logrotateGrammar from "./src/languages/logrotate.tmLanguage.json" with { type: "json" };
+import treeSitterQueryGrammar from "./src/languages/tree-sitter-query.tmLanguage.json" with { type: "json" };
 
 const logrotateLanguage = {
   ...logrotateGrammar,
   name: "logrotate",
+};
+const treeSitterQueryLanguage = {
+  ...treeSitterQueryGrammar,
+  aliases: ["query", "tsquery"],
+  name: "tree-sitter-query",
 };
 const serverHost = process.env.TREE_SITTER_LOGROTATE_DOCS_HOST ?? false;
 const serverPort = Number.parseInt(
@@ -35,7 +41,7 @@ export default defineConfig({
       customCss: ["./src/styles/docs.css"],
       expressiveCode: {
         shiki: {
-          langs: ["bash", logrotateLanguage],
+          langs: ["bash", logrotateLanguage, treeSitterQueryLanguage],
         },
       },
       social: [

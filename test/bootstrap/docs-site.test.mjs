@@ -52,6 +52,7 @@ test("documentation toolchain is exact and reproducible", async () => {
   assert.equal(manifest.private, true);
   assert.equal(manifest.engines.node, "24.19.0");
   assert.equal(manifest.packageManager, "npm@12.0.2");
+  assert.equal(manifest.scripts.build, "astro build --force");
   assert.equal(manifest.dependencies.astro, "7.2.1");
   assert.equal(manifest.dependencies["@astrojs/starlight"], "0.41.7");
   assert.equal(manifest.dependencies["@astrojs/sitemap"], "3.7.3");
@@ -83,7 +84,11 @@ test("Astro uses the repository Pages path and Starlight content layer", async (
     /server:\s*\{[\s\S]*?host:\s*serverHost[\s\S]*?port:\s*serverPort/u,
   );
   assert.match(configuration, /starlight\(\{/u);
-  assert.match(configuration, /langs:\s*\["bash",\s*logrotateLanguage\]/u);
+  assert.match(
+    configuration,
+    /langs:\s*\["bash",\s*logrotateLanguage,\s*treeSitterQueryLanguage\]/u,
+  );
+  assert.match(configuration, /tree-sitter-query\.tmLanguage\.json/u);
   assert.match(
     configuration,
     /tableOfContents:\s*\{[\s\S]*?minHeadingLevel:\s*2[\s\S]*?maxHeadingLevel:\s*3/u,
@@ -209,6 +214,9 @@ test("custom highlighting and portable query guidance stay aligned", async () =>
   const language = JSON.parse(
     await readDocs("src/languages/logrotate.tmLanguage.json"),
   );
+  const queryLanguage = JSON.parse(
+    await readDocs("src/languages/tree-sitter-query.tmLanguage.json"),
+  );
   const queries = await readDocs("src/content/docs/queries.md");
 
   assert.equal(language.scopeName, "source.logrotate");
@@ -219,9 +227,18 @@ test("custom highlighting and portable query guidance stay aligned", async () =>
     language.repository.scripts.endCaptures["2"].name,
     language.repository.scripts.beginCaptures["2"].name,
   );
+  assert.equal(queryLanguage.scopeName, "source.tree-sitter-query");
+  assert.match(queryLanguage.repository.comments.match, /^;/u);
+  assert.match(queryLanguage.repository.predicates.match, /#/u);
+  assert.match(queryLanguage.repository.captures.match, /@/u);
+  assert.match(queryLanguage.repository.fields.match, /:/u);
+  assert.match(queryLanguage.repository["negated-fields"].match, /!/u);
+  assert.match(queryLanguage.repository.strings.patterns[0].match, /\\\\/u);
   assert.match(queries, /queries\/highlights\.scm/u);
   assert.match(queries, /queries\/injections\.scm/u);
   assert.match(queries, /queries\/folds\.scm/u);
+  assert.equal((queries.match(/^```tree-sitter-query$/gmu) ?? []).length, 3);
+  assert.doesNotMatch(queries, /^```scheme$/mu);
 });
 
 test("every public binding example parses configuration and state input", async () => {

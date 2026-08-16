@@ -1,0 +1,96 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Tree-sitter Query",
+  "scopeName": "source.tree-sitter-query",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#predicates" },
+    { "include": "#captures" },
+    { "include": "#negated-fields" },
+    { "include": "#fields" },
+    { "include": "#properties" },
+    { "include": "#numbers" },
+    { "include": "#wildcards" },
+    { "include": "#nodes" },
+    { "include": "#operators" },
+    { "include": "#punctuation" }
+  ],
+  "repository": {
+    "comments": {
+      "match": ";.*$",
+      "name": "comment.line.semicolon.tree-sitter-query"
+    },
+    "strings": {
+      "begin": "\"",
+      "beginCaptures": {
+        "0": { "name": "string.quoted.double.tree-sitter-query" }
+      },
+      "end": "\"",
+      "endCaptures": {
+        "0": { "name": "string.quoted.double.tree-sitter-query" }
+      },
+      "name": "string.quoted.double.tree-sitter-query",
+      "patterns": [
+        {
+          "match": "\\\\.",
+          "name": "constant.character.escape.tree-sitter-query"
+        }
+      ]
+    },
+    "predicates": {
+      "match": "#[A-Za-z_][A-Za-z0-9_-]*[!?]?",
+      "name": "keyword.control.predicate.tree-sitter-query"
+    },
+    "captures": {
+      "match": "@[A-Za-z_][A-Za-z0-9_.-]*",
+      "name": "variable.parameter.function.capture.tree-sitter-query"
+    },
+    "negated-fields": {
+      "match": "(!)([A-Za-z_][A-Za-z0-9_-]*)",
+      "captures": {
+        "1": { "name": "keyword.operator.negation.tree-sitter-query" },
+        "2": { "name": "entity.name.function.field.tree-sitter-query" }
+      }
+    },
+    "fields": {
+      "match": "([A-Za-z_][A-Za-z0-9_-]*)(:)",
+      "captures": {
+        "1": { "name": "entity.name.function.field.tree-sitter-query" },
+        "2": { "name": "punctuation.separator.key-value.tree-sitter-query" }
+      }
+    },
+    "properties": {
+      "match": "[A-Za-z_][A-Za-z0-9_-]*(?:\\.[A-Za-z_][A-Za-z0-9_-]*)+",
+      "name": "variable.other.property.tree-sitter-query"
+    },
+    "numbers": {
+      "match": "(?<![A-Za-z0-9_])[+-]?[0-9]+(?:\\.[0-9]+)?(?![A-Za-z0-9_])",
+      "name": "constant.numeric.tree-sitter-query"
+    },
+    "wildcards": {
+      "match": "(?<![A-Za-z0-9_])_(?![A-Za-z0-9_])",
+      "name": "constant.language.wildcard.tree-sitter-query"
+    },
+    "nodes": {
+      "match": "[A-Za-z_][A-Za-z0-9_-]*",
+      "name": "support.type.node.tree-sitter-query"
+    },
+    "operators": {
+      "match": "[.*+?/]",
+      "name": "keyword.operator.tree-sitter-query"
+    },
+    "punctuation": {
+      "patterns": [
+        {
+          "match": "\\(|\\[",
+          "name": "punctuation.section.group.begin.tree-sitter-query"
+        },
+        {
+          "match": "\\)|\\]",
+          "name": "punctuation.section.group.end.tree-sitter-query"
+        }
+      ]
+    }
+  }
+}

@@ -13,7 +13,7 @@ arguments, braces, operators, and directive names. Known Logrotate directives us
 unknown directive uses `@property`. User and group arguments for `create`, `createolddir`, and `su`
 use `@variable.parameter`.
 
-```scheme
+```tree-sitter-query
 ((directive
    name: (directive_name) @keyword)
  (#match? @keyword "^(daily|weekly|monthly|rotate|compress)$"))
@@ -31,7 +31,7 @@ when a host supports the standard captures, then add refinements in the host int
 
 `queries/injections.scm` assigns Bash to `script_body`:
 
-```scheme
+```tree-sitter-query
 ((script_body) @injection.content
  (#set! injection.language "bash"))
 ```
@@ -43,7 +43,7 @@ does not execute the captured text.
 
 `queries/folds.scm` marks complete rotation blocks and script blocks:
 
-```scheme
+```tree-sitter-query
 [
   (rotation_block)
   (script_block)

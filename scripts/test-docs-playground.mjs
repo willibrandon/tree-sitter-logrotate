@@ -177,6 +177,55 @@ try {
   );
 
   await page.goto(
+    `http://127.0.0.1:${String(address.port)}${basePath}/queries/`,
+  );
+  const queryExample = page.locator('pre[data-language="tree-sitter-query"]').first();
+  const queryTokens = await queryExample.locator("span[style]").evaluateAll((elements) =>
+    elements.map((element) => ({
+      style: element.getAttribute("style"),
+      text: element.textContent?.trim(),
+    })));
+  const queryTokenStyle = (text) => {
+    const token = queryTokens.find((candidate) => candidate.text === text);
+    assert.ok(token?.style, `missing Tree-sitter query token: ${text}`);
+    return token.style;
+  };
+  const semanticQueryStyles = [
+    queryTokenStyle("directive"),
+    queryTokenStyle("name"),
+    queryTokenStyle("@keyword"),
+    queryTokenStyle("#match?"),
+    queryTokenStyle('"^(daily|weekly|monthly|rotate|compress)$"'),
+  ];
+  assert.equal(
+    new Set(semanticQueryStyles).size,
+    semanticQueryStyles.length,
+    "query nodes, fields, captures, predicates, and strings need distinct theme mappings",
+  );
+  const queryThemePicker = page.getByRole("banner").getByLabel("Select theme");
+  for (const theme of ["light", "dark"]) {
+    await queryThemePicker.selectOption(theme);
+    await page.waitForFunction(
+      (expected) => document.documentElement.dataset.theme === expected,
+      theme,
+    );
+    const queryPalette = await queryExample.evaluate((element) => ({
+      background: getComputedStyle(element).backgroundColor,
+      foregrounds: [...new Set([...element.querySelectorAll("span[style]")]
+        .map((token) => getComputedStyle(token).color))],
+    }));
+    assert.ok(queryPalette.foregrounds.length >= 5);
+    for (const foreground of queryPalette.foregrounds) {
+      assertContrast(
+        foreground,
+        queryPalette.background,
+        minimumTextContrast,
+        `${theme} Tree-sitter query token`,
+      );
+    }
+  }
+
+  await page.goto(
     `http://127.0.0.1:${String(address.port)}${basePath}/playground/`,
   );
   const playground = page.locator("[data-logrotate-playground]");

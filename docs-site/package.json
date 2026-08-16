@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "astro build",
+    "build": "astro build --force",
     "check": "astro check",
     "dev": "astro dev",
     "preview": "astro preview"
