@@ -40,6 +40,7 @@ jobs:
           node-version: 24.19.0
           package-manager: npm@12.0.2
           build-cmd: npm run check && npm run build
+          cache: false
 
   deploy:
     name: Deploy documentation
