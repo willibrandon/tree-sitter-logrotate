@@ -83,7 +83,7 @@ test("Astro uses the repository Pages path and Starlight content layer", async (
     /server:\s*\{[\s\S]*?host:\s*serverHost[\s\S]*?port:\s*serverPort/u,
   );
   assert.match(configuration, /starlight\(\{/u);
-  assert.match(configuration, /langs:\s*\[logrotateLanguage\]/u);
+  assert.match(configuration, /langs:\s*\["bash",\s*logrotateLanguage\]/u);
   assert.match(
     configuration,
     /tableOfContents:\s*\{[\s\S]*?minHeadingLevel:\s*2[\s\S]*?maxHeadingLevel:\s*3/u,
@@ -214,6 +214,11 @@ test("custom highlighting and portable query guidance stay aligned", async () =>
   assert.equal(language.scopeName, "source.logrotate");
   assert.match(language.repository.directive.match, /rotate/u);
   assert.match(language.repository.scripts.begin, /postrotate/u);
+  assert.match(language.repository.scripts.end, /endscript/u);
+  assert.equal(
+    language.repository.scripts.endCaptures["2"].name,
+    language.repository.scripts.beginCaptures["2"].name,
+  );
   assert.match(queries, /queries\/highlights\.scm/u);
   assert.match(queries, /queries\/injections\.scm/u);
   assert.match(queries, /queries\/folds\.scm/u);

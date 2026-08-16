@@ -150,6 +150,33 @@ try {
   page.on("pageerror", (error) => browserErrors.push(error.message));
 
   await page.goto(
+    `http://127.0.0.1:${String(address.port)}${basePath}/`,
+  );
+  const overviewExample = page.locator("pre code").filter({ hasText: "postrotate" });
+  const overviewTokens = await overviewExample.locator("span[style]").evaluateAll((elements) =>
+    elements
+      .map((element) => ({
+        style: element.getAttribute("style"),
+        text: element.textContent?.trim(),
+      }))
+      .filter(({ text }) => text === "postrotate" || text === "endscript"));
+  assert.equal(overviewTokens.length, 2);
+  assert.equal(overviewTokens[0].text, "postrotate");
+  assert.equal(overviewTokens[1].text, "endscript");
+  assert.equal(
+    overviewTokens[1].style,
+    overviewTokens[0].style,
+    "the script terminator must use the same keyword colors as its opener",
+  );
+  const embeddedShellTokens = overviewExample.locator(".ec-line", {
+    hasText: "systemctl reload application",
+  }).locator("span[style]");
+  assert.ok(
+    await embeddedShellTokens.count() > 1,
+    "the overview script body must use the explicitly loaded Bash grammar",
+  );
+
+  await page.goto(
     `http://127.0.0.1:${String(address.port)}${basePath}/playground/`,
   );
   const playground = page.locator("[data-logrotate-playground]");

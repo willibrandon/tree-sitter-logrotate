@@ -35,7 +35,7 @@ export default defineConfig({
       customCss: ["./src/styles/docs.css"],
       expressiveCode: {
         shiki: {
-          langs: [logrotateLanguage],
+          langs: ["bash", logrotateLanguage],
         },
       },
       social: [
