@@ -76,8 +76,8 @@ const parserExtension = extname(libraryName);
 
 const copyOptionalBashRuntime = async (runtime) => {
   const dataRoots = [
-    join(homedir(), ".local", "share", "nvim", "site"),
     ...String(process.env.XDG_DATA_DIRS ?? "").split(":").filter(Boolean),
+    join(homedir(), ".local", "share", "nvim", "site"),
   ];
   for (const dataRoot of dataRoots) {
     const parser = join(dataRoot, "parser", `bash${parserExtension}`);

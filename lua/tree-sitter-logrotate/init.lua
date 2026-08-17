@@ -736,9 +736,104 @@ local function script_directive_indent(buffer, target_row, root)
   return opener_indent + step, false
 end
 
+local function bash_continuation_indent(buffer, target_row, script_indent)
+  if script_indent == nil then
+    return nil
+  end
+
+  local target = vim.api.nvim_buf_get_lines(buffer, target_row, target_row + 1, false)[1] or ""
+  if not target:match("^%s*$") then
+    return nil
+  end
+
+  local previous_line = vim.fn.prevnonblank(target_row + 1)
+  if previous_line == 0 then
+    return nil
+  end
+  local previous = vim.api.nvim_buf_get_lines(buffer, previous_line - 1, previous_line, false)[1] or ""
+  local content_end = (previous:find("%s*$") or (#previous + 1)) - 1
+  if content_end == 0 then
+    return nil
+  end
+
+  local ok, parser = pcall(vim.treesitter.get_parser, buffer, "logrotate")
+  local bash = ok and parser ~= nil and parser:children().bash or nil
+  if bash == nil then
+    return nil
+  end
+
+  local add_level = false
+  local row = previous_line - 1
+  for _, tree in ipairs(bash:parse()) do
+    local root = tree:root()
+    local node = root:descendant_for_range(row, content_end - 1, row, content_end)
+    while node ~= nil do
+      local node_type = node:type()
+      local parent = node:parent()
+      if node_type == "then" or node_type == "do" or node_type == "else" then
+        add_level = true
+        break
+      end
+      if node_type == "in" and parent ~= nil and parent:type() == "case_statement" then
+        add_level = true
+        break
+      end
+      if node_type == ")" and parent ~= nil and parent:type() == "case_item" then
+        add_level = true
+        break
+      end
+      if node_type == "{" and parent ~= nil and parent:type() == "compound_statement" then
+        add_level = true
+        break
+      end
+      if node_type == "(" and parent ~= nil and parent:type() == "subshell" then
+        add_level = true
+        break
+      end
+      node = parent
+    end
+    if add_level then
+      break
+    end
+  end
+
+  return vim.fn.indent(previous_line) + (add_level and vim.fn.shiftwidth() or 0)
+end
+
 local function bash_case_item_indent(buffer, target_row)
   local target = vim.trim(vim.api.nvim_buf_get_lines(buffer, target_row, target_row + 1, false)[1] or "")
-  if target == "esac" or target:match("%)$") then
+  if target == "esac" then
+    return nil
+  end
+
+  local ok, parser = pcall(vim.treesitter.get_parser, buffer, "logrotate")
+  local bash = ok and parser ~= nil and parser:children().bash or nil
+  if bash == nil then
+    return nil
+  end
+
+  local target_is_pattern = target:match("%)$") ~= nil
+  local target_is_terminator = target == ";;" or target == ";&" or target == ";;&"
+  if target_is_pattern or target_is_terminator then
+    local content_end = #vim.api.nvim_buf_get_lines(buffer, target_row, target_row + 1, false)[1]
+    if content_end > 0 then
+      for _, tree in ipairs(bash:parse()) do
+        local node = tree:root():descendant_for_range(target_row, content_end - 1, target_row, content_end)
+        while node ~= nil do
+          if node:type() == "case_item" then
+            local parent = node:parent()
+            if target_is_pattern and parent ~= nil and parent:type() == "case_statement" then
+              return vim.fn.indent(parent:start() + 1) + vim.fn.shiftwidth()
+            end
+            if target_is_terminator then
+              return vim.fn.indent(node:start() + 1) + vim.fn.shiftwidth()
+            end
+            break
+          end
+          node = node:parent()
+        end
+      end
+    end
     return nil
   end
 
@@ -752,12 +847,6 @@ local function bash_case_item_indent(buffer, target_row)
     return nil
   end
   if previous_text:match("^case%s+.+%s+in$") then
-    return nil
-  end
-
-  local ok, parser = pcall(vim.treesitter.get_parser, buffer, "logrotate")
-  local bash = ok and parser ~= nil and parser:children().bash or nil
-  if bash == nil then
     return nil
   end
 
@@ -881,6 +970,7 @@ function M.indentexpr()
   local target_row = vim.v.lnum - 1
   local root = configuration_root(buffer)
   local script_indent, script_exact = script_directive_indent(buffer, target_row, root)
+  local continuation_indent = bash_continuation_indent(buffer, target_row, script_indent)
   local case_item_indent = bash_case_item_indent(buffer, target_row)
   local after_terminator_indent = indent_after_script_terminator(buffer, target_row, root)
   local rotation_indent, rotation_exact = rotation_body_indent(buffer, target_row, root)
@@ -893,6 +983,7 @@ function M.indentexpr()
   return math.max(
     fallback,
     script_indent or -1,
+    continuation_indent or -1,
     case_item_indent or -1,
     after_terminator_indent or -1,
     rotation_indent or -1
