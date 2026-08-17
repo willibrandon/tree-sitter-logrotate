@@ -57,5 +57,6 @@ script matching with %, and scope-aware directive completion.
 
 The standard omnifunc provides completion with CTRL-X CTRL-O. When blink.cmp
 is available, the same source is added for logrotate buffers automatically.
+Use CTRL-Y to accept a selected Blink item. Enter inserts an indented newline.
 
 vim:tw=78:ts=8:noet:ft=help:norl:

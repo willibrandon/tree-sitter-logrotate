@@ -98,7 +98,8 @@ unclassified configuration and state files. Opening a configuration root also as
 existing files and direct directory children reached by its `include` directives.
 
 Configuration buffers provide directive completion through Neovim's standard omnifunc. Use
-`CTRL-X CTRL-O` to request it. LazyVim's Blink completion loads the same source automatically.
+`CTRL-X CTRL-O` to request it. LazyVim's Blink completion loads the same source automatically. Use
+`CTRL-Y` to accept a selected directive; `Enter` inserts an indented newline.
 Completion follows logrotate scope: global directives appear at the top level, rotation directives
 and script openers appear inside a rotation block, and `endscript` appears inside a script body.
 

@@ -80,8 +80,9 @@ state headers, and files reached through an `include` from an open configuration
 
 Configuration buffers provide Tree-sitter highlighting, Bash highlighting inside all five script
 blocks, indentation, folding, `#` comments, `%` matching between script directives and `endscript`,
-and directive completion. Use `CTRL-X CTRL-O` for built-in completion; LazyVim's Blink completion
-uses the same source automatically.
+and directive completion. Use `CTRL-X CTRL-O` for built-in completion. LazyVim's Blink completion
+uses the same source automatically; use `CTRL-Y` to accept a selected directive and `Enter` to
+insert an indented newline.
 
 Use `:LogrotateInstall`, `:LogrotateUpdate`, and `:LogrotateUninstall` to manage the two parsers.
 Use `:checkhealth tree-sitter-logrotate` to verify the complete installation.
