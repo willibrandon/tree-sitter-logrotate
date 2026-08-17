@@ -53,7 +53,7 @@ test("documentation toolchain is exact and reproducible", async () => {
   assert.equal(manifest.engines.node, "24.19.0");
   assert.equal(manifest.packageManager, "npm@12.0.2");
   assert.equal(manifest.scripts.build, "astro build --force");
-  assert.equal(manifest.dependencies.astro, "7.2.1");
+  assert.equal(manifest.dependencies.astro, "7.2.2");
   assert.equal(manifest.dependencies["@astrojs/starlight"], "0.41.7");
   assert.equal(manifest.dependencies["@astrojs/sitemap"], "3.7.3");
   assert.equal(manifest.dependencies["@codemirror/autocomplete"], "6.20.3");
