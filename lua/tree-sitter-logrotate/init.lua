@@ -33,6 +33,7 @@ local SCRIPT_INDENT_KEYS_TO_REMOVE = {
 }
 local TREE_SITTER_FOLDEXPR = "v:lua.vim.treesitter.foldexpr()"
 local SCRIPT_MATCH_WORDS = [[\<\%(firstaction\|lastaction\|postrotate\|preremove\|prerotate\)\>:\<endscript\>]]
+local BLINK_ENTER_DESCRIPTION = "Insert a newline without accepting a completion"
 local COMPLETION_ITEMS = {
   { word = "hourly", menu = "[frequency]", info = "Rotate after an hour has elapsed.", global = true, block = true },
   { word = "minutes", menu = "[frequency]", info = "Rotate after the specified positive number of minutes.", global = true, block = true },
@@ -735,6 +736,171 @@ local function script_directive_indent(buffer, target_row, root)
   return opener_indent + step, false
 end
 
+local function bash_continuation_indent(buffer, target_row, script_indent)
+  if script_indent == nil then
+    return nil
+  end
+
+  local target = vim.api.nvim_buf_get_lines(buffer, target_row, target_row + 1, false)[1] or ""
+  if not target:match("^%s*$") then
+    return nil
+  end
+
+  local previous_line = vim.fn.prevnonblank(target_row + 1)
+  if previous_line == 0 then
+    return nil
+  end
+  local previous = vim.api.nvim_buf_get_lines(buffer, previous_line - 1, previous_line, false)[1] or ""
+  local content_end = (previous:find("%s*$") or (#previous + 1)) - 1
+  if content_end == 0 then
+    return nil
+  end
+
+  local ok, parser = pcall(vim.treesitter.get_parser, buffer, "logrotate")
+  local bash = ok and parser ~= nil and parser:children().bash or nil
+  if bash == nil then
+    return nil
+  end
+
+  local add_level = false
+  local row = previous_line - 1
+  for _, tree in ipairs(bash:parse()) do
+    local root = tree:root()
+    local node = root:descendant_for_range(row, content_end - 1, row, content_end)
+    while node ~= nil do
+      local node_type = node:type()
+      local parent = node:parent()
+      if node_type == "then" or node_type == "do" or node_type == "else" then
+        add_level = true
+        break
+      end
+      if node_type == "in" and parent ~= nil and parent:type() == "case_statement" then
+        add_level = true
+        break
+      end
+      if node_type == ")" and parent ~= nil and parent:type() == "case_item" then
+        add_level = true
+        break
+      end
+      if node_type == "{" and parent ~= nil and parent:type() == "compound_statement" then
+        add_level = true
+        break
+      end
+      if node_type == "(" and parent ~= nil and parent:type() == "subshell" then
+        add_level = true
+        break
+      end
+      node = parent
+    end
+    if add_level then
+      break
+    end
+  end
+
+  return vim.fn.indent(previous_line) + (add_level and vim.fn.shiftwidth() or 0)
+end
+
+local function bash_case_item_indent(buffer, target_row)
+  local target = vim.trim(vim.api.nvim_buf_get_lines(buffer, target_row, target_row + 1, false)[1] or "")
+  if target == "esac" then
+    return nil
+  end
+
+  local ok, parser = pcall(vim.treesitter.get_parser, buffer, "logrotate")
+  local bash = ok and parser ~= nil and parser:children().bash or nil
+  if bash == nil then
+    return nil
+  end
+
+  local target_is_pattern = target:match("%)$") ~= nil
+  local target_is_terminator = target == ";;" or target == ";&" or target == ";;&"
+  if target_is_pattern or target_is_terminator then
+    local content_end = #vim.api.nvim_buf_get_lines(buffer, target_row, target_row + 1, false)[1]
+    if content_end > 0 then
+      for _, tree in ipairs(bash:parse()) do
+        local node = tree:root():descendant_for_range(target_row, content_end - 1, target_row, content_end)
+        while node ~= nil do
+          if node:type() == "case_item" then
+            local parent = node:parent()
+            if target_is_pattern and parent ~= nil and parent:type() == "case_statement" then
+              return vim.fn.indent(parent:start() + 1) + vim.fn.shiftwidth()
+            end
+            if target_is_terminator then
+              return vim.fn.indent(node:start() + 1) + vim.fn.shiftwidth()
+            end
+            break
+          end
+          node = node:parent()
+        end
+      end
+    end
+    return nil
+  end
+
+  local previous_line = vim.fn.prevnonblank(target_row + 1)
+  if previous_line == 0 then
+    return nil
+  end
+  local previous = vim.api.nvim_buf_get_lines(buffer, previous_line - 1, previous_line, false)[1] or ""
+  local previous_text = vim.trim(previous)
+  if previous_text == ";;" or previous_text == ";&" or previous_text == ";;&" then
+    return nil
+  end
+  if previous_text:match("^case%s+.+%s+in$") then
+    return nil
+  end
+
+  local row = previous_line - 1
+  local content_end = (previous:find("%s*$") or (#previous + 1)) - 1
+  if content_end == 0 then
+    return nil
+  end
+  for _, tree in ipairs(bash:parse()) do
+    local root = tree:root()
+    local node = root:descendant_for_range(row, content_end - 1, row, content_end)
+    while node ~= nil do
+      if node:type() == "case_item" then
+        local parent = node:parent()
+        if parent == nil or parent:type() ~= "case_statement" or parent:start() ~= node:start() then
+          return vim.fn.indent(node:start() + 1) + vim.fn.shiftwidth()
+        end
+        return nil
+      end
+      node = node:parent()
+    end
+  end
+  return nil
+end
+
+local function indent_after_script_terminator(buffer, target_row, root)
+  if root == nil then
+    return nil
+  end
+  local target = vim.api.nvim_buf_get_lines(buffer, target_row, target_row + 1, false)[1] or ""
+  if not target:match("^%s*$") then
+    return nil
+  end
+  local previous_line = vim.fn.prevnonblank(target_row + 1)
+  if previous_line == 0 then
+    return nil
+  end
+  local previous = vim.api.nvim_buf_get_lines(buffer, previous_line - 1, previous_line, false)[1] or ""
+  if vim.trim(previous) ~= "endscript" then
+    return nil
+  end
+
+  local content_end = (previous:find("%s*$") or (#previous + 1)) - 1
+  local node = root:descendant_for_range(previous_line - 1, content_end - 1, previous_line - 1, content_end)
+  while node ~= nil do
+    if node:type() == "script_block" then
+      local directive = node:field("directive")[1]
+      return directive ~= nil and vim.fn.indent(directive:start() + 1) or nil
+    end
+    node = node:parent()
+  end
+  return nil
+end
+
 local function rotation_body_indent(buffer, target_row, root)
   if root == nil then
     return nil
@@ -804,6 +970,9 @@ function M.indentexpr()
   local target_row = vim.v.lnum - 1
   local root = configuration_root(buffer)
   local script_indent, script_exact = script_directive_indent(buffer, target_row, root)
+  local continuation_indent = bash_continuation_indent(buffer, target_row, script_indent)
+  local case_item_indent = bash_case_item_indent(buffer, target_row)
+  local after_terminator_indent = indent_after_script_terminator(buffer, target_row, root)
   local rotation_indent, rotation_exact = rotation_body_indent(buffer, target_row, root)
   if script_exact then
     return script_indent
@@ -811,7 +980,14 @@ function M.indentexpr()
   if rotation_exact then
     return rotation_indent
   end
-  return math.max(fallback, script_indent or -1, rotation_indent or -1)
+  return math.max(
+    fallback,
+    script_indent or -1,
+    continuation_indent or -1,
+    case_item_indent or -1,
+    after_terminator_indent or -1,
+    rotation_indent or -1
+  )
 end
 
 local function enable_tree_sitter_indentation(buffer)
@@ -832,6 +1008,14 @@ local function enable_tree_sitter_indentation(buffer)
     vim.bo[buffer].indentkeys = table.concat(indentkeys, ",")
     vim.bo[buffer].smartindent = false
   end
+end
+
+local function restore_tree_sitter_indentation(buffer)
+  vim.schedule(function()
+    if vim.api.nvim_buf_is_valid(buffer) and vim.bo[buffer].filetype == "logrotate" then
+      enable_tree_sitter_indentation(buffer)
+    end
+  end)
 end
 
 local function append_undo_ftplugin(buffer, command)
@@ -867,14 +1051,48 @@ local function enable_tree_sitter_folding(buffer)
   end
 end
 
-local function enable_blink_completion()
-  if blink_completion_registered then
+local function enable_blink_completion(buffer)
+  if not vim.api.nvim_buf_is_valid(buffer) or vim.bo[buffer].filetype ~= "logrotate" then
     return
   end
   local ok, blink = pcall(require, "blink.cmp")
   if ok and type(blink.add_filetype_source) == "function" then
-    blink.add_filetype_source("logrotate", "omni")
-    blink_completion_registered = true
+    if not blink_completion_registered then
+      blink.add_filetype_source("logrotate", "omni")
+      blink_completion_registered = true
+    end
+    local mapping = vim.api.nvim_buf_call(buffer, function()
+      return vim.fn.maparg("<CR>", "i", false, true)
+    end)
+    local blink_mapping = type(mapping.desc) == "string" and vim.startswith(mapping.desc, "blink.cmp:")
+    if mapping.desc ~= BLINK_ENTER_DESCRIPTION and (mapping.buffer ~= 1 or blink_mapping) then
+      local enter = vim.api.nvim_replace_termcodes("<CR>", true, false, true)
+      vim.keymap.set("i", "<CR>", function()
+        if type(blink.is_visible) == "function"
+            and type(blink.cancel) == "function"
+            and blink.is_visible() then
+          blink.cancel({
+            callback = function()
+              vim.api.nvim_feedkeys(enter, "n", false)
+            end,
+          })
+          return ""
+        end
+        return enter
+      end, {
+        buffer = buffer,
+        desc = BLINK_ENTER_DESCRIPTION,
+        expr = true,
+        replace_keycodes = false,
+      })
+      if not vim.b[buffer].tree_sitter_logrotate_enter_map then
+        vim.b[buffer].tree_sitter_logrotate_enter_map = true
+        append_undo_ftplugin(
+          buffer,
+          "silent! iunmap <buffer> <CR> | unlet! b:tree_sitter_logrotate_enter_map"
+        )
+      end
+    end
   end
 end
 
@@ -941,8 +1159,12 @@ function M.setup()
       if vim.bo[event.buf].filetype == "logrotate" then
         configure_logrotate_buffer(event.buf)
         enable_tree_sitter_indentation(event.buf)
+        restore_tree_sitter_indentation(event.buf)
         enable_tree_sitter_folding(event.buf)
-        vim.schedule(enable_blink_completion)
+        local buffer = event.buf
+        vim.schedule(function()
+          enable_blink_completion(buffer)
+        end)
         M.refresh_root(event.buf)
       end
     end,
@@ -952,6 +1174,17 @@ function M.setup()
     callback = function(event)
       if vim.bo[event.buf].filetype == "logrotate" then
         enable_tree_sitter_folding(event.buf)
+      end
+    end,
+  })
+  vim.api.nvim_create_autocmd("InsertEnter", {
+    group = group,
+    callback = function(event)
+      if vim.bo[event.buf].filetype == "logrotate" then
+        local buffer = event.buf
+        vim.schedule(function()
+          enable_blink_completion(buffer)
+        end)
       end
     end,
   })

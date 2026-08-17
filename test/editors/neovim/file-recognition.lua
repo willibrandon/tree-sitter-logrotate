@@ -96,6 +96,60 @@ local function wipe(buffer)
   end
 end
 
+local indent_case = 0
+local function assert_enter_indent(lines, cursor_line, inserted_text, expected, context)
+  indent_case = indent_case + 1
+  local path = string.format("%s/shell-indent-%d.logrotate", scratch, indent_case)
+  write(path, lines)
+  local indent_buffer = edit(path)
+  vim.bo[indent_buffer].fileformat = "dos"
+  vim.bo[indent_buffer].expandtab = true
+  vim.bo[indent_buffer].shiftwidth = 2
+  vim.bo[indent_buffer].tabstop = 2
+  assert_equal(
+    vim.wait(1000, function()
+      return vim.bo[indent_buffer].indentexpr == "v:lua.require'tree-sitter-logrotate'.indentexpr()"
+    end),
+    true,
+    context .. " indent expression"
+  )
+  vim.api.nvim_win_set_cursor(0, { cursor_line, 0 })
+  vim.cmd(vim.api.nvim_replace_termcodes("normal! A<CR>" .. inserted_text, true, true, true))
+  assert_equal(
+    vim.api.nvim_buf_get_lines(indent_buffer, cursor_line - 1, cursor_line, false)[1],
+    lines[cursor_line],
+    context .. " preserves the preceding line"
+  )
+  assert_equal(vim.api.nvim_buf_get_lines(indent_buffer, cursor_line, cursor_line + 1, false)[1], expected, context)
+  wipe(indent_buffer)
+end
+
+local function assert_typed_indent(lines, cursor_line, keys, expected, context)
+  indent_case = indent_case + 1
+  local path = string.format("%s/shell-indent-%d.logrotate", scratch, indent_case)
+  write(path, lines)
+  local indent_buffer = edit(path)
+  vim.bo[indent_buffer].fileformat = "dos"
+  vim.bo[indent_buffer].expandtab = true
+  vim.bo[indent_buffer].shiftwidth = 2
+  vim.bo[indent_buffer].tabstop = 2
+  assert_equal(
+    vim.wait(1000, function()
+      return vim.bo[indent_buffer].indentexpr == "v:lua.require'tree-sitter-logrotate'.indentexpr()"
+    end),
+    true,
+    context .. " indent expression"
+  )
+  vim.api.nvim_win_set_cursor(0, { cursor_line, 0 })
+  vim.cmd(vim.api.nvim_replace_termcodes("normal! A" .. keys, true, true, true))
+  assert_equal(
+    table.concat(vim.api.nvim_buf_get_lines(indent_buffer, 0, -1, false), "\n"),
+    table.concat(expected, "\n"),
+    context
+  )
+  wipe(indent_buffer)
+end
+
 local function captures(query, tree, source)
   local found = {}
   for capture in query:iter_captures(tree:root(), source) do
@@ -161,6 +215,16 @@ assert_equal(
   "v:lua.require'tree-sitter-logrotate'.complete",
   "configuration omnifunc"
 )
+local has_blink = pcall(require, "blink.cmp")
+if has_blink then
+  assert_equal(
+    vim.wait(1000, function()
+      return vim.fn.maparg("<CR>", "i", false, true).desc == "Insert a newline without accepting a completion"
+    end),
+    true,
+    "LazyVim Enter inserts a newline instead of accepting a completion"
+  )
+end
 assert_equal(vim.b[buffer].match_ignorecase, 0, "script matching is case-sensitive")
 assert_equal(
   vim.b[buffer].match_words,
@@ -430,6 +494,208 @@ assert_equal(
   nil,
   "wildcard include resolution rejection"
 )
+
+vim.api.nvim_create_autocmd("FileType", {
+  group = vim.api.nvim_create_augroup("late_indentexpr_override", { clear = true }),
+  pattern = "logrotate",
+  once = true,
+  callback = function(event)
+    vim.bo[event.buf].indentexpr = "0"
+  end,
+})
+assert_enter_indent(
+  {
+    "/var/log/application.log {",
+    "  preremove",
+    "    if true; then",
+    "  endscript",
+    "}",
+  },
+  3,
+  "echo active",
+  "      echo active",
+  "Enter after an unfinished if then uses nested Bash indentation after a late FileType override"
+)
+
+assert_enter_indent(
+  {
+    "/var/log/application.log {",
+    "  preremove",
+    "    if true; then",
+    "      echo active",
+    "    fi",
+    "  endscript",
+    "}",
+  },
+  3,
+  "echo ready",
+  "      echo ready",
+  "Enter after a completed if then uses nested Bash indentation"
+)
+
+assert_typed_indent(
+  {
+    "/var/log/application.log {",
+    "  preremove",
+    "    if true; then",
+    "      echo active",
+    "  endscript",
+    "}",
+  },
+  4,
+  "<CR>else<CR>echo inactive<CR>fi<CR>echo finished",
+  {
+    "/var/log/application.log {",
+    "  preremove",
+    "    if true; then",
+    "      echo active",
+    "    else",
+    "      echo inactive",
+    "    fi",
+    "    echo finished",
+    "  endscript",
+    "}",
+  },
+  "Typing an if else fi sequence preserves Bash branch indentation"
+)
+
+assert_typed_indent(
+  {
+    "/var/log/application.log {",
+    "  preremove",
+    "    if true; then",
+    "      echo active",
+    "  endscript",
+    "}",
+  },
+  4,
+  "<CR>elif false; then<CR>echo impossible<CR>else<CR>echo fallback<CR>fi",
+  {
+    "/var/log/application.log {",
+    "  preremove",
+    "    if true; then",
+    "      echo active",
+    "    elif false; then",
+    "      echo impossible",
+    "    else",
+    "      echo fallback",
+    "    fi",
+    "  endscript",
+    "}",
+  },
+  "Typing elif and else branches preserves Bash branch indentation"
+)
+
+assert_typed_indent(
+  {
+    "/var/log/application.log {",
+    "  postrotate",
+    "  endscript",
+    "}",
+  },
+  2,
+  '<CR>for file in one two; do<CR>echo "$file"<CR>done<CR>while false; do<CR>echo waiting<CR>done',
+  {
+    "/var/log/application.log {",
+    "  postrotate",
+    "    for file in one two; do",
+    '      echo "$file"',
+    "    done",
+    "    while false; do",
+    "      echo waiting",
+    "    done",
+    "  endscript",
+    "}",
+  },
+  "Typing for and while loops preserves Bash loop indentation"
+)
+
+assert_typed_indent(
+  {
+    "/var/log/application.log {",
+    "  postrotate",
+    "  endscript",
+    "}",
+  },
+  2,
+  '<CR>case "$1" in<CR>start)<CR>echo start<CR>;;<CR>*)<CR>echo unknown<CR>;;<CR>esac',
+  {
+    "/var/log/application.log {",
+    "  postrotate",
+    '    case "$1" in',
+    "      start)",
+    "        echo start",
+    "        ;;",
+    "      *)",
+    "        echo unknown",
+    "        ;;",
+    "    esac",
+    "  endscript",
+    "}",
+  },
+  "Typing a case statement preserves Bash case indentation"
+)
+
+assert_typed_indent(
+  {
+    "/var/log/application.log {",
+    "  postrotate",
+  },
+  2,
+  "<CR># explain the reload",
+  {
+    "/var/log/application.log {",
+    "  postrotate",
+    "    # explain the reload",
+  },
+  "Typing a script comment preserves script indentation"
+)
+
+assert_typed_indent(
+  {
+    "/var/log/application.log {",
+    "  postrotate",
+  },
+  2,
+  "<CR>echo rotated<CR>endscript<CR>rotate 7<CR>}",
+  {
+    "/var/log/application.log {",
+    "  postrotate",
+    "    echo rotated",
+    "  endscript",
+    "  rotate 7",
+    "}",
+  },
+  "Typing closing script and rotation blocks preserves boundary indentation"
+)
+
+if has_blink then
+  local path = scratch .. "/lazyvim-enter.logrotate"
+  write(path, {
+    "/var/log/application.log {",
+    "  preremove",
+    "    if true; then",
+    "  endscript",
+    "}",
+  })
+  buffer = edit(path)
+  vim.bo[buffer].expandtab = true
+  vim.bo[buffer].shiftwidth = 2
+  vim.bo[buffer].tabstop = 2
+  vim.api.nvim_exec_autocmds("InsertEnter", { buffer = buffer, modeline = false })
+  vim.wait(1000, function()
+    return package.loaded["blink.cmp"] ~= nil
+  end)
+  vim.api.nvim_exec_autocmds("InsertEnter", { buffer = buffer, modeline = false })
+  assert_equal(
+    vim.wait(2000, function()
+      return vim.fn.maparg("<CR>", "i", false, true).desc == "Insert a newline without accepting a completion"
+    end),
+    true,
+    "LazyVim keeps the newline mapping after Blink handles InsertEnter"
+  )
+  wipe(buffer)
+end
 
 vim.fn.delete(scratch, "rf")
 print(string.format("Neovim integration passed %d assertions.", assertions))
