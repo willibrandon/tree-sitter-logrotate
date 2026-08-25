@@ -48,22 +48,42 @@ const assertFrontmatter = (source, name) => {
 test("documentation toolchain is exact and reproducible", async () => {
   const manifest = JSON.parse(await readDocs("package.json"));
   const lock = JSON.parse(await readDocs("package-lock.json"));
+  const expectedDependencies = [
+    "@astrojs/sitemap",
+    "@astrojs/starlight",
+    "@codemirror/autocomplete",
+    "@codemirror/commands",
+    "@codemirror/language",
+    "@codemirror/state",
+    "@codemirror/view",
+    "astro",
+    "codemirror",
+    "sharp",
+    "tree-sitter-bash",
+    "tree-sitter-logrotate",
+    "web-tree-sitter",
+  ];
+  const expectedDevDependencies = ["@astrojs/check", "typescript"];
+  const exactVersion =
+    /^(?:npm:(?:@[^/]+\/)?[^@]+@)?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/u;
 
   assert.equal(manifest.private, true);
   assert.equal(manifest.engines.node, "24.19.0");
   assert.equal(manifest.packageManager, "npm@12.0.2");
   assert.equal(manifest.scripts.build, "astro build --force");
-  assert.equal(manifest.dependencies.astro, "7.2.2");
-  assert.equal(manifest.dependencies["@astrojs/starlight"], "0.41.7");
-  assert.equal(manifest.dependencies["@astrojs/sitemap"], "3.7.3");
-  assert.equal(manifest.dependencies["@codemirror/autocomplete"], "6.20.3");
-  assert.equal(manifest.dependencies["@codemirror/commands"], "6.10.4");
-  assert.equal(manifest.dependencies["@codemirror/language"], "6.12.4");
-  assert.equal(manifest.dependencies["@codemirror/state"], "6.7.1");
-  assert.equal(manifest.dependencies["@codemirror/view"], "6.43.8");
-  assert.equal(manifest.dependencies.codemirror, "6.0.2");
-  assert.equal(manifest.dependencies["tree-sitter-bash"], "0.25.1");
-  assert.equal(manifest.devDependencies["@astrojs/check"], "0.9.10");
+  assert.deepEqual(Object.keys(manifest.dependencies).sort(), expectedDependencies.sort());
+  assert.deepEqual(
+    Object.keys(manifest.devDependencies).sort(),
+    expectedDevDependencies.sort(),
+  );
+  for (const [dependency, version] of Object.entries({
+    ...manifest.dependencies,
+    ...manifest.devDependencies,
+  })) {
+    assert.match(version, exactVersion, `${dependency} must use an exact version`);
+  }
+  assert.deepEqual(lock.packages[""].dependencies, manifest.dependencies);
+  assert.deepEqual(lock.packages[""].devDependencies, manifest.devDependencies);
   assert.equal(manifest.allowScripts["esbuild@0.28.2"], true);
   assert.equal(manifest.allowScripts["tree-sitter-bash"], false);
   assert.equal(lock.lockfileVersion, 3);
