@@ -4,7 +4,7 @@ set -euo pipefail
 
 test "$(node --version)" = "v24.19.0"
 test "$(npm --version)" = "12.0.2"
-test "$(tree-sitter --version)" = "tree-sitter 0.26.12"
+test "$(tree-sitter --version)" = "tree-sitter 0.26.13"
 test "$(node -p 'process.platform')" = "linux"
 test "$(logrotate --version | head -1)" = "logrotate 3.22.0.56_3be1"
 command -v clang >/dev/null

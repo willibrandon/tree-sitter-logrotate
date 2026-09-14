@@ -65,11 +65,11 @@
     "ajv": "8.20.0",
     "ajv-formats": "3.0.1",
     "ajv-formats-draft2019": "1.6.1",
-    "node-gyp": "13.0.1",
+    "node-gyp": "13.0.2",
     "prebuildify": "6.0.1",
     "tree-sitter": "0.25.1",
-    "tree-sitter-cli": "0.26.12",
-    "web-tree-sitter": "0.26.12"
+    "tree-sitter-cli": "0.26.13",
+    "web-tree-sitter": "0.26.13"
   },
   "peerDependencies": {
     "tree-sitter": "^0.25.1"
@@ -138,6 +138,6 @@
   "packageManager": "npm@12.0.2",
   "allowScripts": {
     "tree-sitter@0.25.1": true,
-    "tree-sitter-cli@0.26.12": true
+    "tree-sitter-cli@0.26.13": true
   }
 }

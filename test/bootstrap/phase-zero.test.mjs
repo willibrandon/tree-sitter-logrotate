@@ -12,7 +12,7 @@ const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..")
 const expectedVersion = JSON.parse(await readFile(join(repositoryRoot, "package.json"), "utf8")).version;
 const expectedNodeVersion = "24.19.0";
 const expectedNpmVersion = "12.0.2";
-const expectedTreeSitterVersion = "0.26.12";
+const expectedTreeSitterVersion = "0.26.13";
 const expectedMavenVersion = "3.9.16";
 const expectedUpstreamRevision = "3be1e9ccffe0c2245ed596183c74913d553f9f18";
 
@@ -566,16 +566,22 @@ test("CI dependency installation retries only recognized network failures", asyn
   const packageJson = await readJson("package.json");
   const script = packageScript(packageJson, "ci:install");
   const installer = await readRequired("scripts/ci-install.mjs");
+  const retry = await readRequired("scripts/network-retry.mjs");
+  const retryCommand = await readRequired("scripts/retry-network-command.mjs");
   const workflows = (await workflowSources()).map(({ source }) => source).join("\n");
 
   assert.equal(script, "node scripts/ci-install.mjs");
-  assert.match(installer, /spawnSync\(process\.execPath/u);
+  assert.match(installer, /runWithNetworkRetries\(process\.execPath/u);
   assert.match(installer, /npmCli,\s*["']ci["']/u);
-  assert.match(installer, /ECONNRESET/u);
-  assert.match(installer, /!networkFailure/u);
-  assert.match(installer, /maximumAttempts\s*=\s*3/u);
+  assert.match(retry, /spawnSync\(command/u);
+  assert.match(retry, /ECONNRESET/u);
+  assert.match(retry, /50\[234\]/u);
+  assert.match(retry, /!networkFailure/u);
+  assert.match(retry, /maximumAttempts\s*=\s*3/u);
+  assert.match(retryCommand, /runWithNetworkRetries/u);
   assert.doesNotMatch(workflows, /^\s*run:\s*npm\s+ci\s*$/mu);
   assert.match(workflows, /npm\s+run\s+ci:install/u);
+  assert.match(workflows, /retry-network-command\.mjs\s+make\s+-C\s+\.ci\/neovim/u);
 });
 
 test("empty grammar builds native and WASM artifacts into an isolated output directory", async () => {
@@ -843,7 +849,7 @@ test("Node prebuilds use a removable workspace below the isolated build mount", 
   assert.equal(packageScript(packageJson, "package:node-prebuild"), "node scripts/build-node-prebuild.mjs");
   assert.equal(
     packageJson.devDependencies?.["node-gyp"],
-    "13.0.1",
+    "13.0.2",
     "prebuildify must not select an older transitive node-gyp that cannot detect Visual Studio 2026",
   );
 
