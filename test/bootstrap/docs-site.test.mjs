@@ -319,7 +319,7 @@ test("Pages workflow builds pull requests and confines deployment permissions", 
   );
   assert.match(
     workflow,
-    /actions\/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128/u,
+    /actions\/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346/u,
   );
   assert.match(
     workflow,
