@@ -1086,6 +1086,13 @@ test("CodeQL traces only the hand-written C scanner", async () => {
   assert.doesNotMatch(codeql, /src\/parser\.c/u);
 });
 
+test("scheduled development-container checks cannot cancel push verification", async () => {
+  const workflow = await readRequired(".github/workflows/devcontainer.yml");
+
+  assert.match(workflow, /group: devcontainer-.*github\.event_name.*github\.ref/u);
+  assert.match(workflow, /cancel-in-progress:\s*true/u);
+});
+
 test("CI declares the required cross-platform and compatibility surfaces", async () => {
   const workflows = await workflowSources();
   const ciWorkflows = workflows
