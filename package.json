@@ -61,15 +61,15 @@
   },
   "devDependencies": {
     "@cyclonedx/cyclonedx-npm": "6.0.1",
-    "@playwright/test": "1.62.1",
+    "@playwright/test": "1.63.0",
     "ajv": "8.20.0",
     "ajv-formats": "3.0.1",
     "ajv-formats-draft2019": "1.6.1",
     "node-gyp": "13.0.2",
     "prebuildify": "6.0.1",
     "tree-sitter": "0.25.1",
-    "tree-sitter-cli": "0.26.13",
-    "web-tree-sitter": "0.26.13"
+    "tree-sitter-cli": "0.27.0",
+    "web-tree-sitter": "0.27.0"
   },
   "peerDependencies": {
     "tree-sitter": "^0.25.1"
