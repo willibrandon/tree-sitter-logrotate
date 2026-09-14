@@ -279,6 +279,8 @@ test("Maven IDE metadata covers the native test lifecycle executions", async () 
 test("toolchain and upstream inputs are immutable and mutually consistent", async () => {
   const packageJson = await readJson("package.json");
   const packageLock = await readJson("package-lock.json");
+  const documentationPackageJson = await readJson("docs-site/package.json");
+  const documentationPackageLock = await readJson("docs-site/package-lock.json");
   const toolchains = await readJson("toolchains.json");
   const nvmrc = (await readRequired(".nvmrc")).trim();
   const dockerfile = await readRequired(".devcontainer/Dockerfile");
@@ -303,6 +305,11 @@ test("toolchain and upstream inputs are immutable and mutually consistent", asyn
   assert.equal(packageLock.packages?.[""]?.name, packageJson.name);
   assert.equal(packageLock.packages?.[""]?.version, expectedVersion);
   assertExactDependencyVersion(packageJson, "tree-sitter-cli", expectedTreeSitterVersion);
+  assertExactDependencyVersion(
+    documentationPackageJson,
+    "typescript",
+    documentationPackageLock.packages?.["node_modules/typescript"]?.version,
+  );
 
   assert.match(automationSource, new RegExp(`(?:NODE_VERSION|node)[:=\"' ]+v?${expectedNodeVersion.replaceAll(".", "\\.")}`, "iu"));
   assert.match(automationSource, new RegExp(`(?:NPM_VERSION|npm)[:=\"' @]+${expectedNpmVersion.replaceAll(".", "\\.")}`, "iu"));
