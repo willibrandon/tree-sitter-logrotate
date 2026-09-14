@@ -192,7 +192,9 @@ jobs:
         if: matrix.revision != ''
         shell: bash
         run: |
-          make -C .ci/neovim CMAKE_BUILD_TYPE=RelWithDebInfo CMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/.ci/neovim-dist/nvim" install
+          node scripts/retry-network-command.mjs make -C .ci/neovim \
+            CMAKE_BUILD_TYPE=RelWithDebInfo \
+            CMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/.ci/neovim-dist/nvim" install
           mkdir -p "$GITHUB_WORKSPACE/.ci/tree-sitter-bash-runtime/parser"
           npm exec -- tree-sitter build \
             --output "$GITHUB_WORKSPACE/.ci/tree-sitter-bash-runtime/parser/bash.so" \
