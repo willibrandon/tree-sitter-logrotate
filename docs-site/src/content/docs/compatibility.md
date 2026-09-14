@@ -19,7 +19,7 @@ Tree-sitter CLI 0.26.12 and rebuilt in CI with 0.26.3, the declared minimum.
 | Java            | Java 25 with JTreeSitter 0.26                           |
 | Swift           | Swift 6.3.3 on macOS arm64 and Linux                    |
 | Zig             | Zig 0.16.0 on Linux, macOS, and Windows                 |
-| WebAssembly     | `web-tree-sitter` 0.26.12 in Node.js and Chromium       |
+| WebAssembly     | `web-tree-sitter` 0.26.12 in tests and 0.27.0 in the playground |
 | Neovim package  | Neovim 0.12.4 on Linux x64, macOS arm64, and Windows x64 |
 | Neovim main     | Pinned development revision on Linux x64                |
 
