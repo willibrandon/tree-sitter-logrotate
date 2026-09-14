@@ -12,7 +12,7 @@ const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..")
 const expectedVersion = JSON.parse(await readFile(join(repositoryRoot, "package.json"), "utf8")).version;
 const expectedNodeVersion = "24.19.0";
 const expectedNpmVersion = "12.0.2";
-const expectedTreeSitterVersion = "0.26.12";
+const expectedTreeSitterVersion = "0.26.13";
 const expectedMavenVersion = "3.9.16";
 const expectedUpstreamRevision = "3be1e9ccffe0c2245ed596183c74913d553f9f18";
 
@@ -843,7 +843,7 @@ test("Node prebuilds use a removable workspace below the isolated build mount", 
   assert.equal(packageScript(packageJson, "package:node-prebuild"), "node scripts/build-node-prebuild.mjs");
   assert.equal(
     packageJson.devDependencies?.["node-gyp"],
-    "13.0.1",
+    "13.0.2",
     "prebuildify must not select an older transitive node-gyp that cannot detect Visual Studio 2026",
   );
 
