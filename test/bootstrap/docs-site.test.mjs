@@ -311,7 +311,7 @@ test("Pages workflow builds pull requests and confines deployment permissions", 
   assert.match(workflow, /^\s*pull_request:\s*$/mu);
   assert.match(
     workflow,
-    /withastro\/action@e84f40bd8d2caa9e768ec82ad30dd81f0b280853/u,
+    /withastro\/action@3eafd002e65cc31b4f0eae0bb05450d521562247/u,
   );
   assert.match(
     workflow,
