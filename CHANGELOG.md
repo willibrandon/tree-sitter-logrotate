@@ -12,6 +12,12 @@ Rust source packages now anchor every included path to the repository root so ne
 cannot enter the crate. The configuration and state grammars, public nodes and fields, query
 captures, language ABI 15, and minimum Tree-sitter CLI 0.26.3 remain unchanged.
 
+Dependency lockfiles now use patched `undici`, `ip-address`, `brace-expansion`, `devalue`, and
+`fast-uri` releases. Documentation dependencies also include the previously merged Astro, sharp,
+SVGO, and js-yaml security fixes. Development uses Tree-sitter CLI and WASM runtime 0.27.0.
+The separate `http-cache-semantics` advisory GHSA-ch52-4w7c-c8xp has no upstream patched release
+and remains pending; the documentation site is published as static files.
+
 ## 0.2.0
 
 This release adds a separate `logrotate_state` grammar for logrotate version 1 and version 2 state
