@@ -251,7 +251,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up Tree-sitter CLI
-        uses: tree-sitter/setup-action/cli@49f8c1f20b60102eae8c033bb7c7f6cd056f6086 # v2
+        uses: tree-sitter/setup-action/cli@faab9a23fa6195da0f1cf868219cc1e89f238d3d # v2
         with:
           tree-sitter-ref: v0.26.12
       - name: Run upstream parser checks
@@ -270,7 +270,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up Tree-sitter CLI
-        uses: tree-sitter/setup-action/cli@49f8c1f20b60102eae8c033bb7c7f6cd056f6086 # v2
+        uses: tree-sitter/setup-action/cli@faab9a23fa6195da0f1cf868219cc1e89f238d3d # v2
         with:
           tree-sitter-ref: v0.26.12
       - name: Install ts_query_ls
@@ -359,7 +359,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up Rust
-        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
+        uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067
         with:
           toolchain: ${{ matrix.rust }}
       - name: Test the Rust binding
