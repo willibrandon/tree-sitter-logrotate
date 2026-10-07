@@ -856,8 +856,8 @@ test("Node prebuilds use a removable workspace below the isolated build mount", 
   assert.equal(packageScript(packageJson, "package:node-prebuild"), "node scripts/build-node-prebuild.mjs");
   assert.equal(
     packageJson.devDependencies?.["node-gyp"],
-    "13.0.2",
-    "prebuildify must not select an older transitive node-gyp that cannot detect Visual Studio 2026",
+    "13.1.0",
+    "prebuildify must use the pinned node-gyp that can detect Visual Studio 2026",
   );
 
   const script = await readRequired("scripts/build-node-prebuild.mjs");
