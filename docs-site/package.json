@@ -35,5 +35,10 @@
     "esbuild@0.28.2": true,
     "tree-sitter-bash": false,
     "tree-sitter-logrotate": false
+  },
+  "overrides": {
+    "@astrojs/check": {
+      "typescript": "$typescript"
+    }
   }
 }
