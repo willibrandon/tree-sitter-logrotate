@@ -177,9 +177,9 @@ test("playground uses the released WASM parsers and portable queries", async () 
   const component = await readDocs("src/components/Playground.astro");
   const workflow = await read(".github/workflows/ci.yml");
 
-  assert.equal(docsManifest.dependencies["tree-sitter-logrotate"], "0.2.0");
+  assert.equal(docsManifest.dependencies["tree-sitter-logrotate"], "0.2.1");
   assert.equal(docsManifest.dependencies["tree-sitter-bash"], "0.25.1");
-  assert.equal(docsManifest.dependencies["web-tree-sitter"], "0.27.0");
+  assert.equal(docsManifest.dependencies["web-tree-sitter"], "0.27.1");
   assert.equal(docsManifest.allowScripts["tree-sitter-bash"], false);
   assert.equal(docsManifest.allowScripts["tree-sitter-logrotate"], false);
   assert.equal(
