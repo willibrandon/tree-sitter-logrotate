@@ -43,7 +43,7 @@
     <dependency>
       <groupId>io.github.tree-sitter</groupId>
       <artifactId>jtreesitter</artifactId>
-      <version>0.26.1</version>
+      <version>0.27.0</version>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -115,7 +115,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
-        <version>3.6.4</version>
+        <version>3.7.0</version>
         <executions>
           <execution>
             <id>configure-native-test-libraries</id>
