@@ -255,7 +255,7 @@ jobs:
         with:
           tree-sitter-ref: v0.26.12
       - name: Run upstream parser checks
-        uses: tree-sitter/parser-test-action@05f6ce7c7e54603c45cd87ed926725dc870bcc63 # v3
+        uses: tree-sitter/parser-test-action@92e35c06b51ea26c80ffbd3cc8d9286d9110df17 # v3
         with:
           abi-version: "15"
           test-parser-cmd: tree-sitter test --grammar-path . && tree-sitter test --grammar-path src/state
@@ -308,7 +308,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           go-version: ${{ matrix.go }}
           cache: true
@@ -414,7 +414,7 @@ jobs:
           node-version: 24.19.0
           cache: npm
       - name: Set up Java
-        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
         with:
           distribution: temurin
           java-version: 25
